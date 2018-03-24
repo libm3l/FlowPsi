@@ -1,0 +1,80 @@
+//#############################################################################
+//#
+//# Copyright 2015, Mississippi State University
+//#
+//# This file is part of the flowPsi computational fluid dynamics solver.
+//#
+//# The flowPsi solver is free software: you can redistribute it and/or modify
+//# it under the terms of the GNU General Public License as published by
+//# the Free Software Foundation, either version 3 of the License, or
+//# (at your option) any later version.
+//#
+//# The flowPsi solver is distributed in the hope that it will be useful,
+//# but WITHOUT ANY WARRANTY; without even the implied warranty of
+//# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//# GNU General Public License for more details.
+//#
+//# You should have received a copy of the GNU General Public License
+//# along with the flowPsi solver.  If not, see <http://www.gnu.org/licenses>
+//#
+//#############################################################################
+
+
+
+/*
+ * 
+ * Description: calls functions acting as a bridge between FlowPsi and externally driven processes
+ *     For this purpose, it uses two external libraries, libm3l and lsipdx
+ *      for more details go to www.github.com/libm3l/libm3l and www.github.com/libm3l/lsipdx 
+ *       values of angles, rotation center and translation
+ *
+ *
+ * History:
+ * Version   Author:               Date       Patch number  CLA     Comment
+ * -------   -------               --------   --------      ---     -------
+ * 1.1       Adam Jirasek/USAFA    2018-03-21                         Initial implementation
+ *
+ *
+ *
+ * 
+ */
+
+#include <Loci.h>
+#include <stdio.h>
+$include "flowPsi.lh"
+
+/*
+ *  include header files for libm3l and lsipdx library and header file for bridges (located in ../src_bridges)
+ */
+#include "libm3l.h"
+#include "lsipdx.h"
+#include "src_bridges.h"
+
+namespace flowPsi {
+  using std::cerr ;
+  using std::endl ;
+
+//  $rule singleton(OUTPUT{n}<-ncycle{n}),conditional(do_communicate{n}),option(disable_threading) {
+    $rule singleton(OUTPUT{n,it}<-cfl{n,it},newtonFinished{n,it},lastNewton{n,it}),
+        conditional(do_communicate_nit{n,it}),option(disable_threading) {
+/*
+ * communicate_n_it is a condition which desides when to communicate, it is defines in solverSetup.loci
+ */
+    if(Loci::MPI_rank==0) {
+//	printf(" NEW ITERATION  ----------------------  LOOP #%3d \n", $ncycle{n});
+	printf("%s\n", $newtonFinished{n,it} ? "TRUE" : "FALSE");
+	printf("%s\n", $lastNewton{n,it} ? "L_TRUE" : "L_FALSE");
+	printf(" NEW ITERATION  ----------------------  LOOP \n");
+/*
+ * call function test_bridge
+ * this is obviously in contrast using LoCi to for scheduling, I think it may 
+ * be done through reduction rule "apply[]" and "test_bridge" as an operator
+ * but at the moment I'm OK with as it is now
+ *
+ * the communication is done through root partition only
+ */ 
+        test_bridge();
+
+    }
+  }
+}
