@@ -194,7 +194,6 @@ $type icRegionInfo blackbox<std::vector<flowPsi::ICstate_info> >;
 $type icRegionId store<int> ;
 
 $type print_freq  param<int> ;
-$type comm_freq   param<int> ;
 $type plot_freq   param<int> ;
 $type plot_modulo param<int> ;
 $type do_plot     param<bool> ;
