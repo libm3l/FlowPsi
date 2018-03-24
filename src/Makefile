@@ -6,7 +6,7 @@ include $(LOCI_BASE)/Loci.conf
 #COPT=$(COPTLESS)
 
 
-INCLUDES = -I../include
+INCLUDES = -I../include -I$(LIBM3LPATH) -I$(LSIPDXPATH) -I../src_bridges
 
 
 TARGET = flowpsi
@@ -17,7 +17,7 @@ OBJS =  \
 	bcInputs.o bcTurboInterface.o bcTools.o bcInterface.o \
 	bcPrescribed.o bcImpermeable.o bcInflow.o bcOutflow.o \
 	bcIsentropic.o bcFixedMass.o bcFixedMassOutflow.o bcViscousWall.o \
-	solverTimestep.o solverNewton.o solverEoS.o solverIC.o \
+	solverTimestep.o solverNewton.o solverExternalComm.o solverEoS.o solverIC.o \
 	solverLinearSystem.o solverResidual.o solverRestart.o\
 	solverTurbulence.o solverScalarTransport.o solverPeriodic.o \
 	solverSetup.o solverGravity.o solverAveraging.o solverInterpolate.o \
@@ -28,7 +28,7 @@ OBJS =  \
 
 
 
-LOCAL_LIBS = $(LIBXML2_LIBS) -L$(LOCI_BASE)/lib 
+LOCAL_LIBS = $(LIBXML2_LIBS) -L$(LOCI_BASE)/lib ../src_bridges/libbridges.a 
 
 JUNK = *~  core debug .schedule .schedule-*
 
@@ -40,7 +40,7 @@ all:
 
 
 $(TARGET): $(OBJS) 
-	$(LD) -o  $(TARGET)  $(RPATH)$(FLOWPSI_RPATH) $(OBJS) $(LOCAL_LIBS) $(LIBS) $(LDFLAGS)
+	$(LD) -o  $(TARGET)  $(RPATH)$(FLOWPSI_RPATH) $(OBJS) $(LOCAL_LIBS) $(LIBS) $(LIBSFLPSI) $(LDFLAGS)
 	mv flowpsi ../bin/flowpsi
 
 FRC : 

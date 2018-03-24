@@ -181,7 +181,24 @@ namespace flowPsi {
     }
   }
 
-   
-    
+
+  // provides the condition under which to communicate
+
+  $rule default(comm_freq) {
+    $comm_freq = 1 ;
+  }
+
+  $type do_communicate param<bool> ;
+  $rule singleton(do_communicate{n}<-ncycle{n},comm_freq) {
+    //the condition for when to communicate
+    $do_communicate{n} = ($ncycle{n} % $comm_freq) == 0;
+  } 
+
+  $type do_communicate_nit param<bool> ;
+  $rule singleton(do_communicate_nit{n,it}<-ncycle{n},comm_freq,$it{n,it}) {
+    //the condition for when to communicate
+    $do_communicate_nit{n,it} = ($ncycle{n} % $comm_freq) == 0 && ($$it{n,it} == 0) ;
+  } 
+
   
 }
