@@ -1,0 +1,325 @@
+//#############################################################################
+//#
+//# Copyright 2015, Mississippi State University
+//#
+//# This file is part of the flowPsi computational fluid dynamics solver.
+//#
+//# The flowPsi solver is free software: you can redistribute it and/or modify
+//# it under the terms of the GNU General Public License as published by
+//# the Free Software Foundation, either version 3 of the License, or
+//# (at your option) any later version.
+//#
+//# The flowPsi solver is distributed in the hope that it will be useful,
+//# but WITHOUT ANY WARRANTY; without even the implied warranty of
+//# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//# GNU General Public License for more details.
+//#
+//# You should have received a copy of the GNU General Public License
+//# along with the flowPsi solver.  If not, see <http://www.gnu.org/licenses>
+//#
+//#############################################################################
+
+#include <Loci.h>
+$include "flowPsi.lh"
+
+namespace flowPsi {
+
+  $rule unit(fjm),constraint((cl,cr)->(u,temperature,gagePressure)),prelude {
+    $fjm.setVecSize(5) ;
+  } compute {
+    $fjm = mk_Scalar(0.) ;
+  }
+    
+  $rule unit(fjp),constraint((cl,cr)->(u,temperature,gagePressure)),prelude {
+    $fjp.setVecSize(5) ;
+  } compute {
+    $fjp = mk_Scalar(0.) ;
+  }
+
+  $rule unit(srcJ),constraint(geom_cells,u,temperature,gagePressure),prelude {
+    $srcJ.setVecSize(5) ;
+  } compute {
+    $srcJ = mk_Scalar(0.) ;
+  }
+    
+  $rule pointwise(fluid_B<-rhs,iblank), prelude {
+    $fluid_B.setVecSize(5) ;
+  } compute {
+    if($iblank > 1)
+      for(int i=0;i<5;++i)
+        $fluid_B[i] = 0 ;
+    else
+      for(int i=0;i<5;++i)
+        $fluid_B[i] = $rhs[i] ;
+  }
+
+
+  $rule pointwise(fluid_L<-fjp,(cl,cr)->iblank),constraint(fjp),
+    inplace(fluid_L|fjp) {
+    if($cl->$iblank > 1 || $cr->$iblank > 1) {
+      for(int i=0;i<5;++i)
+        for(int j=0;j<5;++j)
+          $fluid_L[i][j] = 0 ;
+    } else {
+      for(int i=0;i<5;++i)
+        for(int j=0;j<5;++j)
+          $fluid_L[i][j] = -$fjp[i][j] ;
+    }
+  }
+
+  $rule pointwise(fluid_U<-fjm,(cl,cr)->iblank),constraint(fjm),
+    inplace(fluid_U|fjm) {
+    if($cl->$iblank > 1 || $cr->$iblank > 1 ) {
+      for(int i=0;i<5;++i)
+        for(int j=0;j<5;++j)
+          $fluid_U[i][j] = 0 ;
+    } 
+  }
+
+  $rule pointwise(periodic::fluid_U<-fjm,ref->periodicTransform,pmap->cl->vol,cl->vol),
+    constraint(fjm,periodicFaces),
+    inplace(periodic::fluid_U|fjm) {
+    if($cl != $pmap->$cl) {
+      // Modify jacobian to account for velocity vector rotation
+      // at periodic boundary conditions.
+      const rigid_transform &frame = $ref->$periodicTransform ;
+      const int mi=1 ;
+      const int vs=5;
+
+      for(int i=0;i<vs;++i) {
+        vect3d fm = vect3d($fjm[i][mi+0],
+                           $fjm[i][mi+1],
+                           $fjm[i][mi+2]) ;
+        vect3d fnew = dot(frame.R,fm) ;
+        $fjm[i][mi+0]= fnew.x ;
+        $fjm[i][mi+1]= fnew.y ;
+        $fjm[i][mi+2]= fnew.z ;
+      }
+    } else {
+      const int vs=5 ;
+      for(int i=0;i<vs;++i)
+        for(int j=0;j<vs;++j)
+          $fjm[i][j] = 0 ;
+    }
+  }
+
+  $rule apply(srcJ<-upper->fjp,lower->fjm)[Loci::Summation],
+      constraint(geom_cells) {
+    //            -------
+    //            |cr   |cr
+    //            |-->  |-->
+    //            |fjm  |fjp
+    //            -------
+    //method of adding flux Jacobians at interior faces into srcJ
+    const int usz = $upper.size() ;
+    for(int i=0;i<usz;++i)
+      $srcJ -= $upper[i]->$fjp ; //the normal vector
+    const int lsz = $lower.size() ;
+    for(int i=0;i<lsz;++i)
+      $srcJ += $lower[i]->$fjm ;
+  }
+
+  // rule adds flux Jacobians into the srcJ
+  $rule apply(cl->srcJ<-fjm,ref->periodicTransform,pmap->cl)[Loci::Summation],
+    constraint(periodicFaces) {
+    //method of adding flux Jacobians at interior faces into srcJ
+    // Modify jacobian to account for velocity vector rotation
+    // at periodic boundary conditions.
+    const rigid_transform &frame = $ref->$periodicTransform ;
+    const int mi=1 ;
+    const int vs=5 ;
+
+    if($cl == $pmap->$cl) {
+      for(int i=0;i<vs;++i) {
+	$cl->$srcJ[i][0] -= $fjm[i][0] ;
+
+        vect3d fm = vect3d($fjm[i][mi+0],
+                           $fjm[i][mi+1],
+                           $fjm[i][mi+2]) ;
+        vect3d fnew = dot(frame.R,fm) ;
+        $cl->$srcJ[i][mi+0] -= fnew.x ;
+        $cl->$srcJ[i][mi+1] -= fnew.y ;
+        $cl->$srcJ[i][mi+2] -= fnew.z ;
+
+	$cl->$srcJ[i][4] -= $fjm[i][4] ;
+      }
+    }
+  }
+
+  $rule pointwise(fluid_D<-Pambient,vol,dtau,srcJ,u,gagePressure,temperature,
+		  Rtilde,gamma,iblank,Eta_p),
+    constraint(geom_cells,timeStepSteadyState), inplace(fluid_D|srcJ) {
+
+    for(int i=0;i<5;++i)
+      for(int j=0;j<5;++j)
+	$fluid_D[i][j] = -$srcJ[i][j] ;
+    real coef = $vol/$dtau ;
+    const real rT = 1./$temperature ;
+    const real rho = ($gagePressure+$Pambient)/($Rtilde*$temperature) ;
+    const real q = 0.5*dot($u,$u) ;
+    const real TFactor = -coef*rT*rho ;
+    $fluid_D[0][0] += TFactor ;
+    $fluid_D[1][0] += TFactor*$u.x ;
+    $fluid_D[2][0] += TFactor*$u.y ;
+    $fluid_D[3][0] += TFactor*$u.z ;
+    $fluid_D[4][0] += TFactor*q ;
+    
+    const real reta = 1./$Eta_p; 
+    const real g = $gamma ;
+    const real gm1 = g-1. ;
+    real rP = 1./($gagePressure+$Pambient) ;
+    const real Pfactor = reta*coef*rP*rho ;
+    $fluid_D[0][4] += Pfactor ;
+    $fluid_D[1][4] += Pfactor*$u.x ;
+    $fluid_D[2][4] += Pfactor*$u.y ;
+    $fluid_D[3][4] += Pfactor*$u.z ;
+    $fluid_D[4][4] += reta*coef*(1./gm1 + rP*rho*q) ;
+    const real T2 = TFactor*(1.-reta)*gm1*$temperature*rP/g ;
+    $fluid_D[0][4] += T2 ;
+    $fluid_D[1][4] += T2*$u.x ;
+    $fluid_D[2][4] += T2*$u.y ;
+    $fluid_D[3][4] += T2*$u.z ;
+    $fluid_D[4][4] += T2*q ;
+    
+    $fluid_D[1][1] += coef*rho ;
+    $fluid_D[2][2] += coef*rho ;
+    $fluid_D[3][3] += coef*rho ;
+    
+    $fluid_D[4][1] += coef*rho*$u.x ;
+    $fluid_D[4][2] += coef*rho*$u.y ;
+    $fluid_D[4][3] += coef*rho*$u.z ;
+    
+    if($iblank > 1) {
+      for(int i=0;i<5;++i)
+	for(int j=0;j<5;++j)
+	  $fluid_D[i][j] = 0.0 ;
+      for(int i=0;i<5;++i)
+	$fluid_D[i][i] = 1.0 ;
+    }
+  }
+
+  $type rhon store<real> ;
+  $type rhonp1 store<real> ;
+  $type un store<vect3d> ;
+  
+  // Density at n timestep
+  $rule pointwise(rhon{n,it}<-temperature{n},gagePressure{n},Rtilde{n,it},Pambient{n,it}) {
+    $rhon{n,it} = ($gagePressure{n}+$Pambient{n,it})/
+		    ($Rtilde{n,it}*$temperature{n}) ;
+  }
+  
+  $rule pointwise(un{n,it}<-u{n},Pambient{n,it}) {
+    $un{n,it} = $u{n} ;
+  }
+  
+  
+  $rule pointwise(rhonp1{n,it}<-
+                  temperature{n},gagePressure{n},u{n},Pambient,
+                  temperature{n,it},gagePressure{n,it},localPBias{n,it},
+                  Rtilde) {
+    const real Tstar = $temperature{n,it} ;
+    const real Tn = $temperature{n} ;
+    // use harmonic mean of Tn and Tnp1 to define Tstar
+    const real Tnp1 = Tn*Tstar/(2.*Tn-Tstar) ;
+
+
+    const real pgstar = $gagePressure{n,it} ;
+    const real peps = $localPBias{n,it} ;
+    const real pgnp1 = (2.*pgstar-(1.-peps)*$gagePressure{n})/(1+peps) ;
+    
+    $rhonp1{n,it} = (pgnp1+$Pambient)/($Rtilde*Tnp1) ;
+  }
+  
+  $type Tn store<real> ;
+  $rule pointwise(Tn{n,it}<-temperature{n},temperature{n,it}) {
+    $Tn{n,it} = $temperature{n} ;
+  }
+
+  $rule pointwise(fluid_D<-Pambient,vol,dtau,srcJ,u,gagePressure,temperature,
+		  Tn,rhon,rhonp1,un,Rtilde,gamma,localPBias,iblank),
+    constraint(geom_cells,timeStepAccurate), inplace(fluid_D|srcJ) {
+    
+    for(int i=0;i<5;++i)
+      for(int j=0;j<5;++j)
+	$fluid_D[i][j] = -$srcJ[i][j] ;
+    
+
+    using Loci::Array ;
+    Array<Array<real,5>,5> dQdq ;
+    const real rT = 1./$temperature ;
+    const real rho = ($gagePressure+$Pambient)/($Rtilde*$temperature) ;
+    const real q = 0.5*dot($u,$u) ;
+    dQdq[0][0] = -rT*rho ;
+    dQdq[1][0] = -rT*rho*$u.x ;
+    dQdq[2][0] = -rT*rho*$u.y ;
+    dQdq[3][0] = -rT*rho*$u.z ;
+    dQdq[4][0] = -rT*rho*q ;
+    
+    real rP = 1./($gagePressure+$Pambient) ;
+    dQdq[0][4] = rP*rho ;
+    dQdq[1][4] = rP*rho*$u.x ;
+    dQdq[2][4] = rP*rho*$u.y ;
+    dQdq[3][4] = rP*rho*$u.z ;
+    dQdq[4][4] = (1./($gamma-1.) + rP*rho*q) ;
+    
+    for(int i=0;i<5;++i) {
+      dQdq[i][1] = 0 ;
+      dQdq[i][2] = 0 ;
+      dQdq[i][3] = 0 ;
+    }
+    dQdq[1][1] = rho ;
+    dQdq[2][2] = rho ;
+    dQdq[3][3] = rho ;
+    
+    dQdq[4][1] = rho*$u.x ;
+    dQdq[4][2] = rho*$u.y ;
+    dQdq[4][3] = rho*$u.z ;
+    
+    Array<Array<real,5>,5> dqdqstar ;
+    for(int i=0;i<5;++i)
+      for(int j=0;j<5;++j)
+        dqdqstar[i][j] = 0 ;
+
+    const real Pcoef = 2.0/(1+$localPBias) ;
+    const real srhonp1 = sqrt($rhonp1) ;
+    const real srhon = sqrt($rhon) ;
+    const real ucoef   = (srhonp1+srhon)/srhonp1 ;
+
+    // derivative of harmonic mean formula
+    const real tfactor = 1./(2*$Tn-$temperature) ;
+    const real dTdTs = 2.*$Tn*$Tn*tfactor*tfactor ;
+    const real drdt = -dTdTs*rho/$temperature ;
+    const real drdp = Pcoef*rho/($gagePressure+$Pambient) ;
+
+    dqdqstar[0][0] =  dTdTs ;
+    dqdqstar[1][1] = ucoef ;
+    dqdqstar[2][2] = ucoef ;
+    dqdqstar[3][3] = ucoef ;
+    dqdqstar[4][4] = Pcoef ;
+    
+    const real ucoef2 = 0.5*srhon/(srhonp1*srhonp1*srhonp1) ;
+    dqdqstar[1][0] += ucoef2*drdt*($un.x-$u.x) ;
+    dqdqstar[2][0] += ucoef2*drdt*($un.y-$u.y) ;
+    dqdqstar[3][0] += ucoef2*drdt*($un.z-$u.z) ;
+    dqdqstar[1][4] += ucoef2*drdp*($un.x-$u.x) ;
+    dqdqstar[2][4] += ucoef2*drdp*($un.y-$u.y) ;
+    dqdqstar[3][4] += ucoef2*drdp*($un.z-$u.z) ;
+
+    real coef = $vol/$dtau ;
+    for(int i=0;i<5;++i)
+      for(int j=0;j<5;++j)
+        dQdq[i][j] *= coef ;
+    for(int i=0;i<5;++i)
+      for(int j=0;j<5;++j)
+        for(int k=0;k<5;++k)
+          $fluid_D[i][j] += dQdq[i][k]*dqdqstar[k][j] ;
+    
+    if($iblank > 1) {
+      for(int i=0;i<5;++i)
+	for(int j=0;j<5;++j)
+	  $fluid_D[i][j] = 0.0 ;
+      for(int i=0;i<5;++i)
+	$fluid_D[i][i] = 1.0 ;
+    }
+  }
+}

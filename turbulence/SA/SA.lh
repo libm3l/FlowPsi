@@ -1,0 +1,66 @@
+//#############################################################################
+//#
+//# Copyright 2015, Mississippi State University
+//#
+//# This file is part of the flowPsi computational fluid dynamics solver.
+//#
+//# The flowPsi solver is free software: you can redistribute it and/or modify
+//# it under the terms of the GNU General Public License as published by
+//# the Free Software Foundation, either version 3 of the License, or
+//# (at your option) any later version.
+//#
+//# The flowPsi solver is distributed in the hope that it will be useful,
+//# but WITHOUT ANY WARRANTY; without even the implied warranty of
+//# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//# GNU General Public License for more details.
+//#
+//# You should have received a copy of the GNU General Public License
+//# along with the flowPsi solver.  If not, see <http://www.gnu.org/licenses>
+//#
+//#############################################################################
+
+// Spalart Allmaras Variables
+$type spalart param<Spa_All_param> ;
+
+// turbulent kinematic viscosity
+$type nu_t              store<flowPsi::real> ;
+$type nu_t_f            store<flowPsi::real> ;
+$type nu_t_bc           store<flowPsi::real> ;
+// Chi coefficeint for SA model
+$type xcoeff            store<flowPsi::real> ;
+// SA model coefficeitns
+$type fv1               store<flowPsi::real> ;
+$type fv1_f             store<flowPsi::real> ;
+$type fv2               store<flowPsi::real> ;
+$type S_tilda           store<flowPsi::real> ;
+$type rcoeff            store<flowPsi::real> ;
+$type rpcoeff           store<flowPsi::real> ;
+$type gcoeff            store<flowPsi::real> ;
+$type gpcoeff           store<flowPsi::real> ;
+$type fw                store<flowPsi::real> ;
+$type fwp               store<flowPsi::real> ;
+$type cw1               param<flowPsi::real> ;
+// convection, diffusion, and source terms
+$type SA_src            store<flowPsi::real> ;
+// turbulent destruction
+$type SA_destruct       store<flowPsi::real> ;
+// flux jacobians
+$type SA_fjm            store<flowPsi::real> ;
+$type SA_fjp            store<flowPsi::real> ;
+// diagonal jacobian term
+$type SA_srcJ           store<flowPsi::real> ;
+// right hand side of newton method
+$type SA_rhs            store<flowPsi::real> ;
+// SA matrix
+$type SA_B              store<flowPsi::real> ;
+$type SA_dq             store<flowPsi::real> ;
+$type SA_L              store<flowPsi::real> ;
+$type SA_D              store<flowPsi::real> ;
+$type SA_U              store<flowPsi::real> ;
+$type SA_qi             store<flowPsi::real> ;
+
+$type wall_law param<flowPsi::wall_func_param> ;
+$type temp_wlaw store<flowPsi::real> ;
+$type wall_law_nut store<flowPsi::real> ;
+$type tau_wall store<flowPsi::vect3d> ;
+$type q_wall store<flowPsi::real> ;

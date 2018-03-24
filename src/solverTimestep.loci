@@ -1,0 +1,291 @@
+//#############################################################################
+//#
+//# Copyright 2015, Mississippi State University
+//#
+//# This file is part of the flowPsi computational fluid dynamics solver.
+//#
+//# The flowPsi solver is free software: you can redistribute it and/or modify
+//# it under the terms of the GNU General Public License as published by
+//# the Free Software Foundation, either version 3 of the License, or
+//# (at your option) any later version.
+//#
+//# The flowPsi solver is distributed in the hope that it will be useful,
+//# but WITHOUT ANY WARRANTY; without even the implied warranty of
+//# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//# GNU General Public License for more details.
+//#
+//# You should have received a copy of the GNU General Public License
+//# along with the flowPsi solver.  If not, see <http://www.gnu.org/licenses>
+//#
+//#############################################################################
+
+#include <Loci.h>
+$include "flowPsi.lh"
+
+namespace flowPsi {
+  $type solution store<real> ;
+
+  $type timestepFinished param<bool> ;
+  $type stop_iter param<int> ;
+  $rule default(stop_iter) {
+    $stop_iter=1000 ;
+  }
+  
+  $rule singleton(plot_status{n=-1}),constraint(UNIVERSE) {
+    $plot_status{n=-1} = 0 ;
+  }
+  $rule singleton(timestepFinished{n}<-$n{n},stop_iter,plot_status{n-1}) {
+    $timestepFinished{n} = ($$n{n}>$stop_iter+1)||($plot_status{n-1}>1) ;
+  }
+					    
+  $rule pointwise(solution<-gagePressure{n},temperature{n},u{n}),
+    constraint(geom_cells{n}),conditional(timestepFinished{n}),
+    inplace(solution|gagePressure{n}),prelude {} ;
+  
+
+  $type timeStepMode param<string> ;
+  $rule default(timeStepMode) {
+    $timeStepMode = "steady" ;
+  }
+
+  $rule singleton(timeSteppingMode<-timeStepMode) {  
+    $timeSteppingMode = 0 ;
+    if($timeStepMode == "unsteady") {
+      $timeSteppingMode = 1 ;
+    }
+  }
+
+  $type timeStepSteadyState Constraint ;
+  $type timeStepAccurate Constraint ;
+  $rule constraint(timeStepSteadyState,timeStepAccurate<-timeStepMode) {
+    $timeStepSteadyState = ~EMPTY ;
+    $timeStepAccurate = EMPTY ;
+    if($timeStepMode == "unsteady") {
+      $timeStepSteadyState = EMPTY ;
+      $timeStepAccurate = ~EMPTY ;
+    } else if($timeStepMode != "steady") {
+      if(Loci::MPI_rank == 0) {
+        std::cerr << "invalid timeStepMode=" << $timeStepMode << std::endl ;
+        std::cerr << "valid modes are 'steady' or 'unsteady'" << std::endl ;
+      }
+      Loci::Abort() ;
+    }
+  }
+           
+      
+  $rule pointwise(gagePressure{n=0}<-gagePressure_ic) {
+    $gagePressure{n=0} = $gagePressure_ic ;
+  }
+
+  $rule pointwise(temperature{n=0}<-temperature_ic) {
+    $temperature{n=0} = $temperature_ic ;
+  }
+  
+  $rule pointwise(u{n=0}<-u_ic) {
+    $u{n=0} = $u_ic ;
+  }
+
+  $type ic_stime param<real> ; //computing time ;
+  $type ic_ncycle param<int> ; //starting cycle number ;
+  
+  $rule unit(ic_stime),constraint(UNIVERSE) {
+    $ic_stime = 0 ;
+  }
+
+  
+  $rule singleton(timeStepSize<-dtmax,timeStepMode) {
+    $timeStepSize = 0 ;
+    if($timeStepMode!="steady") {
+      $timeStepSize = real($dtmax) ;
+    }
+  }
+  	
+  $rule apply(ic_stime<-timeStepSize)[Loci::Maximum], prelude {
+  } ;
+  
+  $rule unit(ic_ncycle),constraint(UNIVERSE) {
+    $ic_ncycle = 0 ;
+  } ;
+  
+  $rule apply(ic_ncycle<-timeStepSize)[Loci::Maximum], prelude {
+  } ;
+
+  class ic_time_from_file : public singleton_rule {
+    const_param<std::string> icfile,modelName ;
+    param<real> stime ; //computing time ;
+    param<int> ncycle ; //starting cycle number ;
+  public:
+    ic_time_from_file() ;
+    virtual void compute(const sequence &seq) ;
+  } ;
+
+  ic_time_from_file::ic_time_from_file() {
+    name_store("icfile",icfile) ;
+    name_store("modelName",modelName) ;
+    name_store("icf_stime",stime) ;
+    name_store("icf_ncycle",ncycle) ;
+    input("icfile,modelName") ;
+    output("icf_stime,icf_ncycle") ;
+    disable_threading() ;
+  }
+
+  void ic_time_from_file::compute(const sequence &seq) {
+    if(Loci::GLOBAL_AND(seq==EMPTY))
+      return ;
+
+    string filename = *icfile + "flowVars_" + *modelName ;
+
+    hid_t file_id = Loci::hdf5OpenFile((filename).c_str(),
+                                       H5F_ACC_RDONLY, H5P_DEFAULT);
+    entitySet dom = ~EMPTY ;
+    
+    // Set up defaults
+    *stime = 0 ;
+    *ncycle = 0 ;
+    // Read in restart values
+    Loci::readContainer(file_id,"stime",stime.Rep(),dom) ;
+    Loci::readContainer(file_id,"ncycle",ncycle.Rep(),dom) ;
+    Loci::hdf5CloseFile(file_id) ;
+
+    if(*stime == 0)
+      *ncycle = 0 ;
+  }
+  register_rule<ic_time_from_file>    register_ic_time_from_file ;
+
+  $rule singleton(stime{n=0}<-ic_stime) {
+    $stime{n=0} = $ic_stime ;
+  }
+
+  $type icf_stime param<real> ;
+  $rule apply(ic_stime<-icf_stime)[Loci::Maximum],prelude {
+    *$ic_stime = *$icf_stime ;
+  } ;
+
+  $type ic_ncycle param<int> ;
+  $type icf_ncycle param<int> ;
+  
+  $rule apply(ic_ncycle<-icf_ncycle)[Loci::Maximum],prelude {
+    *$ic_ncycle = *$icf_ncycle ;
+  } ;
+
+  $rule singleton(ncycle{n=0}<-ic_ncycle) {
+    $ncycle{n=0} = $ic_ncycle ;
+  }
+
+  $rule singleton(ncycle{n,it=0}<-ncycle{n}) {
+    $ncycle{n,it=0} = $ncycle{n} + 1 ;
+  }
+
+  $rule singleton(ncycle{n,it+1}<-ncycle{n,it}) {
+    $ncycle{n,it+1} = $ncycle{n,it} ;
+  }
+  $rule singleton(ncycle{n+1}<-ncycle{n,it}),conditional(newtonFinished{n,it}) {
+    $ncycle{n+1} = $ncycle{n,it} ;
+  }
+  
+  $rule singleton(stime{n,it=0}<-stime{n},timeStepSize{n}) {
+    $stime{n,it=0} = $stime{n}+0.5*$timeStepSize{n} ;
+  }
+  $rule singleton(stime{n,it+1}<-stime{n,it},$it{n,it}) {
+    $stime{n,it+1} = $stime{n,it} ;
+  }
+
+  $rule singleton(stime{n+1}<-stime{n,it},timeStepSize{n}),conditional(newtonFinished{n,it}) {
+    $stime{n+1} = $stime{n,it} + 0.5*$timeStepSize{n};
+  }
+
+  
+  $rule default(urelax), comments("under relaxation factor used to compute local timestep based on estimated change in temperature and pressure") {
+    $urelax = 0.2 ;
+  }
+
+  $rule default(dtmax), comments("setting of maximum timestep") {
+    $dtmax.val = 1.0 ;
+  }
+  // Compute local timestep by using linearization of change in pressure and temperature by
+  // urelax factor
+  // using  \delta q = \delta t * \partial q/\partial Q src
+  $rule pointwise(dtau<-vol,src,temperature,gagePressure,u,gamma,urelax,dtmax,Pambient,Rtilde) {
+    real dt = $dtmax ;
+    const real q = 0.5*dot($u,$u) ;
+    const real p = $gagePressure+$Pambient ;
+    const real T = $temperature ;
+    const real gm1 = $gamma -1. ;
+    const real coeft = T/(p*gm1) ;
+    const real coeft2 = T*$Rtilde*gm1 ;
+    const real rvol = 1./$vol ;
+    real factor = rvol*(q*$src[0]-$u.x*$src[1]-$u.y*$src[2]-$u.z*$src[3]+
+			  $src[4]) ;
+    const real trate = coeft*(factor - coeft2*$src[0]) ;
+    dt = min(dt,$urelax*T/(fabs(trate)+1e-30)) ;
+    const real prate = factor/gm1 ;
+    dt = min(dt,$urelax*p/(fabs(prate)+1e-30)) ;
+    $dtau = dt ;
+  }
+
+
+  
+  // Note, in steady state mode we assume the time derivative is zero
+  // Another way to think of this is we perform a single newton iteration
+  // each step.  Since we initialize the newton method with the previous
+  // timestep value, the time derivative would appear to be zero regardless
+  $rule pointwise(rhs{n,it}<-src{n,it}),
+    inplace(rhs{n,it}|src{n,it}),constraint(geom_cells,timeStepSteadyState) ,prelude {} ;
+
+  
+  $type timePressureBiasControl param<real> ;
+  $rule default(timePressureBiasControl) {
+    $timePressureBiasControl = 0.0 ;
+  }
+
+  // Compute local pressure bias using cfl
+  $rule pointwise(localPBias<-cflpdt,dtmax,timePressureBiasControl),
+    constraint(geom_cells,timeStepAccurate) {
+    real cfl = $cflpdt*real($dtmax) ;
+    real factor = min<real>(1.0,max<real>(1e-40,0.1*(cfl-1.))) ;
+    $localPBias = max<real>($timePressureBiasControl,pow(factor,0.7)) ;
+  }
+  
+  $rule pointwise(localPBias_next{n,it=0}),constraint(geom_cells{n},timeStepAccurate) {
+    $localPBias_next{n,it=0} = 1.0 ;
+  }
+
+  $rule pointwise(localPBias_next{n,it+1}<-localPBias{n,it}),
+    constraint(geom_cells{n,it},timeStepAccurate) {
+    $localPBias_next{n,it+1} = $localPBias{n,it} ;
+  }
+  
+  // Compute rhs of Newton step
+  // Time accurate second order scheme using centered variation of
+  // Crank-Nicholson
+  $rule pointwise(rhs{n,it}<-src{n,it},gagePressure{n},gagePressure{n,it},temperature{n},temperature{n,it},u{n},u{n,it},dtmax{n,it},dtau{n,it},vol{n,it},localPBias{n,it},Pambient,Rtilde,gamma),
+    inplace(rhs{n,it}|src{n,it}),constraint(geom_cells,timeStepAccurate) {
+    const real Tstar = $temperature{n,it} ;
+    const real Tn = $temperature{n} ;
+    // Use harmonic mean of temperature to define Tstar
+    const real Tnp1 = Tn*Tstar/(2.*Tn-Tstar) ;
+
+    const real pgstar = $gagePressure{n,it} ;
+    const real peps = $localPBias{n,it} ;
+    const real pgnp1 = (2.*pgstar-(1.-peps)*$gagePressure{n})/(1+peps) ;
+    
+    const real rhon = ($gagePressure{n}+$Pambient)/($Rtilde*$temperature{n}) ;
+    const real rhonp = (pgnp1+$Pambient)/($Rtilde*Tnp1) ;
+
+    const real srhonp = sqrt(rhonp) ;
+    const real srhon = sqrt(rhon) ;
+    const real w1 = (srhonp+srhon)/srhonp ;
+    const real w2 = srhon/srhonp ;
+    
+    vect3d unp1 = w1*$u{n,it}-w2*$u{n} ;
+
+    const real e0n = $Rtilde*$temperature{n}/($gamma-1.) + .5*dot($u{n},$u{n}) ;
+    const real e0np = $Rtilde*Tnp1/($gamma-1.) + .5*dot(unp1,unp1) ;
+    const real rdtvol = $vol{n,it}/real($dtmax{n,it}) ;
+    $rhs{n,it}[0] = $src{n,it}[0] - (rhonp-rhon)*rdtvol ;
+    $rhs{n,it}[1] = $src{n,it}[1] - (rhonp*unp1.x - rhon*$u{n}.x)*rdtvol ;
+    $rhs{n,it}[2] = $src{n,it}[2] - (rhonp*unp1.y - rhon*$u{n}.y)*rdtvol ;
+    $rhs{n,it}[3] = $src{n,it}[3] - (rhonp*unp1.z - rhon*$u{n}.z)*rdtvol ;
+    $rhs{n,it}[4] = $src{n,it}[4] - (rhonp*e0np - rhon*e0n)*rdtvol ;
+  }
+}

@@ -1,0 +1,227 @@
+//#############################################################################
+//#
+//# Copyright 2015, Mississippi State University
+//#
+//# This file is part of the flowPsi computational fluid dynamics solver.
+//#
+//# The flowPsi solver is free software: you can redistribute it and/or modify
+//# it under the terms of the GNU General Public License as published by
+//# the Free Software Foundation, either version 3 of the License, or
+//# (at your option) any later version.
+//#
+//# The flowPsi solver is distributed in the hope that it will be useful,
+//# but WITHOUT ANY WARRANTY; without even the implied warranty of
+//# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//# GNU General Public License for more details.
+//#
+//# You should have received a copy of the GNU General Public License
+//# along with the flowPsi solver.  If not, see <http://www.gnu.org/licenses>
+//#
+//#############################################################################
+
+#include <Loci.h>
+#include "flowTypes.h"
+#include <string>
+$include "flowPsi.lh"
+
+namespace flowPsi {
+  using std::string ;
+
+  $type BC_options store<Loci::options_list> ;
+  $type prescribed_BC store<std::string> ;
+  $type prescribed_qwall_BC store<std::string> ;
+
+  //This rule provides the default value for all entities that
+  //have the BC_options property (i.e., all BCs)
+  $rule pointwise(Uwall_BC),constraint(BC_options)
+  {
+    $Uwall_BC = vect3d(0.,0.,0.) ;
+  }
+
+  //This rule provides the default value for all entities that
+  //have the BC_options property (i.e., all BCs)
+  $rule pointwise(angVel_BC),constraint(BC_options) {
+    $angVel_BC = vect3d(0.,0.,0.) ;
+  }
+
+  //This rule overrides a default value with user input
+  $rule pointwise(input::Uwall_BC<-BC_options),constraint(Uwall_BCoption) {
+    $BC_options.getOptionUnits("Uwall","m/s",$Uwall_BC) ;
+  }
+
+  //This rule overrides a default value with user input
+  $rule pointwise(input::angVel_BC<-BC_options),constraint(angVel_BCoption) {
+    $BC_options.getOptionUnits("angVel","radians/sec",$angVel_BC,
+                     0.104720) ; //no units == rpm
+  }
+
+  //This rule overrides a default value with user input
+  $rule pointwise(rotAxis_BC<-BC_options),constraint(rotAxis_BCoption) {
+    vect3d vec(1,0,0) ;
+    $BC_options.getOptionUnits("rotAxis","",vec) ;
+    vec = vec/(norm(vec)+1e-30) ;
+    $rotAxis_BC = vec ;
+  }
+
+  $rule pointwise(input::angVel_BC<-BC_options),constraint(rotAxis_BCoption,rotSpeed_BCoption) {
+    vect3d vec(1,0,0) ;
+    $BC_options.getOptionUnits("rotAxis","",vec) ;
+    vec = vec/(norm(vec)+1e-30) ;
+    real rpm = 0 ;
+
+    $BC_options.getOptionUnits("rotSpeed","rpm",rpm) ;
+
+    $angVel_BC = (0.104720*rpm)*vec ;
+  }
+
+  $rule pointwise(flowDir_BC<-BC_options),constraint(flowDir_BCoption) {
+    vect3d vec(1,0,0) ;
+    $BC_options.getOptionUnits("flowDir","",vec) ;
+    vec = vec/(norm(vec)+1e-30) ;
+    $flowDir_BC = vec ;
+  }
+
+  $rule pointwise(user::rotCenter_BC<-BC_options),constraint(rotCenter_BCoption) {
+    $BC_options.getOptionUnits("rotCenter","m",$rotCenter_BC,1) ;
+  }
+
+  $rule pointwise(wallVelocity<-ref->Uwall_BC) {
+    $wallVelocity = $ref->$Uwall_BC ;
+  }
+
+
+  $rule pointwise(rotate::wallVelocity<-ref->(angVel_BC,Uwall_BC,rotCenter_BC),facecenter) {
+    //specified wall tranlation velocity; default is [0,0,0]
+    const vect3d uwall_trans = $ref->$Uwall_BC ;
+    //angular velocity in rad/sec; default is [0,0,0]
+    const vect3d omega = $ref->$angVel_BC ;
+    const real angmag = norm(omega) ;
+    const vect3d rotAxis = omega/(angmag+1.e-30) ;
+    const vect3d rwall = ($facecenter-$ref->$rotCenter_BC) ;
+    const vect3d dr = rwall - dot(rwall,rotAxis)*rotAxis ;
+    const vect3d uwall_rot = cross(omega,dr) ;
+    const vect3d uwall = uwall_trans + uwall_rot ; //resultant wall velocity
+    $wallVelocity = uwall ;
+  }
+
+  $rule pointwise(Twall_BC<-BC_options),constraint(Twall_BCoption) {
+    $BC_options.getOptionUnits("Twall","kelvin",$Twall_BC) ;
+  }
+
+  $rule pointwise(qwall_BC<-BC_options),constraint(qwall_BCoption) {
+    $BC_options.getOptionUnits("qwall","watt/m/m",$qwall_BC) ;
+  }
+
+  $rule pointwise(prescribed_BC<-BC_options),constraint(prescribed_BCoption) {
+    $prescribed_BC = "bc.dat" ;
+    $BC_options.getOption("prescribed",$prescribed_BC) ;
+    if($prescribed_BC== "")
+      $prescribed_BC = "bc.dat" ;
+  }
+
+  $rule pointwise(prescribed_qwall_BC<-BC_options),constraint(prescribed_qwall_BCoption) {
+    $prescribed_qwall_BC = "bc_qwall.dat" ;
+    $BC_options.getOption("prescribed_qwall",$prescribed_qwall_BC) ;
+    if($prescribed_qwall_BC== "")
+      $prescribed_qwall_BC = "bc_qwall.dat" ;
+  }
+
+  $rule pointwise(T_BC<-BC_options),constraint(T_BCoption) {
+    $BC_options.getOptionUnits("T","kelvin",$T_BC) ;
+  }
+
+  $rule pointwise(T0_BC<-BC_options),constraint(T0_BCoption) {
+    $BC_options.getOptionUnits("T0","kelvin",$T0_BC) ;
+  }
+
+  $rule pointwise(p_BC<-BC_options),constraint(p_BCoption) {
+    $BC_options.getOptionUnits("p","Pa",$p_BC) ;
+  }
+
+  $rule pointwise(pMean_BC<-BC_options),constraint(pMean_BCoption) {
+    $BC_options.getOptionUnits("pMean","Pa",$pMean_BC) ;
+  }
+
+  $rule pointwise(p0_BC<-BC_options),constraint(p0_BCoption) {
+    $BC_options.getOptionUnits("p0","Pa",$p0_BC) ;
+  }
+
+  $rule pointwise(rho_BC<-BC_options),constraint(rho_BCoption) {
+    $BC_options.getOptionUnits("rho","kg/m/m/m",$rho_BC) ;
+  }
+
+  $rule pointwise(massFlux_BC<-BC_options),constraint(massFlux_BCoption) {
+    $BC_options.getOptionUnits("massFlux","kg/s/m/m",$massFlux_BC) ;
+  }
+
+  $rule pointwise(mdot_BC<-BC_options),constraint(mdot_BCoption) {
+    $BC_options.getOptionUnits("mdot","kg/s",$mdot_BC) ;
+  }
+
+
+  $rule pointwise(swirlAngle_BC<-BC_options),constraint(swirlAngle_BCoption) {
+    $BC_options.getOptionUnits("swirlAngle","deg",$swirlAngle_BC) ;
+  }
+
+  $rule pointwise(swirlCenter_BC<-BC_options),constraint(swirlCenter_BCoption) {
+    $BC_options.getOptionUnits("swirlCenter","m",$swirlCenter_BC,1) ;
+  }
+
+
+  $rule pointwise(swirlAxis_BC<-BC_options),constraint(swirlAxis_BCoption) {
+    $BC_options.getOptionUnits("swirlAxis","",$swirlAxis_BC) ;
+  }
+
+  $rule pointwise(momentCenter_BC<-BC_options),constraint(momentCenter_BCoption){
+    $BC_options.getOptionUnits("momentCenter","m",$momentCenter_BC,1) ;
+  }
+
+  $rule pointwise(M_BC<-BC_options),constraint(M_BCoption) {
+    $BC_options.getOptionUnits("M","",$M_BC) ;
+  }
+
+  $rule pointwise(u_BC<-BC_options),constraint(u_BCoption) {
+    $BC_options.getOptionUnits("u","m/s",$u_BC) ;
+  }
+  $rule pointwise(u_BC<-BC_options),constraint(v_BCoption) {
+    $BC_options.getOptionUnits("v","m/s",$u_BC) ;
+  }
+
+
+  // Compute reference temperature, pressure, and velocity for boundar
+  // conditions
+  $rule pointwise(temperatureRef_BC<-T_BC) {
+    $temperatureRef_BC = $T_BC ;
+  }
+
+  // Temperature defined by pressure and density
+  $rule pointwise(temperatureRef_BC<-p_BC,rho_BC,Rtilde) {
+    $temperatureRef_BC = $p_BC/($rho_BC*$Rtilde) ;
+  }
+
+  // direct pressures definition
+  $rule pointwise(gagePressureRef_BC<-p_BC,Pambient) {
+    $gagePressureRef_BC = $p_BC-$Pambient ;
+  }
+
+  // pressure derived from density and temperature
+  $rule pointwise(gagePressureRef_BC<-T_BC,rho_BC,Rtilde,Pambient) {
+    real p = $rho_BC*$Rtilde*$T_BC ;
+    $gagePressureRef_BC = p-$Pambient ;
+  }
+
+  // direct velocity 
+  $rule pointwise(uRef_BC<-u_BC) {
+    $uRef_BC = $u_BC ;
+  }
+  // velocity derived from Mach number
+  $rule pointwise(uRef_BC<-M_BC,temperatureRef_BC,gamma,Rtilde) {
+    real a = sqrt($gamma*$Rtilde*$temperatureRef_BC)  ;
+    $uRef_BC= a*$M_BC ;
+  }
+
+
+}
+
+
+

@@ -1,0 +1,81 @@
+//#############################################################################
+//#
+//# Copyright 2015, Mississippi State University
+//#
+//# This file is part of the flowPsi computational fluid dynamics solver.
+//#
+//# The flowPsi solver is free software: you can redistribute it and/or modify
+//# it under the terms of the GNU General Public License as published by
+//# the Free Software Foundation, either version 3 of the License, or
+//# (at your option) any later version.
+//#
+//# The flowPsi solver is distributed in the hope that it will be useful,
+//# but WITHOUT ANY WARRANTY; without even the implied warranty of
+//# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//# GNU General Public License for more details.
+//#
+//# You should have received a copy of the GNU General Public License
+//# along with the flowPsi solver.  If not, see <http://www.gnu.org/licenses>
+//#
+//#############################################################################
+
+#include "wall_func_param.h"
+#include <Tools/parse.h>
+
+#include <vector>
+using std::vector ;
+
+using std::map ;
+using std::string ;
+using std::swap ;
+$include "flowPsi.lh"
+$include "SA.lh"
+
+using std::istream ;
+using std::ostream ;
+using std::endl ;
+
+namespace flowPsi {
+  class wlol : public options_list {
+  public:
+    wlol(): options_list("kappa:B:E:Cmu"){}
+  } ;
+
+  wall_func_param::wall_func_param() {
+    kappa = 0.41 ;
+    B = 5.5 ;
+    E = 9.8 ;
+    Cmu=0.09 ;
+  }
+
+  istream &wall_func_param::Input(istream &s) {
+    wlol finput ;
+    s >> finput ;
+    kappa = 0.41 ;
+    B = 5.5 ;
+    E = 9.0 ;
+    Cmu=0.09 ;
+    if(finput.optionExists("kappa")){
+      finput.getOption("kappa",kappa) ;
+    }
+    if(finput.optionExists("B")) {
+      finput.getOption("B",B) ;
+    }
+    if(finput.optionExists("E")) {
+      finput.getOption("E",E) ;
+    }
+    if(finput.optionExists("Cmu")) {
+      finput.getOption("Cmu",E) ;
+    }
+    return s ;
+  }
+
+  ostream &wall_func_param::Print(ostream &s) const {
+    s <<"< kappa=" <<kappa<<", B= "<< B <<", E= " <<E
+      << ", Cmu="<< Cmu <<" >"<<endl ;
+    return s ;
+  }
+
+  $rule default(wall_law),comments("Parameters used to compute wall functions") {}
+
+}

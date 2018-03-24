@@ -1,0 +1,68 @@
+//#############################################################################
+//#
+//# Copyright 2015, Mississippi State University
+//#
+//# This file is part of the flowPsi computational fluid dynamics solver.
+//#
+//# The flowPsi solver is free software: you can redistribute it and/or modify
+//# it under the terms of the GNU General Public License as published by
+//# the Free Software Foundation, either version 3 of the License, or
+//# (at your option) any later version.
+//#
+//# The flowPsi solver is distributed in the hope that it will be useful,
+//# but WITHOUT ANY WARRANTY; without even the implied warranty of
+//# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//# GNU General Public License for more details.
+//#
+//# You should have received a copy of the GNU General Public License
+//# along with the flowPsi solver.  If not, see <http://www.gnu.org/licenses>
+//#
+//#############################################################################
+
+#include <Loci.h>
+#include <Tools/stream.h>
+#include "flowTypes.h"
+#include "flowPsiIO.h"
+#include "initialConditions.h"
+
+#include <vector>
+using std::vector ;
+
+
+$include "flowPsi.lh"
+
+
+namespace flowPsi {
+
+  $type initialConditionsTurbnuTilde param<vector<real> > ;
+  $type nuTilde_ic store<real> ;
+
+  $rule singleton(initialConditionsTurbnuTilde<-
+		  icRegionInfo) {
+    const int sz = $icRegionInfo.size() ;
+    vector<real> nut_list ;
+    for(int i=0;i<sz;++i) {
+      real nut = 1e-6 ;
+      const Loci::options_list finput = $icRegionInfo[i].state_info ;
+      if(finput.optionExists("nu_t")) {
+	finput.getOption("nu_t",nut) ;
+      }
+      if(finput.optionExists("nuTilde")) {
+	finput.getOption("nuTilde",nut) ;
+      }
+      nut_list.push_back(nut) ;
+
+    }
+    $initialConditionsTurbnuTilde.swap(nut_list) ;
+  }
+
+  $rule pointwise(nuTilde_ic<-initialConditionsTurbnuTilde,icRegionId),
+    constraint(icRegionInfo,geom_cells) {
+    $nuTilde_ic = $initialConditionsTurbnuTilde[$icRegionId] ;
+  }
+
+
+}
+
+
+

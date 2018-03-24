@@ -1,0 +1,1238 @@
+//#############################################################################
+//#
+//# Copyright 2015, Mississippi State University
+//#
+//# This file is part of the flowPsi computational fluid dynamics solver.
+//#
+//# The flowPsi solver is free software: you can redistribute it and/or modify
+//# it under the terms of the GNU General Public License as published by
+//# the Free Software Foundation, either version 3 of the License, or
+//# (at your option) any later version.
+//#
+//# The flowPsi solver is distributed in the hope that it will be useful,
+//# but WITHOUT ANY WARRANTY; without even the implied warranty of
+//# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//# GNU General Public License for more details.
+//#
+//# You should have received a copy of the GNU General Public License
+//# along with the flowPsi solver.  If not, see <http://www.gnu.org/licenses>
+//#
+//#############################################################################
+
+#include "inviscidFlux.h"
+$include "flowPsi.lh"
+
+namespace flowPsi {
+
+
+  //#######################################################################
+  //#
+  //# Preconditioning parameter setup for Chorin-Turkel preconditioner
+  //#
+  //#######################################################################
+
+  // Compute  a reference mach number for preconditioning
+  $rule unit(Mref<-u,soundSpeed) {
+    $Mref = norm($u)/$soundSpeed ;
+  }
+
+  $rule default(PLimPC) {
+    $PLimPC = 10.0 ;
+  }
+  
+  // Limiting of preconditioning due to pressure jumps
+  $rule apply(cl->Mref<-(cl,cr)->gagePressure,cl->(rho,soundSpeed),PLimPC)
+  [Loci::Maximum], constraint((cl,cr)->u) {
+    real dP = fabs($cl->$gagePressure-$cr->$gagePressure) ;
+    real r = $cl->$rho ;
+    real a = $cl->$soundSpeed ;
+    real Mpjp = $PLimPC*dP/(r*a*a) ;
+    join($cl->$Mref,Mpjp) ;
+  }
+
+  $rule apply(cr->Mref<-(cl,cr)->gagePressure, cr->(rho,soundSpeed),PLimPC)
+  [Loci::Maximum], constraint((cl,cr)->u) {
+    real dP = fabs($cl->$gagePressure-$cr->$gagePressure) ;
+    real r = $cr->$rho ;
+    real a = $cr->$soundSpeed ;
+    real Mpjp = $PLimPC*dP/(r*a*a) ;
+    join($cr->$Mref,Mpjp) ;
+  }
+
+  // Limiting of preconditioning due to viscous effects
+  $rule apply(cl->Mref<-area, (cl,cr)->(soundSpeed,vol,rho,mu))
+  [Loci::Maximum], constraint(LaminarSimulation,(cl,cr)->u) {
+    const real dh = $cl->$vol/max<real>($area.sada,1e-30) ;
+    const real mum = max($cl->$mu,$cr->$mu)  ;
+    const real rho = 0.5*($cl->$rho+$cr->$rho) ;
+    const real nu = mum/rho ;
+    join($cl->$Mref,nu/(dh*$cl->$soundSpeed)) ;
+  }
+  $rule apply(cr->Mref<-area, (cl,cr)->(soundSpeed,vol,rho,mu))
+  [Loci::Maximum], constraint(LaminarSimulation,(cl,cr)->u) {
+    const real dh = $cr->$vol/max<real>($area.sada,1e-30) ;
+    const real mum = max($cl->$mu,$cr->$mu) ;
+    const real rho =0.5*($cl->$rho+$cr->$rho) ;
+    const real nu = mum/rho ;
+    join($cr->$Mref,nu/(dh*$cr->$soundSpeed)) ;
+  }
+
+  $rule apply(cl->Mref<-area, (cl,cr)->(soundSpeed,vol,rho,mu,tmu))
+  [Loci::Maximum], constraint(TurbulentSimulation,(cl,cr)->u) {
+    const real dh = $cl->$vol/max<real>($area.sada,1e-30) ;
+    const real mum = max($cl->$mu,$cr->$mu)+max($cl->$tmu,$cl->$tmu) ;
+    const real rho = 0.5*($cl->$rho+$cr->$rho) ;
+    const real nu = mum/rho ;
+    join($cl->$Mref,nu/(dh*$cl->$soundSpeed)) ;
+  }
+  $rule apply(cr->Mref<-area, (cl,cr)->(soundSpeed,vol,rho,mu,tmu))
+  [Loci::Maximum], constraint(TurbulentSimulation,(cl,cr)->u) {
+    const real dh = $cr->$vol/max<real>($area.sada,1e-30) ;
+    const real mum = max($cl->$mu,$cr->$mu)+max($cl->$tmu,$cr->$tmu) ;
+    const real rho =0.5*($cl->$rho+$cr->$rho) ;
+    const real nu = mum/rho ;
+    join($cr->$Mref,nu/(dh*$cr->$soundSpeed)) ;
+  }
+
+  $rule default(Minf) { $Minf = 1.0 ; }
+  $rule default(etaT) { $etaT = 0.25 ;}
+
+  $type Mlim2 param<real> ;
+  $rule singleton(Mlim2<-Minf,etaT) {
+    real M2 = $Minf*$Minf ;
+    $Mlim2 = 1.0 ;
+    if($Minf<0.5) 
+      $Mlim2 = $etaT*2.*M2/(1.-2.*M2) ;
+  }
+  
+  $rule pointwise(Eta_p<-Mref,Minf,Mlim2),
+    constraint(geom_cells) {
+    real M = $Mref ;
+    real M2 = min<real>(0.5,M*M) ;
+    $Eta_p = min<real>(1.0,max(M2/(1.-M2),$Mlim2)) ;
+  }
+
+
+  $rule pointwise(Eta_pf<-ci->u,ci->soundSpeed,Minf,Mlim2) {
+    real M = norm($ci->$u)/$ci->$soundSpeed ;
+    real M2 = min<real>(0.5,M*M) ;
+    $Eta_pf = min<real>(1.0,max(M2/(1.-M2),$Mlim2)) ;
+  } ;
+		  
+  void hllc_flux(Loci::Array<real, 5> &iflux,
+		 real pgl, real Tl, vect3d Ul,
+		 real pgr, real Tr, vect3d Ur,
+		 vect3d an, real area,
+		 real pambient, real Rt,real gamma, real Us_n,
+		 real Eta) {
+    real gm1 = gamma-1 ;
+    real rl = (pgl+pambient)/(Rt*Tl) ;
+    real rr = (pgr+pambient)/(Rt*Tr) ;
+    
+    real h0l = Rt*Tl*gamma/gm1 + 0.5*dot(Ul,Ul) ;
+    real h0r = Rt*Tr*gamma/gm1 + 0.5*dot(Ur,Ur) ;
+    const real e0l = h0l-Rt*Tl ;
+    const real e0r = h0r-Rt*Tr ;
+  
+    const real srl = sqrt(rl) ;          // coefficents used for
+    const real srr = sqrt(rr) ;          //  Roe averaging
+    const real roe_factor = 1./(srl+srr) ;
+
+#define RAVG(vl,vr) (((vl)*srl+(vr)*srr)*roe_factor) // Roe average
+
+    const vect3d U_ = RAVG(Ul,Ur) ;
+    const real ut_ = dot(U_,an)-Us_n ; 
+
+    const real h0_ = RAVG(h0l,h0r) ;               // Roe total enthalpy
+    // Roe sound speed
+    const real a_ = sqrt(max<real>(gm1*(h0_-0.5*dot(U_,U_)),0.0)) ;
+
+    const real EtaP = Eta+1. ;
+    const real EtaM = Eta-1. ;
+
+    const real sigma = sqrt(max<real>(ut_*ut_*EtaM*EtaM+4.*Eta*a_*a_,1e-30)) ;
+
+    const real evl_ = 0.5*(ut_*EtaP - sigma) ;
+    const real evr_ = 0.5*(ut_*EtaP + sigma) ;
+
+    const real utla = dot(Ul,an) ;
+    const real utra = dot(Ur,an) ;
+    const real utl = utla-Us_n ; 
+    const real utr = utra-Us_n ; 
+    const real al2 = gamma*Rt*Tl ;
+    const real ar2 = gamma*Rt*Tr ;
+    const real sigmar = sqrt(max<real>(utr*utr*EtaM*EtaM+4.*Eta*ar2,0.0)) ;
+    const real sigmal = sqrt(max<real>(utl*utl*EtaM*EtaM+4.*Eta*al2,0.0)) ;
+
+    // left and right wave speeds
+    real SL = min(evl_,.5*(utl*EtaP - sigmal)) ;
+    real SR = max(evr_,.5*(utr*EtaP + sigmar)) ;
+
+    real lmdot = rl*utl ;
+    real rmdot = rr*utr ;
+    real pl = pgl+pambient ;
+    real pr = pgr+pambient ;
+    real coef = 0.5*area ;
+    real AL = coef*((SL > 0) ? (SR < 0 ? 1.:2.) : ( SR < 0 ? 0.:1. )) ;
+    real AR = coef*((SR < 0) ? (SL > 0 ? 1.:2.) : ( SL > 0 ? 0.:1. )) ;
+    real AM = coef*((SL > 0 || SR < 0) ? 0.:1.) ;
+
+    // Build up iflux first and F_l + F_r, 
+    iflux[0] = AL*lmdot+AR*rmdot ;
+    iflux[1] = AL*lmdot*Ul.x + AR*rmdot*Ur.x + an.x*(AL*pgl+AR*pgr) ;
+    iflux[2] = AL*lmdot*Ul.y + AR*rmdot*Ur.y + an.y*(AL*pgl+AR*pgr) ;
+    iflux[3] = AL*lmdot*Ul.z + AR*rmdot*Ur.z + an.z*(AL*pgl+AR*pgr) ;
+    iflux[4] = AL*(lmdot*e0l + pl*utla) + AR*(rmdot*e0r + pr*utra) ;
+
+
+    // subtract off SL*Ul and SR*Ur
+    iflux[0] -= AM*(SL*rl + SR*rr) ;
+    iflux[1] -= AM*(SL*rl*Ul.x + SR*rr*Ur.x) ;
+    iflux[2] -= AM*(SL*rl*Ul.y + SR*rr*Ur.y) ;
+    iflux[3] -= AM*(SL*rl*Ul.z + SR*rr*Ur.z) ;
+    iflux[4] -= AM*(SL*rl*e0l  + SR*rr*e0r) ;
+
+    // contact (middle) wave speed
+    const real SM = ((rr*utr*(SR-utr)-rl*utl*(SL-utl)+pgl-pgr)/
+		     (rr*(SR-utr)-rl*(SL-utl))) ;
+
+    // Now compute U_star_l and U_star_r
+    const real rl_star = rl*(SL-utl)/(SL-SM) ;
+    const real rr_star = rr*(SR-utr)/(SR-SM) ;
+    const real pg_star = rl*(utl-SL)*(utl-SM)+pgl ;
+    const real p_star = pg_star+pambient ;
+    const real rul_star = ((SL-utl)*rl*Ul.x + (pg_star-pgl)*an.x)/(SL-SM) ;
+    const real rvl_star = ((SL-utl)*rl*Ul.y + (pg_star-pgl)*an.y)/(SL-SM) ;
+    const real rwl_star = ((SL-utl)*rl*Ul.z + (pg_star-pgl)*an.z)/(SL-SM) ;
+    const real rur_star = ((SR-utr)*rr*Ur.x + (pg_star-pgr)*an.x)/(SR-SM) ;
+    const real rvr_star = ((SR-utr)*rr*Ur.y + (pg_star-pgr)*an.y)/(SR-SM) ;
+    const real rwr_star = ((SR-utr)*rr*Ur.z + (pg_star-pgr)*an.z)/(SR-SM) ;
+    const real re0l_star = ((SL-utl)*rl*e0l - pl*utl + p_star*SM)/(SL-SM) ;
+    const real re0r_star = ((SR-utr)*rr*e0r - pr*utr + p_star*SM)/(SR-SM) ;
+
+    const real CR = SR-abs(SM) ;
+    const real CL = SL+abs(SM) ;
+    iflux[0] += AM*(CR*rr_star   + CL*rl_star) ;
+    iflux[1] += AM*(CR*rur_star  + CL*rul_star) ;
+    iflux[2] += AM*(CR*rvr_star  + CL*rvl_star) ;
+    iflux[3] += AM*(CR*rwr_star  + CL*rwl_star) ;
+    iflux[4] += AM*(CR*re0r_star + CL*re0l_star) ;
+    
+  }
+  
+  // jacobian with respect to right side variables (negative going information)
+  void hllc_fjm(Mat<real_fj> &fj,
+		real pgl, real Tl, vect3d Ul,
+		real pgr, real Tr, vect3d Ur,
+		vect3d an, real area,
+		real pambient, real Rt,real gamma, real Us_n,
+		real Eta) {
+    const real_fj gm1 = gamma-1 ;
+    const real_fj rl = (pgl+pambient)/(Rt*Tl) ;
+    const real_fj rr = (pgr+pambient)/(Rt*Tr) ;
+    const real_fj drdp = 1./(Rt*Tr) ;
+    const real_fj drdT = -rr/Tr ;
+
+    
+    const real_fj h0l = Rt*Tl*gamma/gm1 + 0.5*dot(Ul,Ul) ;
+    const real_fj h0r = Rt*Tr*gamma/gm1 + 0.5*dot(Ur,Ur) ;
+    const real_fj dh0dT = Rt*gamma/gm1 ;
+    // Note dh0du = u
+    const real_fj e0l = h0l-Rt*Tl ;
+    const real_fj e0r = h0r-Rt*Tr ;
+    const real_fj de0dT = dh0dT-Rt ;
+
+    const real_fj srl = sqrt(rl) ;          // coefficents used for
+    const real_fj srr = sqrt(rr) ;          //  Roe averaging
+    const real_fj roe_factor = 1./(srl+srr) ;
+
+    const vect3d U_ = RAVG(Ul,Ur) ;
+    const real_fj ut_ = dot(U_,an)-Us_n ; 
+
+    const real_fj h0_ = RAVG(h0l,h0r) ;               // Roe total enthalpy
+    const real_fj a_ = sqrt(max<real>(gm1*(h0_-0.5*dot(U_,U_)),0.0)) ;
+
+    const real EtaP = Eta+1. ;
+    const real EtaM = Eta-1. ;
+
+    const real sigma = sqrt(max<real>(ut_*ut_*EtaM*EtaM+4.*Eta*a_*a_,1e-30)) ;
+
+    const real evl_ = 0.5*(ut_*EtaP - sigma) ;
+    const real evr_ = 0.5*(ut_*EtaP + sigma) ;
+
+    const real_fj utla = dot(Ul,an) ;
+    const real_fj utra = dot(Ur,an) ;
+    const real_fj utl = utla-Us_n ; 
+    const real_fj utr = utra-Us_n ; 
+    const real al2 = gamma*Rt*Tl ;
+    const real ar2 = gamma*Rt*Tr ;
+    const real sigmar = sqrt(max<real>(utr*utr*EtaM*EtaM+4.*Eta*ar2,0.0)) ;
+    const real sigmal = sqrt(max<real>(utl*utl*EtaM*EtaM+4.*Eta*al2,0.0)) ;
+
+    // left and right wave speeds
+    real SL = min(evl_,.5*(utl*EtaP - sigmal)) ;
+    real SR = max(evr_,.5*(utr*EtaP + sigmar)) ;
+
+    // contact (middle) wave speed
+    const real_fj rbot = 1./(rr*(SR-utr)-rl*(SL-utl)) ;
+    const real_fj SM = (rr*utr*(SR-utr)-rl*utl*(SL-utl)+pgl-pgr)*rbot ;
+    const real_fj dSMdT = rbot*drdT*(SR-utr)*(utr-SM) ;
+    const real_fj dSMdp = rbot*(drdp*(SR-utl)*(utr - SM)-1.) ;
+    const real_fj dSMdu = rbot*rr*(SR-2.*utr+SM) ;
+
+    const real_fj rmdot = rr*utr ;
+    const real_fj pl = pgl+pambient ;
+    const real_fj pr = pgr+pambient ;
+    const real_fj coef = 0.5*area ;
+    const real_fj AR = coef*((SR < 0) ? (SL > 0 ? 1.:2.) : ( SL > 0 ? 0.:1. )) ;
+    const real_fj AM = coef*((SL > 0 || SR < 0) ? 0.:1.) ;
+
+    // Build up iflux first and F_l + F_r, 
+    //    iflux[0] = AL*lmdot+AR*rmdot ;
+    //    iflux[1] = AL*lmdot*Ul.x + AR*rmdot*Ur.x + an.x*(AL*pgl+AR*pgr) ;
+    //    iflux[2] = AL*lmdot*Ul.y + AR*rmdot*Ur.y + an.y*(AL*pgl+AR*pgr) ;
+    //    iflux[3] = AL*lmdot*Ul.z + AR*rmdot*Ur.z + an.z*(AL*pgl+AR*pgr) ;
+    //    iflux[4] = AL*(lmdot*e0l + pl*utla) + AR*(rmdot*e0r + pr*utra) ;
+
+    fj[0][0] += AR*drdT*utr ;
+    fj[0][1] += AR*rr*an.x ;
+    fj[0][2] += AR*rr*an.y ;
+    fj[0][3] += AR*rr*an.z ;
+    fj[0][4] += AR*drdp*utr ;
+
+    fj[1][0] += AR*drdT*utr*Ur.x ;
+    fj[1][1] += AR*(rr*an.x*Ur.x + rmdot) ;
+    fj[1][2] += AR*rr*an.y*Ur.x ;
+    fj[1][3] += AR*rr*an.z*Ur.x ;
+    fj[1][4] += AR*(drdp*utr*Ur.x + an.x) ;
+
+    fj[2][0] += AR*drdT*utr*Ur.y ;
+    fj[2][1] += AR*rr*an.x*Ur.y ;
+    fj[2][2] += AR*(rr*an.y*Ur.y + rmdot) ;
+    fj[2][3] += AR*rr*an.z*Ur.y ;
+    fj[2][4] += AR*(drdp*utr*Ur.y + an.y) ;
+
+    fj[3][0] += AR*drdT*utr*Ur.z ;
+    fj[3][1] += AR*rr*an.x*Ur.z ;
+    fj[3][2] += AR*rr*an.y*Ur.z ;
+    fj[3][3] += AR*(rr*an.z*Ur.z + rmdot) ;
+    fj[3][4] += AR*(drdp*utr*Ur.z + an.z) ;
+
+    fj[4][0] += AR*(drdT*utr*e0r + rmdot*de0dT) ;
+    fj[4][1] += AR*(rmdot*Ur.x + an.x*(rr*e0r + pr)) ;
+    fj[4][2] += AR*(rmdot*Ur.y + an.y*(rr*e0r + pr)) ;
+    fj[4][3] += AR*(rmdot*Ur.z + an.z*(rr*e0r + pr)) ;
+    fj[4][4] += AR*(drdp*e0r*utr + utra) ;
+    // subtract off SL*Ul and SR*Ur
+    //    iflux[0] -= AM*(SL*rl + SR*rr) ;
+    //    iflux[1] -= AM*(SL*rl*Ul.x + SR*rr*Ur.x) ;
+    //    iflux[2] -= AM*(SL*rl*Ul.y + SR*rr*Ur.y) ;
+    //    iflux[3] -= AM*(SL*rl*Ul.z + SR*rr*Ur.z) ;
+    //    iflux[4] -= AM*(SL*rl*e0l  + SR*rr*e0r) ;
+    fj[0][0] -= AM*SR*drdT ;
+    fj[0][4] -= AM*SR*drdp ;
+    fj[1][0] -= AM*SR*Ur.x*drdT;
+    fj[1][1] -= AM*SR*rr ;
+    fj[1][4] -= AM*SR*Ur.x*drdp ;
+    fj[2][0] -= AM*SR*Ur.y*drdT ;
+    fj[2][2] -= AM*SR*rr ;
+    fj[2][4] -= AM*SR*Ur.y*drdp ;
+    fj[3][0] -= AM*SR*Ur.z*drdT ;
+    fj[3][3] -= AM*SR*rr ;
+    fj[3][4] -= AM*SR*Ur.z*drdp ;
+    fj[4][0] -= AM*SR*(drdT*e0r + de0dT*rr) ;
+    fj[4][1] -= AM*SR*rr*Ur.x ;
+    fj[4][2] -= AM*SR*rr*Ur.y ;
+    fj[4][3] -= AM*SR*rr*Ur.z ;
+    fj[4][4] -= AM*SR*drdp*e0r ;
+
+    // Now compute U_star_l and U_star_r
+    const real_fj CR = SR-abs(SM) ;
+    const real_fj CL = SL+abs(SM) ;
+    const real_fj dabsSMdT = (SM>0)?dSMdT:-dSMdT ;
+    const real_fj dabsSMdp = (SM>0)?dSMdp:-dSMdp ;
+    const real_fj dabsSMdu = (SM>0)?dSMdu:-dSMdu ;
+
+    const real_fj rl_star = rl*(SL-utl)/(SL-SM) ;
+    const real_fj rr_star = rr*(SR-utr)/(SR-SM) ;
+    const real_fj drr_stardT = rr_star*(drdT/rr + dSMdT/(SR-SM)) ;
+    const real_fj drr_stardp = rr_star*(drdp/rr + dSMdp/(SR-SM)) ;
+    const real_fj drr_stardu = (rr_star*dSMdu - rr)/(SR-SM);
+    const real_fj drl_stardT = rl_star*dSMdT/(SL-SM) ;
+    const real_fj drl_stardp = rl_star*dSMdp/(SL-SM) ;
+    const real_fj drl_stardu = rl_star*dSMdu/(SL-SM) ;
+    fj[0][0] += AM*(dabsSMdT*rl_star - dabsSMdT*rr_star +
+		    CR*drr_stardT + CL*drl_stardT) ;
+    const real_fj d0term = AM*(dabsSMdu*rl_star - dabsSMdu*rr_star +
+			    CR*drr_stardu + CL*drl_stardu) ;
+    fj[0][1] += an.x*d0term ;
+    fj[0][2] += an.y*d0term ;
+    fj[0][3] += an.z*d0term ;
+
+    fj[0][4] += AM*(dabsSMdp*rl_star - dabsSMdp*rr_star +
+		    CR*drr_stardp + CL*drl_stardp) ;
+
+    //    iflux[0] += AM*(CR*rr_star   + CL*rl_star) ;
+
+    const real_fj pg_star = rl*(utl-SL)*(utl-SM)+pgl ;
+    const real_fj dpg_stardT = rl*(SL-utl)*dSMdT ;
+    const real_fj dpg_stardp = rl*(SL-utl)*dSMdp ;
+    const real_fj dpg_stardu = rl*(SL-utl)*dSMdu ;
+    const real_fj p_star = pg_star+pambient ;
+    const real_fj rul_star = ((SL-utl)*rl*Ul.x + (pg_star-pgl)*an.x)/(SL-SM) ;
+    const real_fj rvl_star = ((SL-utl)*rl*Ul.y + (pg_star-pgl)*an.y)/(SL-SM) ;
+    const real_fj rwl_star = ((SL-utl)*rl*Ul.z + (pg_star-pgl)*an.z)/(SL-SM) ;
+    const real_fj rur_star = ((SR-utr)*rr*Ur.x + (pg_star-pgr)*an.x)/(SR-SM) ;
+    const real_fj rvr_star = ((SR-utr)*rr*Ur.y + (pg_star-pgr)*an.y)/(SR-SM) ;
+    const real_fj rwr_star = ((SR-utr)*rr*Ur.z + (pg_star-pgr)*an.z)/(SR-SM) ;
+    
+    fj[1][0] += AM*(dabsSMdT*rul_star - dabsSMdT*rur_star) ;
+    fj[1][1] += an.x*AM*(dabsSMdu*rul_star - dabsSMdu*rur_star) ;
+    fj[1][2] += an.y*AM*(dabsSMdu*rul_star - dabsSMdu*rur_star) ;
+    fj[1][3] += an.z*AM*(dabsSMdu*rul_star - dabsSMdu*rur_star) ;
+    fj[1][4] += AM*(dabsSMdp*rul_star - dabsSMdp*rur_star) ;
+
+    const real_fj drur_stardT = (Ur.x*(SR-utr)*drdT + an.x*dpg_stardT + 
+			      dSMdT*rur_star)/(SR-SM) ;
+    const real_fj drul_stardT = (an.x*dpg_stardT + dSMdT*rul_star)/(SL-SM) ;
+
+    fj[1][0] += AM*(CR*drur_stardT + CL*drul_stardT) ;
+    
+    const real_fj drur_stardut = (an.x*dpg_stardu -Ur.x*rr +
+			       rur_star*dSMdu)/(SR-SM) ;
+    const real_fj drul_stardut = (an.x*dpg_stardu + rul_star*dSMdu)/(SL-SM) ;
+    fj[1][1] += AM*(an.x*(CR*drur_stardut + CL*drul_stardut)+
+		    CR*(SR-utr)*rr/(SR-SM)) ;
+    fj[1][2] += AM*(an.y*(CR*drur_stardut + CL*drul_stardut)) ;
+    fj[1][3] += AM*(an.z*(CR*drur_stardut + CL*drul_stardut)) ;
+
+    const real_fj drur_stardp = (Ur.x*(SR-utr)*drdp + an.x*dpg_stardp + 
+			      dSMdp*rur_star-an.x)/(SR-SM) ;
+    const real_fj drul_stardp = (an.x*dpg_stardp + dSMdp*rul_star)/(SL-SM) ;
+    fj[1][4] += AM*(CR*drur_stardp + CL*drul_stardp) ;
+    
+    fj[2][0] += AM*(dabsSMdT*rvl_star - dabsSMdT*rvr_star) ;
+    fj[2][1] += an.x*AM*(dabsSMdu*rvl_star - dabsSMdu*rvr_star) ;
+    fj[2][2] += an.y*AM*(dabsSMdu*rvl_star - dabsSMdu*rvr_star) ;
+    fj[2][3] += an.z*AM*(dabsSMdu*rvl_star - dabsSMdu*rvr_star) ;
+    fj[2][4] += AM*(dabsSMdp*rvl_star - dabsSMdp*rvr_star) ;
+
+    const real_fj drvr_stardT = (Ur.y*(SR-utr)*drdT + an.y*dpg_stardT + 
+			      dSMdT*rvr_star)/(SR-SM) ;
+    const real_fj drvl_stardT = (an.y*dpg_stardT + dSMdT*rvl_star)/(SL-SM) ;
+    const real_fj drvr_stardp = (Ur.y*(SR-utl)*drdp + an.y*dpg_stardp + 
+			      dSMdp*rvr_star-an.y)/(SR-SM) ;
+    const real_fj drvl_stardp = (an.y*dpg_stardp + dSMdp*rvr_star)/(SL-SM) ;
+    fj[2][0] += AM*(CR*drvr_stardT + CL*drvl_stardT) ;
+
+    const real_fj drvr_stardut = (an.y*dpg_stardu -Ur.y*rr +
+			       rvr_star*dSMdu)/(SR-SM) ;
+    const real_fj drvl_stardut = (an.y*dpg_stardu + rvl_star*dSMdu)/(SL-SM) ;
+    fj[2][1] += AM*(an.x*(CR*drvr_stardut + CL*drvl_stardut)) ;
+    fj[2][2] += AM*(an.y*(CR*drvr_stardut + CL*drvl_stardut)+
+		    CR*(SR-utr)*rl/(SR-SM)) ; ;
+    fj[2][3] += AM*(an.z*(CR*drvr_stardut + CL*drvl_stardut)) ;
+
+    fj[2][4] += AM*(CR*drvr_stardp + CL*drvl_stardp) ;
+
+    fj[3][0] += AM*(dabsSMdT*rwl_star - dabsSMdT*rwr_star) ;
+    fj[3][1] += an.x*AM*(dabsSMdu*rwl_star - dabsSMdu*rwr_star) ;
+    fj[3][2] += an.y*AM*(dabsSMdu*rwl_star - dabsSMdu*rwr_star) ;
+    fj[3][3] += an.z*AM*(dabsSMdu*rwl_star - dabsSMdu*rwr_star) ;
+    fj[3][4] += AM*(dabsSMdp*rwl_star - dabsSMdp*rwr_star) ;
+
+    const real_fj drwr_stardT = (Ur.z*(SR-utr)*drdT + an.z*dpg_stardT + 
+			      dSMdT*rwr_star)/(SR-SM) ;
+    const real_fj drwl_stardT = (an.z*dpg_stardT + dSMdT*rwl_star)/(SL-SM) ;
+    const real_fj drwr_stardp = (Ur.z*(SR-utr)*drdp + an.z*dpg_stardp + 
+			      dSMdp*rwr_star-an.z)/(SR-SM) ;
+    const real_fj drwl_stardp = (an.z*dpg_stardp + dSMdp*rwl_star)/(SL-SM) ;
+    fj[3][0] += AM*(CR*drwr_stardT + CL*drwl_stardT) ;
+
+    const real_fj drwr_stardut = (an.z*dpg_stardu -Ur.z*rr +
+			       rwr_star*dSMdu)/(SR-SM) ;
+    const real_fj drwl_stardut = (an.z*dpg_stardu + rwl_star*dSMdu)/(SL-SM) ;
+    fj[3][1] += AM*(an.x*(CR*drwr_stardut + CL*drwl_stardut)) ;
+    fj[3][2] += AM*(an.y*(CR*drwr_stardut + CL*drwl_stardut)) ;
+    fj[3][3] += AM*(an.z*(CR*drwr_stardut + CL*drwl_stardut)+
+		    CR*(SR-utr)*rr/(SR-SM)) ; 
+    fj[3][4] += AM*(CR*drwr_stardp + CL*drwl_stardp) ;
+
+    //    iflux[1] += AM*(CR*rur_star  + CL*rul_star) ;
+    //    iflux[2] += AM*(CR*rvr_star  + CL*rvl_star) ;
+    //    iflux[3] += AM*(CR*rwr_star  + CL*rwl_star) ;
+    const real_fj re0l_star = ((SL-utl)*rl*e0l - pl*utl + p_star*SM)/(SL-SM) ;
+    const real_fj re0r_star = ((SR-utr)*rr*e0r - pr*utr + p_star*SM)/(SR-SM) ;
+    const real_fj dre0l_stardT = (dSMdT*(p_star + re0l_star) + 
+			       SM*dpg_stardT)/(SL-SM) ;
+    const real_fj dre0r_stardT =  ((drdT*e0r + de0dT*rr)*(SR - utr) + 
+				dSMdT*(p_star +re0r_star)+
+				SM*dpg_stardT)/(SR-SM) ;
+    const real_fj dre0l_stardp = (dSMdp*(p_star + re0l_star) + 
+				SM*dpg_stardp)/(SL-SM) ;
+    const real_fj dre0r_stardp =  (drdp*(e0r*(SR - utr)) - utr + SM*dpg_stardp + 
+			       dSMdp*(p_star + re0r_star))/(SR-SM) ;
+    const real_fj dre0l_stardux = (dSMdu*p_star + SM*dpg_stardu + 
+				dSMdu*re0l_star)/(SL-SM) ;
+    const real_fj dre0r_stardux = (-(e0r*rr) - pr + SM*dpg_stardu +
+				 dSMdu*p_star +	dSMdu*re0r_star)/(SR-SM) ;
+    fj[4][0] += AM*(dabsSMdT*re0l_star - dabsSMdT*re0r_star +
+    		    CR*dre0r_stardT + CL*dre0l_stardT) ;
+    const real_fj d1term = (dabsSMdu*re0l_star - dabsSMdu*re0r_star +
+		    CR*dre0r_stardux + CL*dre0l_stardux) ;
+    fj[4][1] += AM*(an.x*d1term + CR*rr*Ur.x*(SR-utr)/(SR-SM)) ;
+    fj[4][2] += AM*(an.y*d1term + CR*rr*Ur.y*(SR-utr)/(SR-SM)) ;
+    fj[4][3] += AM*(an.z*d1term + CR*rr*Ur.z*(SR-utr)/(SR-SM)) ;
+
+    fj[4][4] += AM*(dabsSMdp*re0l_star - dabsSMdp*re0r_star +
+    		    CR*dre0r_stardp + CL*dre0l_stardp) ;
+    
+
+  }
+  // jacobian with respect to left side variables (positive going information)
+  void hllc_fjp(Mat<real_fj> &fj,
+		real pgl, real Tl, vect3d Ul,
+		real pgr, real Tr, vect3d Ur,
+		vect3d an, real area,
+		real pambient, real Rt,real gamma, real Us_n,
+		real Eta) {
+    const real_fj gm1 = gamma-1 ;
+    const real_fj rl = (pgl+pambient)/(Rt*Tl) ;
+    const real_fj rr = (pgr+pambient)/(Rt*Tr) ;
+    const real_fj drdp = 1./(Rt*Tl) ;
+    const real_fj drdT = -rl/Tl ;
+
+    
+    const real_fj h0l = Rt*Tl*gamma/gm1 + 0.5*dot(Ul,Ul) ;
+    const real_fj h0r = Rt*Tr*gamma/gm1 + 0.5*dot(Ur,Ur) ;
+    const real_fj dh0dT = Rt*gamma/gm1 ;
+    // Note dh0du = u
+    const real_fj e0l = h0l-Rt*Tl ;
+    const real_fj e0r = h0r-Rt*Tr ;
+    const real_fj de0dT = dh0dT-Rt ;
+
+    const real_fj srl = sqrt(rl) ;          // coefficents used for
+    const real_fj srr = sqrt(rr) ;          //  Roe averaging
+    const real_fj roe_factor = 1./(srl+srr) ;
+
+    const vect3d U_ = RAVG(Ul,Ur) ;
+    const real_fj ut_ = dot(U_,an)-Us_n ; 
+
+    const real_fj h0_ = RAVG(h0l,h0r) ;               // Roe total enthalpy
+    const real_fj a_ = sqrt(max<real>(gm1*(h0_-0.5*dot(U_,U_)),0.0)) ;
+    const real EtaP = Eta+1. ;
+    const real EtaM = Eta-1. ;
+
+    const real sigma = sqrt(max<real>(ut_*ut_*EtaM*EtaM+4.*Eta*a_*a_,1e-30)) ;
+
+    const real evl_ = 0.5*(ut_*EtaP - sigma) ;
+    const real evr_ = 0.5*(ut_*EtaP + sigma) ;
+
+    const real_fj utla = dot(Ul,an) ;
+    const real_fj utra = dot(Ur,an) ;
+    const real_fj utl = utla-Us_n ; 
+    const real_fj utr = utra-Us_n ; 
+    const real al2 = gamma*Rt*Tl ;
+    const real ar2 = gamma*Rt*Tr ;
+    const real sigmar = sqrt(max<real>(utr*utr*EtaM*EtaM+4.*Eta*ar2,0.0)) ;
+    const real sigmal = sqrt(max<real>(utl*utl*EtaM*EtaM+4.*Eta*al2,0.0)) ;
+
+    // left and right wave speeds
+    real SL = min(evl_,.5*(utl*EtaP - sigmal)) ;
+    real SR = max(evr_,.5*(utr*EtaP + sigmar)) ;
+
+    // contact (middle) wave speed
+    const real_fj rbot = 1./(rr*(SR-utr)-rl*(SL-utl)) ;
+    const real_fj SM = (rr*utr*(SR-utr)-rl*utl*(SL-utl)+pgl-pgr)*rbot ;
+    const real_fj dSMdT = -rbot*drdT*(SL-utl)*(utl-SM) ;
+    const real_fj dSMdp = rbot*(1. - drdp*(SL-utl)*(utl - SM)) ;
+    const real_fj dSMdu = rbot*((rl*(2.*utl - SL)) - rl*SM) ;
+
+    const real_fj lmdot = rl*utl ;
+    const real_fj pl = pgl+pambient ;
+    const real_fj pr = pgr+pambient ;
+    const real_fj coef = 0.5*area ;
+    const real_fj AL = coef*((SL > 0) ? (SR < 0 ? 1.:2.) : ( SR < 0 ? 0.:1. )) ;
+    const real_fj AM = coef*((SL > 0 || SR < 0) ? 0.:1.) ;
+
+    // Build up iflux first and F_l + F_r, 
+    //    iflux[0] = AL*lmdot+AR*rmdot ;
+    //    iflux[1] = AL*lmdot*Ul.x + AR*rmdot*Ur.x + an.x*(AL*pgl+AR*pgr) ;
+    //    iflux[2] = AL*lmdot*Ul.y + AR*rmdot*Ur.y + an.y*(AL*pgl+AR*pgr) ;
+    //    iflux[3] = AL*lmdot*Ul.z + AR*rmdot*Ur.z + an.z*(AL*pgl+AR*pgr) ;
+    //    iflux[4] = AL*(lmdot*e0l + pl*utla) + AR*(rmdot*e0r + pr*utra) ;
+
+    fj[0][0] += AL*drdT*utl ;
+    fj[0][1] += AL*rl*an.x ;
+    fj[0][2] += AL*rl*an.y ;
+    fj[0][3] += AL*rl*an.z ;
+    fj[0][4] += AL*drdp*utl ;
+
+    fj[1][0] += AL*drdT*utl*Ul.x ;
+    fj[1][1] += AL*(rl*an.x*Ul.x + lmdot) ;
+    fj[1][2] += AL*rl*an.y*Ul.x ;
+    fj[1][3] += AL*rl*an.z*Ul.x ;
+    fj[1][4] += AL*(drdp*utl*Ul.x + an.x) ;
+
+    fj[2][0] += AL*drdT*utl*Ul.y ;
+    fj[2][1] += AL*rl*an.x*Ul.y ;
+    fj[2][2] += AL*(rl*an.y*Ul.y + lmdot) ;
+    fj[2][3] += AL*rl*an.z*Ul.y ;
+    fj[2][4] += AL*(drdp*utl*Ul.y + an.y) ;
+
+    fj[3][0] += AL*drdT*utl*Ul.z ;
+    fj[3][1] += AL*rl*an.x*Ul.z ;
+    fj[3][2] += AL*rl*an.y*Ul.z ;
+    fj[3][3] += AL*(rl*an.z*Ul.z + lmdot) ;
+    fj[3][4] += AL*(drdp*utl*Ul.z + an.z) ;
+
+    fj[4][0] += AL*(drdT*utl*e0l + lmdot*de0dT) ;
+    fj[4][1] += AL*(lmdot*Ul.x + an.x*(rl*e0l + pl)) ;
+    fj[4][2] += AL*(lmdot*Ul.y + an.y*(rl*e0l + pl)) ;
+    fj[4][3] += AL*(lmdot*Ul.z + an.z*(rl*e0l + pl)) ;
+    fj[4][4] += AL*(drdp*e0l*utl + utla) ;
+    // subtract off SL*Ul and SR*Ur
+    //    iflux[0] -= AM*(SL*rl + SR*rr) ;
+    //    iflux[1] -= AM*(SL*rl*Ul.x + SR*rr*Ur.x) ;
+    //    iflux[2] -= AM*(SL*rl*Ul.y + SR*rr*Ur.y) ;
+    //    iflux[3] -= AM*(SL*rl*Ul.z + SR*rr*Ur.z) ;
+    //    iflux[4] -= AM*(SL*rl*e0l  + SR*rr*e0r) ;
+    fj[0][0] -= AM*SL*drdT ;
+    fj[0][4] -= AM*SL*drdp ;
+    fj[1][0] -= AM*SL*Ul.x*drdT;
+    fj[1][1] -= AM*SL*rl ;
+    fj[1][4] -= AM*SL*Ul.x*drdp ;
+    fj[2][0] -= AM*SL*Ul.y*drdT ;
+    fj[2][2] -= AM*SL*rl ;
+    fj[2][4] -= AM*SL*Ul.y*drdp ;
+    fj[3][0] -= AM*SL*Ul.z*drdT ;
+    fj[3][3] -= AM*SL*rl ;
+    fj[3][4] -= AM*SL*Ul.z*drdp ;
+    fj[4][0] -= AM*SL*(drdT*e0l + de0dT*rl) ;
+    fj[4][1] -= AM*SL*rl*Ul.x ;
+    fj[4][2] -= AM*SL*rl*Ul.y ;
+    fj[4][3] -= AM*SL*rl*Ul.z ;
+    fj[4][4] -= AM*SL*drdp*e0l ;
+
+    // Now compute U_star_l and U_star_r
+    const real_fj CR = SR-abs(SM) ;
+    const real_fj CL = SL+abs(SM) ;
+    const real_fj dabsSMdT = (SM>0)?dSMdT:-dSMdT ;
+    const real_fj dabsSMdp = (SM>0)?dSMdp:-dSMdp ;
+    const real_fj dabsSMdu = (SM>0)?dSMdu:-dSMdu ;
+
+    const real_fj rl_star = rl*(SL-utl)/(SL-SM) ;
+    const real_fj rr_star = rr*(SR-utr)/(SR-SM) ;
+    const real_fj drl_stardT = rl_star*(drdT/rl + dSMdT/(SL-SM)) ;
+    const real_fj drl_stardp = rl_star*(drdp/rl + dSMdp/(SL-SM)) ;
+    const real_fj drl_stardu = rl_star*dSMdu/(SL-SM) -rl/(SL-SM);
+    const real_fj drr_stardT = rr_star*dSMdT/(SR-SM) ;
+    const real_fj drr_stardp = rr_star*dSMdp/(SR-SM) ;
+    const real_fj drr_stardu = rr_star*dSMdu/(SR-SM) ;
+    fj[0][0] += AM*(dabsSMdT*rl_star - dabsSMdT*rr_star +
+		    CR*drr_stardT + CL*drl_stardT) ;
+    const real_fj d0term = AM*(dabsSMdu*rl_star - dabsSMdu*rr_star +
+			    CR*drr_stardu + CL*drl_stardu) ;
+    fj[0][1] += an.x*d0term ;
+    fj[0][2] += an.y*d0term ;
+    fj[0][3] += an.z*d0term ;
+
+    fj[0][4] += AM*(dabsSMdp*rl_star - dabsSMdp*rr_star +
+		    CR*drr_stardp + CL*drl_stardp) ;
+
+    //    iflux[0] += AM*(CR*rr_star   + CL*rl_star) ;
+
+    const real_fj pg_star = rl*(utl-SL)*(utl-SM)+pgl ;
+    const real_fj dpg_stardT = (utl-SL)*(drdT*(utl-SM) - dSMdT*rl) ;
+    const real_fj dpg_stardp = (utl-SL)*(drdp*(utl-SM) - dSMdp*rl) + 1. ;
+    const real_fj dpg_stardu = rl*(utl-SM+(1.-dSMdu)*(utl-SL)) ;
+    const real_fj p_star = pg_star+pambient ;
+    const real_fj rul_star = ((SL-utl)*rl*Ul.x + (pg_star-pgl)*an.x)/(SL-SM) ;
+    const real_fj rvl_star = ((SL-utl)*rl*Ul.y + (pg_star-pgl)*an.y)/(SL-SM) ;
+    const real_fj rwl_star = ((SL-utl)*rl*Ul.z + (pg_star-pgl)*an.z)/(SL-SM) ;
+    const real_fj rur_star = ((SR-utr)*rr*Ur.x + (pg_star-pgr)*an.x)/(SR-SM) ;
+    const real_fj rvr_star = ((SR-utr)*rr*Ur.y + (pg_star-pgr)*an.y)/(SR-SM) ;
+    const real_fj rwr_star = ((SR-utr)*rr*Ur.z + (pg_star-pgr)*an.z)/(SR-SM) ;
+    
+    fj[1][0] += AM*(dabsSMdT*rul_star - dabsSMdT*rur_star) ;
+    fj[1][1] += an.x*AM*(dabsSMdu*rul_star - dabsSMdu*rur_star) ;
+    fj[1][2] += an.y*AM*(dabsSMdu*rul_star - dabsSMdu*rur_star) ;
+    fj[1][3] += an.z*AM*(dabsSMdu*rul_star - dabsSMdu*rur_star) ;
+    fj[1][4] += AM*(dabsSMdp*rul_star - dabsSMdp*rur_star) ;
+
+    const real_fj drur_stardT = (an.x*dpg_stardT + dSMdT*rur_star)/(SR-SM) ;
+    const real_fj drul_stardT = (Ul.x*(SL-utl)*drdT + an.x*dpg_stardT + 
+			      dSMdT*rul_star)/(SL-SM) ;
+    fj[1][0] += AM*(CR*drur_stardT + CL*drul_stardT) ;
+    
+    const real_fj drur_stardut = (an.x*dpg_stardu + rur_star*dSMdu)/(SR-SM) ;
+    const real_fj drul_stardut = (an.x*dpg_stardu -Ul.x*rl +
+			       rul_star*dSMdu)/(SL-SM) ;
+    fj[1][1] += AM*(an.x*(CR*drur_stardut + CL*drul_stardut)+
+		    CL*(SL-utl)*rl/(SL-SM)) ;
+    fj[1][2] += AM*(an.y*(CR*drur_stardut + CL*drul_stardut)) ;
+    fj[1][3] += AM*(an.z*(CR*drur_stardut + CL*drul_stardut)) ;
+
+    const real_fj drur_stardp = (an.x*dpg_stardp + dSMdp*rur_star)/(SR-SM) ;
+    const real_fj drul_stardp = (Ul.x*(SL-utl)*drdp + an.x*dpg_stardp + 
+			      dSMdp*rul_star-an.x)/(SL-SM) ;
+    fj[1][4] += AM*(CR*drur_stardp + CL*drul_stardp) ;
+    
+    fj[2][0] += AM*(dabsSMdT*rvl_star - dabsSMdT*rvr_star) ;
+    fj[2][1] += an.x*AM*(dabsSMdu*rvl_star - dabsSMdu*rvr_star) ;
+    fj[2][2] += an.y*AM*(dabsSMdu*rvl_star - dabsSMdu*rvr_star) ;
+    fj[2][3] += an.z*AM*(dabsSMdu*rvl_star - dabsSMdu*rvr_star) ;
+    fj[2][4] += AM*(dabsSMdp*rvl_star - dabsSMdp*rvr_star) ;
+
+    const real_fj drvr_stardT = (an.y*dpg_stardT + dSMdT*rvr_star)/(SR-SM) ;
+    const real_fj drvl_stardT = (Ul.y*(SL-utl)*drdT + an.y*dpg_stardT + 
+			      dSMdT*rvl_star)/(SL-SM) ;
+    const real_fj drvr_stardp = (an.y*dpg_stardp + dSMdp*rvr_star)/(SR-SM) ;
+    const real_fj drvl_stardp = (Ul.y*(SL-utl)*drdp + an.y*dpg_stardp + 
+			      dSMdp*rvl_star-an.y)/(SL-SM) ;
+    fj[2][0] += AM*(CR*drvr_stardT + CL*drvl_stardT) ;
+
+    const real_fj drvr_stardut = (an.y*dpg_stardu + rvr_star*dSMdu)/(SR-SM) ;
+    const real_fj drvl_stardut = (an.y*dpg_stardu -Ul.y*rl +
+			       rvl_star*dSMdu)/(SL-SM) ;
+    fj[2][1] += AM*(an.x*(CR*drvr_stardut + CL*drvl_stardut)) ;
+    fj[2][2] += AM*(an.y*(CR*drvr_stardut + CL*drvl_stardut)+
+		    CL*(SL-utl)*rl/(SL-SM)) ; ;
+    fj[2][3] += AM*(an.z*(CR*drvr_stardut + CL*drvl_stardut)) ;
+
+    fj[2][4] += AM*(CR*drvr_stardp + CL*drvl_stardp) ;
+
+    fj[3][0] += AM*(dabsSMdT*rwl_star - dabsSMdT*rwr_star) ;
+    fj[3][1] += an.x*AM*(dabsSMdu*rwl_star - dabsSMdu*rwr_star) ;
+    fj[3][2] += an.y*AM*(dabsSMdu*rwl_star - dabsSMdu*rwr_star) ;
+    fj[3][3] += an.z*AM*(dabsSMdu*rwl_star - dabsSMdu*rwr_star) ;
+    fj[3][4] += AM*(dabsSMdp*rwl_star - dabsSMdp*rwr_star) ;
+
+    const real_fj drwr_stardT = (an.z*dpg_stardT + dSMdT*rwr_star)/(SR-SM) ;
+    const real_fj drwl_stardT = (Ul.z*(SL-utl)*drdT + an.z*dpg_stardT + 
+			      dSMdT*rwl_star)/(SL-SM) ;
+    const real_fj drwr_stardp = (an.z*dpg_stardp + dSMdp*rwr_star)/(SR-SM) ;
+    const real_fj drwl_stardp = (Ul.z*(SL-utl)*drdp + an.z*dpg_stardp + 
+			      dSMdp*rwl_star-an.z)/(SL-SM) ;
+    fj[3][0] += AM*(CR*drwr_stardT + CL*drwl_stardT) ;
+
+    const real_fj drwr_stardut = (an.z*dpg_stardu + rwr_star*dSMdu)/(SR-SM) ;
+    const real_fj drwl_stardut = (an.z*dpg_stardu -Ul.z*rl +
+			       rwl_star*dSMdu)/(SL-SM) ;
+    fj[3][1] += AM*(an.x*(CR*drwr_stardut + CL*drwl_stardut)) ;
+    fj[3][2] += AM*(an.y*(CR*drwr_stardut + CL*drwl_stardut)) ;
+    fj[3][3] += AM*(an.z*(CR*drwr_stardut + CL*drwl_stardut)+
+		    CL*(SL-utl)*rl/(SL-SM)) ; 
+    fj[3][4] += AM*(CR*drwr_stardp + CL*drwl_stardp) ;
+      //    		    CR*dre0r_stardT + CL*dre0l_stardT) ;
+    //    iflux[1] += AM*(CR*rur_star  + CL*rul_star) ;
+    //    iflux[2] += AM*(CR*rvr_star  + CL*rvl_star) ;
+    //    iflux[3] += AM*(CR*rwr_star  + CL*rwl_star) ;
+    const real_fj re0l_star = ((SL-utl)*rl*e0l - pl*utl + p_star*SM)/(SL-SM) ;
+    const real_fj re0r_star = ((SR-utr)*rr*e0r - pr*utr + p_star*SM)/(SR-SM) ;
+    const real_fj dre0l_stardT =  ((drdT*e0l + de0dT*rl)*(SL - utl) + 
+				dSMdT*(p_star +re0l_star)+
+				SM*dpg_stardT)/(SL-SM) ;
+    const real_fj dre0r_stardT = (dSMdT*(p_star + re0r_star) + 
+			       SM*dpg_stardT)/(SR-SM) ;
+    const real_fj dre0l_stardp = (drdp*(e0l*(SL - utl)) - utl + SM*dpg_stardp + 
+			       dSMdp*(p_star + re0l_star))/(SL-SM) ;
+    const real_fj dre0r_stardp =  (dSMdp*(p_star + re0r_star) + 
+				SM*dpg_stardp)/(SR-SM) ;
+    const real_fj dre0l_stardux = (-(e0l*rl) - pl + SM*dpg_stardu +
+				 dSMdu*p_star +	dSMdu*re0l_star)/(SL-SM) ;
+    const real_fj dre0r_stardux = (dSMdu*p_star + SM*dpg_stardu + 
+				dSMdu*re0r_star)/(SR-SM) ;
+    fj[4][0] += AM*(dabsSMdT*re0l_star - dabsSMdT*re0r_star +
+    		    CR*dre0r_stardT + CL*dre0l_stardT) ;
+    const real_fj d1term = (dabsSMdu*re0l_star - dabsSMdu*re0r_star +
+		    CR*dre0r_stardux + CL*dre0l_stardux) ;
+    fj[4][1] += AM*(an.x*d1term + CL*rl*Ul.x*(SL-utl)/(SL-SM)) ;
+    fj[4][2] += AM*(an.y*d1term + CL*rl*Ul.y*(SL-utl)/(SL-SM)) ;
+    fj[4][3] += AM*(an.z*d1term + CL*rl*Ul.z*(SL-utl)/(SL-SM)) ;
+
+    fj[4][4] += AM*(dabsSMdp*re0l_star - dabsSMdp*re0r_star +
+    		    CR*dre0r_stardp + CL*dre0l_stardp) ;
+    
+  }
+
+  inline  void damping_fjm(Mat<real_fj> fj,
+                           real pgr, real Tr, vect3d Ur,
+                           vect3d an, real area,
+                           real pambient, real Rt,real gamma, real Us_n,
+                           real beta ) {
+    const real_fj coef = 0.5*area ;
+    const real_fj gm1 = gamma-1 ;
+    const real_fj rr = (pgr+pambient)/(Rt*Tr) ;
+    const real_fj drdp = 1./(Rt*Tr) ;
+    const real_fj drdT = -rr/Tr ;
+    
+    const real_fj utra = dot(Ur,an) ;
+    const real_fj utr = utra-Us_n ; 
+    const real_fj ar = sqrt(gamma*Rt*Tr) ;
+
+    // Temporal damping
+    real coefd = beta*(fabs(utr)+ar)*coef ;
+    fj[0][0] -= coefd*drdT ;
+    fj[1][0] -= coefd*drdT*Ur.x ;
+    fj[2][0] -= coefd*drdT*Ur.y ;
+    fj[3][0] -= coefd*drdT*Ur.z ;
+    fj[4][0] -= coefd*drdT*0.5*dot(Ur,Ur) ;
+    fj[0][4] -= coefd*drdp ;
+    fj[1][4] -= coefd*drdp*Ur.x ;
+    fj[2][4] -= coefd*drdp*Ur.y ;
+    fj[3][4] -= coefd*drdp*Ur.z ;
+    fj[4][4] -= coefd*(1./gm1+drdp*0.5*dot(Ur,Ur)) ;
+    
+    fj[1][1] -= coefd*rr ;
+    fj[2][2] -= coefd*rr ;
+    fj[3][3] -= coefd*rr ;
+
+    fj[4][1] -= coefd*rr*Ur.x ;
+    fj[4][2] -= coefd*rr*Ur.y ;
+    fj[4][3] -= coefd*rr*Ur.z ;
+  }
+  
+  inline void damping_fjp(Mat<real_fj> fj,
+                          real pgl, real Tl, vect3d Ul,
+                          vect3d an, real area,
+                          real pambient, real Rt,real gamma, real Us_n,
+                          real beta ) {
+    const real_fj coef = 0.5*area ;
+    const real_fj gm1 = gamma-1 ;
+    const real_fj rl = (pgl+pambient)/(Rt*Tl) ;
+    const real_fj drdp = 1./(Rt*Tl) ;
+    const real_fj drdT = -rl/Tl ;
+    
+    const real_fj utla = dot(Ul,an) ;
+    const real_fj utl = utla-Us_n ; 
+    const real_fj al = sqrt(gamma*Rt*Tl) ;
+    
+    // Temporal damping
+    real coefd = beta*(fabs(utl)+al)*coef ;
+    fj[0][0] += coefd*drdT ;
+    fj[1][0] += coefd*drdT*Ul.x ;
+    fj[2][0] += coefd*drdT*Ul.y ;
+    fj[3][0] += coefd*drdT*Ul.z ;
+    fj[4][0] += coefd*drdT*0.5*dot(Ul,Ul) ;
+    fj[0][4] += coefd*drdp ;
+    fj[1][4] += coefd*drdp*Ul.x ;
+    fj[2][4] += coefd*drdp*Ul.y ;
+    fj[3][4] += coefd*drdp*Ul.z ;
+    fj[4][4] += coefd*(1./gm1+drdp*0.5*dot(Ul,Ul)) ;
+    
+    fj[1][1] += coefd*rl ;
+    fj[2][2] += coefd*rl ;
+    fj[3][3] += coefd*rl ;
+
+    fj[4][1] += coefd*rl*Ul.x ;
+    fj[4][2] += coefd*rl*Ul.y ;
+    fj[4][3] += coefd*rl*Ul.z ;
+  }
+
+
+  void roeCT_flux(Loci::Array<real, 5> &iflux,
+		  real pgl, real Tl, vect3d Ul,
+		  real pgr, real Tr, vect3d Ur,
+		  vect3d an, real area,
+		  real pambient, real Rt,real gamma, real Us_n,
+		  real Eta) {
+    
+    const real pl = pgl + pambient ;      // right and left pressures
+    const real pr = pgr + pambient ;
+    const real rl = pl/(Rt*Tl) ;
+    const real rr = pr/(Rt*Tr) ;
+
+    const real gm1 = gamma-1. ;
+    const real re0l = rl*(Rt*Tl/gm1 + 0.5*dot(Ul,Ul)) ;
+    const real re0r = rr*(Rt*Tr/gm1 + 0.5*dot(Ur,Ur)) ;
+
+    const real h0l = (re0l+pl)/rl ;
+    const real h0r = (re0r+pr)/rr ;
+
+    const real r_ = sqrt(rl*rr) ;        // Roe average density
+    const real srl = sqrt(rl) ;          // coefficents used for
+    const real srr = sqrt(rr) ;          //  Roe averaging
+    const real roe_factor = 1./(srl+srr) ;
+
+#define AVG(vl,vr)  (0.5*((vl)+(vr))) // Standard Average (arithmetic average)
+#define JMP(vl,vr)  ((vr)-(vl))       // Jump function
+#define RAVG(vl,vr) (((vl)*srl+(vr)*srr)*roe_factor) // Roe average
+
+    const vect3d U_ = RAVG(Ul,Ur) ;
+    const real ut_ = dot(U_,an)-Us_n ; //dot(U_-Us,an) ;
+    const real uta_ = dot(U_,an) ;
+    const real q2_ = dot(U_,U_) ;
+
+    const real h0_ = RAVG(h0l,h0r) ;               // Roe total  energy
+    const real h_ = h0_ - 0.5*q2_ ;
+    
+    const real al2 = gamma*Rt*Tl ;
+    const real ar2 = gamma*Rt*Tr ;
+    const real utl = dot(Ul,an)-Us_n ; //dot(Ul-Us,an) ;
+    const real utr = dot(Ur,an)-Us_n ; //dot(Ur-Us,an) ;
+    const real utla = dot(Ul,an) ;
+    const real utra = dot(Ur,an) ;
+
+    // For strong pressure jumps, drop preconditioning so we get
+    // wave speeds correct.
+    if(fabs(pl-pr)/(pl+pr+1e-33) > .1)
+      Eta = 1. ;
+
+    // estimate derivatives of roe state
+
+    real af2 = gm1*h_ ;
+    af2 = max<real>(af2,1e-30) ; //ROE_SOUND_LIMIT*min(sl.aSquared(),sr.aSquared())) ;
+
+
+
+    const real EtaP = Eta+1. ;
+    const real EtaM = Eta-1. ;
+
+    real a_ = sqrt(af2) ;
+    const real sigma = sqrt(ut_*ut_*EtaM*EtaM+4.*Eta*a_*a_) ;
+    real ev1 = fabs(ut_) ;
+    real ev2 = fabs(ut_*EtaP-sigma)/2. ;
+    real ev3 = fabs(ut_*EtaP+sigma)/2. ;
+
+    //The following segment (from #define ENTROPY_FIX to #endif) is provides 
+    //a correction to eigenvalues when the transonic expansion fan ( left 
+    //state is (-) and right state is (+)) exists.  Since Roe scheme is only 
+    //based on discontinuities, with no expansion waves, it can admit 
+    //a violation of the entropy condition by allowing expansion "shocks". 
+    //We add a small amount of dissipation in this case to prevent
+    //solutions with expansion shocks
+#define ENTROPY_FIX
+
+#ifdef ENTROPY_FIX
+
+    real sigmal = sqrt(utl*utl*EtaM*EtaM + 4.*Eta*al2) ;
+    real sigmar = sqrt(utr*utr*EtaM*EtaM + 4.*Eta*ar2) ;
+    // compute left and right state eigenvalues
+    const real e2l = (utl*EtaP-sigmal)/2. ;
+    const real e2r = (utr*EtaP-sigmar)/2. ;
+    const real e3l = (utl*EtaP+sigmal)/2. ;
+    const real e3r = (utr*EtaP+sigmar)/2. ;
+    
+    // entropy fix of Harten and Hyman, See "Numerical Computations
+    // of Internal and External Flows, Volume 2", by C. Hirsch.  pp. 469
+    // This version differs slightly from what is presented in Leveque
+    const real ev2s = (ut_*EtaP-sigma)/2. ;
+    const real ev3s = (ut_*EtaP+sigma)/2. ;
+    const real eps2 = max(real(0),max(ev2s-e2l,e2r-ev2s)) ;
+    const real eps3 = max(real(0),max(ev3s-e3l,e3r-ev3s)) ;
+    ev2 = ev2<eps2?0.5*((ev2s*ev2s)/eps2 + eps2): ev2 ;
+    ev3 = ev3<eps3?0.5*((ev3s*ev3s)/eps3 + eps3): ev3 ;
+    // End of ENTROPY_FIX  
+#endif
+
+    // Jump in contravariant velocity
+    vect3d Uj=JMP(Ul,Ur) ;
+    const real utj = dot(Uj,an) ; 
+    const real pj = JMP(pgl,pgr) ;
+    const real Tj = JMP(Tl,Tr) ;
+      
+    
+    const real BM = EtaM ;
+    const real T1 = ev2-ev3 ;
+    const real T2 = (ev2+ev3-2*ev1 );
+    const real T3 = r_*(BM*BM*ut_*ut_-sigma*sigma)/(4.*sigma) ;
+    const real T4 = T2*sigma + BM*T1*ut_ ;
+    const real T5 = (T2*sigma - BM*T1*ut_)/(2.*sigma) ;
+    const real T6 = ((ev2+ev3)*sigma - BM*T1*ut_)/(2.*sigma) ;
+    const real Cp = gamma*Rt/gm1 ;
+    const real rT_ = -gamma*Rt*r_/(h_*gm1) ;
+    const real rbeta = 1./Eta ;
+    const real ra2 = 1./(a_*a_) ;
+    const real T7 = rbeta*T1*T3*ra2 ;
+    const real T8 = (((rbeta-1)+gamma)*T6 - gm1*T5)*ra2 ;
+    const real T9 = Cp*r_+h0_*rT_ ;
+    const real x1 = gamma*h0_*T1*T3*ra2*rbeta ;
+    const real x2 = -rbeta*gm1*T1*T3*T9*ra2/rT_ ;
+    const real x3 = -T1*T3*rbeta ;
+    const real x4 = .5*r_*T4*uta_/sigma ;
+    const real T10 = (x1+x2+x3+x4) ;
+    const real T11= (rbeta*ra2*h0_ + (T9 - r_*rbeta*Cp)*ra2*gm1 / rT_
+		     - rbeta)*T6 -gm1*ra2*T9*T5/rT_ - uta_*T1 / sigma ;
+    
+
+    iflux[0] = pj*T8 + utj*T7 +  ev1*Tj*rT_ ;
+
+    iflux[1] = U_.x*T7*utj + ev1*(U_.x*Tj*rT_ + r_*Uj.x)+
+      pj*(T8*U_.x - an.x*T1/sigma) + an.x*r_*T4*utj/(2.*sigma) ;
+
+    iflux[2] = U_.y*T7*utj + ev1*(U_.y*Tj*rT_ + r_*Uj.y)+
+      pj*(T8*U_.y - an.y*T1/sigma) + an.y*r_*T4*utj/(2.*sigma) ;
+
+    iflux[3] = U_.z*T7*utj + ev1*(U_.z*Tj*rT_ + r_*Uj.z)+
+      pj*(T8*U_.z - an.z*T1/sigma) + an.z*r_*T4*utj/(2.*sigma) ;
+
+    iflux[4] = pj*T11+T10*utj+ev1*(T9*Tj+r_*dot(U_,Uj)) ;
+    
+    const real Ah = 0.5*area ;
+
+    iflux[0] = Ah*(rl*utl + rr*utr - iflux[0]) ;
+    iflux[1] = Ah*(Ul.x*rl*utl + Ur.x*rr*utr + an.x*(pgl+pgr) - iflux[1] ) ; 
+    iflux[2] = Ah*(Ul.y*rl*utl + Ur.y*rr*utr + an.y*(pgl+pgr) - iflux[2]) ;
+    iflux[3] = Ah*(Ul.z*rl*utl + Ur.z*rr*utr + an.z*(pgl+pgr) - iflux[3]) ;
+    iflux[4] = Ah*((re0l*utl+pl*utla) + (re0r*utr+pr*utra)    - iflux[4]) ;
+  }
+
+
+
+  inline void 
+  RoeJacobian(Loci::Mat<real_fj> &Fj,
+	      real ev1,
+	      real ev2,
+	      real ev3,
+	      vect3d U,
+	      real un,
+	      real a,
+	      real beta,
+	      real sigma,
+	      real gamma,
+	      real Rt,
+	      real rho,
+	      real T,
+	      real h0,
+	      vect3d n,
+	      real area
+	      ) {
+    const int Ti=0 ;
+    const int Pi=4 ;
+    const int mi=1 ;
+    const int ei=4 ;
+    const real BM = beta - 1. ;
+    const real una = dot(U,n) ;
+    const real T1 = ev2-ev3 ;
+    const real T2 = (ev2+ev3-2*ev1 );
+    const real T3 = rho*(BM*BM*un*un-sigma*sigma)/(4.*sigma) ;
+    const real T4 = T2*sigma + BM*T1*un ;
+    const real T5 = (T2*sigma - BM*T1*un)/(2.*sigma) ;
+    const real T6 = ((ev2+ev3)*sigma - BM*T1*un)/(2.*sigma) ;
+    const real gm1 = gamma - 1.0 ;
+    const real Cp = gamma*Rt/gm1 ;
+    const real rT = -gamma*Rt*rho/((h0-0.5*dot(U,U))*gm1) ;
+    const real rbeta = 1./beta ;
+    const real ra2 = 1./(a*a) ;
+    const real T7 = rbeta*T1*T3*ra2 ;
+    const real T8 = (((rbeta-1)+gamma)*T6 - gm1*T5)*ra2 ;
+    const real T9 = Cp*rho+h0*rT ;
+    const real x1 = gamma*h0*T1*T3*ra2*rbeta ;
+    const real x2 = -rbeta*gm1*T1*T3*T9*ra2/rT ;
+    const real x3 = -T1*T3*rbeta ;
+    const real x4 = .5*rho*T4*una/sigma ;
+    const real T10 = (x1+x2+x3+x4) ;
+    const real T11= (rbeta*ra2*h0 + (T9 - rho*rbeta*Cp)*ra2*gm1 / rT
+		     - rbeta)*T6 -gm1*ra2*T9*T5/rT - una*T1 / sigma ;
+    
+    Fj[0][Ti]   += area*ev1*rT ;
+    Fj[0][mi+0] += area*n.x*T7 ;
+    Fj[0][mi+1] += area*n.y*T7 ;
+    Fj[0][mi+2] += area*n.z*T7 ;
+    Fj[0][Pi]   += area*T8 ;
+    
+    Fj[mi+0][Ti]   += area*ev1*rT*U.x ;
+    Fj[mi+1][Ti]   += area*ev1*rT*U.y ;
+    Fj[mi+2][Ti]   += area*ev1*rT*U.z ;
+    Fj[mi+0][mi+0] += area*(n.x*(T7*U.x+n.x*rho*T4/(2.*sigma)) + ev1*rho);
+    Fj[mi+0][mi+1] += area*n.y*(T7*U.x+n.x*rho*T4/(2.*sigma)) ;
+    Fj[mi+0][mi+2] += area*n.z*(T7*U.x+n.x*rho*T4/(2.*sigma)) ;
+    Fj[mi+1][mi+0] += area*n.x*(T7*U.y+n.y*rho*T4/(2.*sigma)) ;
+    Fj[mi+1][mi+1] += area*(n.y*(T7*U.y+n.y*rho*T4/(2.*sigma)) + ev1*rho);
+    Fj[mi+1][mi+2] += area*n.z*(T7*U.y+n.y*rho*T4/(2.*sigma)) ;
+    Fj[mi+2][mi+0] += area*n.x*(T7*U.z+n.z*rho*T4/(2.*sigma)) ;
+    Fj[mi+2][mi+1] += area*n.y*(T7*U.z+n.z*rho*T4/(2.*sigma)) ;
+    Fj[mi+2][mi+2] += area*(n.z*(T7*U.z+n.z*rho*T4/(2.*sigma)) + ev1*rho);
+    Fj[mi+0][Pi]   += area*(T8*U.x-n.x*T1/sigma) ;
+    Fj[mi+1][Pi]   += area*(T8*U.y-n.y*T1/sigma) ;
+    Fj[mi+2][Pi]   += area*(T8*U.z-n.z*T1/sigma) ;
+    Fj[ei][Ti]     += area*ev1*T9 ;
+    Fj[ei][mi+0]   += area*(n.x*T10+ev1*rho*U.x) ;
+    Fj[ei][mi+1]   += area*(n.y*T10+ev1*rho*U.y) ;
+    Fj[ei][mi+2]   += area*(n.z*T10+ev1*rho*U.z) ;
+    Fj[ei][Pi]     += area*T11 ;
+  }
+
+  void roeCT_jacobian(Loci::Mat<real_fj> &Fj,
+		      real pgl, real Tl, vect3d Ul,
+		      real pgr, real Tr, vect3d Ur,
+		      vect3d an, real area,
+		      real pambient, real Rt,real gamma, real Us_n,
+		      real Eta, int dir) {
+    real gm1 = gamma-1 ;
+
+
+    const real pl = pgl+pambient ;      // right and left pressures
+    const real pr = pgr+pambient ;
+    const real rl = pl/(Rt*Tl) ;
+    const real rr = pr/(Rt*Tr) ;
+
+    const real re0l = rl*(Rt*Tl/gm1 + 0.5*dot(Ul,Ul)) ;
+    const real re0r = rr*(Rt*Tr/gm1 + 0.5*dot(Ur,Ur)) ;
+
+    const real h0l = (re0l+pl)/rl ;
+    const real h0r = (re0r+pr)/rr ;
+
+    const real r_ = sqrt(rl*rr) ;        // Roe average density
+    const real srl = sqrt(rl) ;          // coefficents used for
+    const real srr = sqrt(rr) ;          //  Roe averaging
+    const real roe_factor = 1./(srl+srr) ;
+
+#define AVG(vl,vr)  (0.5*((vl)+(vr))) // Standard Average (arithmetic average)
+#define JMP(vl,vr)  ((vr)-(vl))       // Jump function
+#define RAVG(vl,vr) (((vl)*srl+(vr)*srr)*roe_factor) // Roe average
+
+    const vect3d U_ = RAVG(Ul,Ur) ;
+    const real ut_ = dot(U_,an)-Us_n ; //dot(U_-Us,an) ;
+    const real q2_ = dot(U_,U_) ;
+
+    const real h0_ = RAVG(h0l,h0r) ;               // Roe total  energy
+    const real h_ = h0_ - 0.5*q2_ ;
+
+    // For strong pressure jumps, drop preconditioning so we get
+    // wave speeds correct.
+    if(fabs(pl-pr)/(pl+pr+1e-33) > .1)
+      Eta = 1. ;
+
+    // estimate derivatives of roe state
+
+    real af2 = gm1*h_ ;
+    af2 = max<real>(af2,1e-30) ; //ROE_SOUND_LIMIT*min(sl.aSquared(),sr.aSquared())) ;
+
+
+    const real T_ = h_*gm1/(Rt*gamma) ;
+
+    const real EtaP = Eta+1. ;
+    const real EtaM = Eta-1. ;
+
+    real a_ = sqrt(af2) ;
+    const real sigma = sqrt(ut_*ut_*EtaM*EtaM+4.*Eta*a_*a_) ;
+    // Dir based
+    real ev1 = ut_ ;
+    real ev2 = (ut_*EtaP-sigma)/2. ;
+    real ev3 = (ut_*EtaP+sigma)/2. ;
+ 
+    // Select eigenvalues based on direction of jacobian.  Apply
+    // smoothing technique to stabalize the jacobian for large timesteps
+    real d = (dir<0)?-1:1 ;
+
+    const real mxv = max(ev1,max(ev2,ev3)) ;
+    const real mnv = min(ev1,min(ev2,ev3)) ;
+
+    const real smooth_factor = 0.02 ;
+    
+    const real eps = smooth_factor*(mxv-mnv) ;
+    const real eps2 = eps*eps ;
+
+    ev1 = .5*(ev1+d*sqrt(ev1*ev1+eps2)) ;
+    ev2 = .5*(ev2+d*sqrt(ev2*ev2+eps2)) ;
+    ev3 = .5*(ev3+d*sqrt(ev3*ev3+eps2)) ;
+    RoeJacobian(Fj,ev1,ev2,ev3,U_,ut_,a_,Eta,sigma,
+		gamma,Rt,r_,T_,h0_,an,area) ;
+
+  }
+
+  $rule pointwise(iflux <- 
+		  leftv3d(u),leftsP(temperature,Zero),
+		  leftsP(gagePressure,minPg),
+		  rightv3d(u),rightsP(temperature,Zero),
+		  rightsP(gagePressure,minPg),
+		  area,Pambient,Rtilde,gamma,us_n,
+		  (cl,cr)->Eta_p),
+    constraint((cl,cr)->(u,temperature,gagePressure)) {
+    
+     inviscidRiemannFlux($iflux,
+			 $leftsP(gagePressure,minPg),
+			 $leftsP(temperature,Zero),
+			 $leftv3d(u),
+			 $rightsP(gagePressure,minPg),
+			 $rightsP(temperature,Zero),
+			 $rightv3d(u),
+			 $area.n,$area.sada,$Pambient,$Rtilde,$gamma,$us_n,
+			 max($cl->$Eta_p,$cr->$Eta_p)) ;
+  }
+
+  $rule apply(fjp <- 
+		  leftv3d(u),leftsP(temperature,Zero),
+		  leftsP(gagePressure,minPg),
+		  rightv3d(u),rightsP(temperature,Zero),
+		  rightsP(gagePressure,minPg),
+	      area,Pambient,Rtilde,gamma,us_n,
+	      (cl,cr)->Eta_p)[Loci::Summation],
+    constraint((cl,cr)->(u,temperature,gagePressure)) {
+    inviscidRiemannFjp($fjp,
+		       $leftsP(gagePressure,minPg),$leftsP(temperature,Zero),
+		       $leftv3d(u),
+		       $rightsP(gagePressure,minPg),$rightsP(temperature,Zero),
+		       $rightv3d(u),
+		       $area.n,$area.sada,$Pambient,$Rtilde,$gamma,$us_n,
+		       max($cl->$Eta_p,$cr->$Eta_p)) ;
+  }
+  $rule apply(fjm <- 
+	      leftv3d(u),leftsP(temperature,Zero),
+	      leftsP(gagePressure,minPg),
+	      rightv3d(u),rightsP(temperature,Zero),
+	      rightsP(gagePressure,minPg),
+	      area,Pambient,Rtilde,gamma,us_n,
+	      (cl,cr)->Eta_p)[Loci::Summation],
+    constraint((cl,cr)->(u,temperature,gagePressure)) {
+    inviscidRiemannFjm($fjm,
+		       $leftsP(gagePressure,minPg),$leftsP(temperature,Zero),
+		       $leftv3d(u),
+		       $rightsP(gagePressure,minPg),$rightsP(temperature,Zero),
+		       $rightv3d(u),
+		       $area.n,$area.sada,$Pambient,$Rtilde,$gamma,$us_n,
+		       max($cl->$Eta_p,$cr->$Eta_p) ) ;
+  }
+  
+  
+  $type temporalDamping param<real> ;
+  
+  $rule optional(temporalDamping) {
+    $temporalDamping = 0.1 ;
+  }
+  
+  $rule apply(fjp <- 
+		  leftv3d(u),leftsP(temperature,Zero),
+		  leftsP(gagePressure,minPg),
+	      area,Pambient,Rtilde,gamma,us_n,temporalDamping)[Loci::Summation],
+    constraint(temporalDamping,(cl,cr)->(u,temperature,gagePressure)) {
+    damping_fjp($fjp,
+                $leftsP(gagePressure,minPg),$leftsP(temperature,Zero),
+                $leftv3d(u),
+                $area.n,$area.sada,$Pambient,$Rtilde,$gamma,$us_n,
+                $temporalDamping) ;
+  }
+  $rule apply(fjm <- 
+		  rightv3d(u),rightsP(temperature,Zero),
+		  rightsP(gagePressure,minPg),
+	      area,Pambient,Rtilde,gamma,us_n,temporalDamping)[Loci::Summation],
+    constraint(temporalDamping,(cl,cr)->(u,temperature,gagePressure)) {
+    damping_fjm($fjm,
+                $rightsP(gagePressure,minPg),$rightsP(temperature,Zero),
+                $rightv3d(u),
+                $area.n,$area.sada,$Pambient,$Rtilde,$gamma,$us_n,
+                $temporalDamping) ;
+  }
+  
+  $rule unit(src),constraint(geom_cells) {
+    for(int i=0;i<5;++i)
+      $src[i] = 0 ;
+  }
+
+  // Inviscid flux contributions for interior faces
+  $rule apply((cl,cr)->src<-iflux)[Loci::Summation], 
+      constraint((cl,cr)->geom_cells) {
+    $cl->$src -= $iflux ;
+    $cr->$src += $iflux ;
+  }
+
+  // Inviscid flux contributions for boundary faces
+  $rule apply(cl->src<-iflux)[Loci::Summation],constraint(boundary_faces) {
+    $cl->$src -= $iflux ;
+  }
+  
+
+
+}

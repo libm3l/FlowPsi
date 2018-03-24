@@ -1,0 +1,757 @@
+//#############################################################################
+//#
+//# Copyright 2015, Mississippi State University
+//#
+//# This file is part of the flowPsi computational fluid dynamics solver.
+//#
+//# The flowPsi solver is free software: you can redistribute it and/or modify
+//# it under the terms of the GNU General Public License as published by
+//# the Free Software Foundation, either version 3 of the License, or
+//# (at your option) any later version.
+//#
+//# The flowPsi solver is distributed in the hope that it will be useful,
+//# but WITHOUT ANY WARRANTY; without even the implied warranty of
+//# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//# GNU General Public License for more details.
+//#
+//# You should have received a copy of the GNU General Public License
+//# along with the flowPsi solver.  If not, see <http://www.gnu.org/licenses>
+//#
+//#############################################################################
+
+#include <Loci.h>
+$include "flowPsi.lh"
+#include "flowTypes.h"
+#include "flowPsiIO.h"
+#include "Tools/stream.h"
+
+
+
+#include <iostream>
+#include <fstream>
+#include <map>
+
+namespace Loci {
+  extern void register_closing_function(void (*fptr)(int code)) ;
+}
+
+namespace flowPsi {
+
+  using std::map ;
+  using std::string ;
+  using std::ofstream ;
+  using Loci::Area ;
+  map<string,ofstream *> integratedFileDB ;
+
+  void LociFileCloser(int code) {
+    // close any files already opened on Loci error
+    map<string,ofstream *>::iterator ii ;
+    for(ii=integratedFileDB.begin();ii!=integratedFileDB.end();++ii)
+      if(ii->second != 0) {
+	//        cout << "closing file " << ii-> first << endl ;
+        ii->second->close() ;
+        delete ii->second ;
+        ii->second = 0 ;
+      }
+    integratedFileDB.clear() ;
+  }
+
+
+  static int filecloser_registered = 0 ;
+  integratedFileDBManager::integratedFileDBManager() {
+    if(filecloser_registered == 0) {
+      Loci::register_closing_function(LociFileCloser) ;
+      filecloser_registered = 1 ;
+    }
+  }
+
+  integratedFileDBManager::~integratedFileDBManager() {
+    map<string,ofstream *>::iterator ii ;
+    for(ii=integratedFileDB.begin();ii!=integratedFileDB.end();++ii)
+      if(ii->second != 0) {
+	//        cout << "closing file " << ii-> first << endl ;
+        ii->second->close() ;
+        delete ii->second ;
+        ii->second = 0 ;
+      }
+    integratedFileDB.clear() ;
+  }
+  
+
+  class integratedOutputFileManager: public blackbox_rule {
+    blackbox<integratedFileDBManager> ifman ;
+  public:
+    integratedOutputFileManager() {
+      name_store("integratedOutputFileManager",ifman) ;
+      output("integratedOutputFileManager") ;
+      constraint("UNIVERSE") ;
+    }
+    virtual void compute(const sequence& seq) {}
+  } ;
+  register_rule<integratedOutputFileManager> register_integratedOutputFileManager ;
+  
+  ofstream *getStreamFluxFile(const string filename, bool truncate) {
+    map<string,ofstream *>::iterator ii ;
+    ii = integratedFileDB.find(filename) ;
+    if(ii == integratedFileDB.end()) {
+      integratedFileDB[filename] = 0 ;
+    }
+    ii = integratedFileDB.find(filename) ;
+    if(ii->second == 0) {
+      ii->second = new ofstream() ;
+      if(truncate) 
+        ii->second->open(filename.c_str(),ios::out) ;
+      else
+        ii->second->open(filename.c_str(),ios::app) ;
+      if(ii->second->fail())  {
+        cerr << "can't open '" << filename << "'" << endl ;
+      } else 
+        ii->second->precision(10) ;
+    }
+    return ii->second ;
+  }
+  
+  // A struct that collects all of the integrated values
+  struct conservativeFlux {
+    real mass_flux ;
+    vect3d momentum_flux ;
+    vect3d momentum_vis ;
+    real energy_flux ;
+    real area ;
+    conservativeFlux() {
+      // Initialize these values to zero
+      mass_flux = 0. ;
+      momentum_flux.x = 0. ;
+      momentum_flux.y = 0. ;
+      momentum_flux.z = 0. ;
+      momentum_vis.x = 0 ;
+      momentum_vis.y = 0 ;
+      momentum_vis.z = 0 ;
+      energy_flux = 0. ;
+      area = 0. ;
+    }
+  } ;
+
+  struct momentFlux {
+    vect3d moment_flux ;
+    vect3d moment_reference ;
+    vect3d moment_center ;
+    int init ;
+    momentFlux() {
+      moment_flux = vect3d(0.,0.,0.) ;
+      moment_reference = moment_flux ;
+      moment_center = moment_flux ;
+      init = -5 ; // Not Initialized
+    }
+  } ;
+}
+
+namespace Loci {
+
+  template <> struct data_schema_traits<flowPsi::momentFlux> {
+    typedef IDENTITY_CONVERTER Schema_Converter ;
+    static DatatypeP get_type() {
+      CompoundDatatypeP ct = CompoundFactory(flowPsi::momentFlux()) ;
+      LOCI_INSERT_TYPE(ct,flowPsi::momentFlux,moment_flux) ;
+      LOCI_INSERT_TYPE(ct,flowPsi::momentFlux,moment_reference) ;
+      LOCI_INSERT_TYPE(ct,flowPsi::momentFlux,moment_center) ;
+      LOCI_INSERT_TYPE(ct,flowPsi::momentFlux,init) ;
+      return DatatypeP(ct) ;
+    }
+  } ;
+    
+  // Tell Loci how to deal with the conservativeFlux data structure
+  template <> struct data_schema_traits<flowPsi::conservativeFlux> {
+    typedef IDENTITY_CONVERTER Schema_Converter ;
+    static DatatypeP get_type() {
+      CompoundDatatypeP ct = CompoundFactory(flowPsi::conservativeFlux()) ;
+      LOCI_INSERT_TYPE(ct,flowPsi::conservativeFlux,mass_flux) ;
+      LOCI_INSERT_TYPE(ct,flowPsi::conservativeFlux,momentum_flux) ;
+      LOCI_INSERT_TYPE(ct,flowPsi::conservativeFlux,momentum_vis) ;
+      LOCI_INSERT_TYPE(ct,flowPsi::conservativeFlux,energy_flux) ;
+      LOCI_INSERT_TYPE(ct,flowPsi::conservativeFlux,area) ;
+      return DatatypeP(ct) ;
+    }
+  } ;
+}
+  
+namespace flowPsi {
+
+  // To integrate these values, we simply sum the integrated fluxes for
+  // each face on the boundary.  We do that using a reduction which in Loci
+  // is accomplished by a combination of rules.  The unit rule initializes
+  // the value to zero, then an apply rule follows that adds the necessary
+  // terms.
+  //
+  // In addition, we use a parametric rule so that we can apply this
+  // integration to any set of entities.  (This is what the X represents
+  // below)
+  $type integrate_flux(X) param<conservativeFlux> ;
+  $rule unit(integrate_flux(X)),constraint(X) {
+    $integrate_flux(X).mass_flux = 0 ;
+    $integrate_flux(X).momentum_flux = vect3d(0.,0.,0.) ;
+    $integrate_flux(X).momentum_vis = vect3d(0.,0.,0.) ;
+    $integrate_flux(X).energy_flux = 0 ;
+    $integrate_flux(X).area = 0 ;
+  }
+  // Here we are summing up the integrated fluxes for each face in the
+  // provided constraint.  (again through the use of parametric rules).
+  // But first we have to define the summation operator for our new
+  // data structure.  This is provided here.
+  template <class T> struct sum_conserv_flux {
+    void operator()(T &r, const T &s) {
+      r.mass_flux += s.mass_flux ;
+      r.momentum_flux += s.momentum_flux ;
+      r.momentum_vis += s.momentum_vis ;
+      r.energy_flux += s.energy_flux ;
+      r.area += s.area ;
+    }
+  } ;
+
+  template <class T> struct sum_moment_flux {
+    void operator()(T &r, const T &s) {
+      if(r.init == -5)
+        return ;
+      r.moment_reference += s.moment_reference ;
+      r.moment_flux += s.moment_flux ;
+      if(r.init == -1) {
+        r.init = s.init ;
+        r.moment_center = s.moment_center ;
+      } else if(r.init > 0 && s.init >0) {
+        const vect3d diff(r.moment_center-s.moment_center) ;
+        if(dot(diff,diff)>1e-20)
+          r.init = -2 ;
+      }
+      if(r.init == -5) // if target never initialized
+        r.init = -3 ;
+      if(s.init == -5) // if source never initialized
+        r.init = -3 ;
+    }
+  } ;
+
+  $rule apply(integrate_flux(X)<-area,iflux)[sum_conserv_flux],
+    constraint(X) {
+    // Construct the fluxes for this face
+    const int ei = 4 ;
+    const int mi = 1 ;
+    conservativeFlux f ;
+    f.mass_flux = $iflux[0] ;
+    f.energy_flux = $iflux[ei] ;
+    f.momentum_flux = vect3d($iflux[mi+0],$iflux[mi+1],$iflux[mi+2]) ;
+    f.momentum_vis = vect3d(0.,0.,0.) ;
+    f.area = $area.sada ;
+    // join adds these face fluxes into the final result using the
+    // operator defined above.
+    join($integrate_flux(X),f) ;
+  }
+  // Add in the viscous fluxes
+  $rule apply(integrate_flux(X)<-area,vflux)[sum_conserv_flux],
+    constraint(X,vflux) {
+    // Construct the fluxes for this face
+    const int mi=0 ;
+    const int ei=3 ;
+    conservativeFlux f ;
+    f.mass_flux = 0 ;
+    f.energy_flux = -1.*$vflux[ei] ;
+    f.momentum_vis = -1.*vect3d($vflux[mi+0],$vflux[mi+1],$vflux[mi+2]) ;
+    f.momentum_flux = vect3d(0.,0.,0.) ;
+    f.area = 0 ;
+    // join adds these face fluxes into the final result using the
+    // operator defined above.
+    join($integrate_flux(X),f) ;
+  }
+  
+  $rule singleton(do_output_integrate{n,it}<-lastNewton{n,it},
+                  ncycle{n,it},print_freq) {
+    $do_output_integrate{n,it} = $lastNewton{n,it} && (($ncycle{n,it}%$print_freq) == 0) ;
+  }
+
+  // Provide a class that integrates over all boundary faces
+  class output_integrated_values : public pointwise_rule {
+    const_param<conservativeFlux> in1 ;
+    const_param<int> ncycle ;
+    const_blackbox<integratedFileDBManager> ifman ;
+    param<bool> OUTPUT ;
+  public:
+    output_integrated_values() {
+      name_store("integrate_flux(ci)",in1) ;
+      name_store("OUTPUT",OUTPUT) ;
+      name_store("ncycle",ncycle) ;
+      name_store("integratedOutputFileManager",ifman) ;
+      input("integratedOutputFileManager") ;
+      input("ncycle") ;
+      input("integrate_flux(ci)") ;
+      output("OUTPUT") ;
+      conditional("do_output_integrate") ;
+    }
+    void compute(const sequence &seq) {
+      if(Loci::MPI_rank == 0) {
+        cout << "total boundary flux: mass = " << in1->mass_flux
+             << ", momentum = " << in1->momentum_flux + in1->momentum_vis
+             << ", energy = " << in1->energy_flux
+             << ", area = " << in1->area
+             << endl ;
+        string filename = "output/total_flux.dat" ;
+        ofstream *ofile = getStreamFluxFile(filename, *ncycle == 0) ;
+        (*ofile) << *ncycle << ' '
+                 << in1->mass_flux << ' '
+                 << in1->momentum_flux + in1->momentum_vis << ' '
+                 << in1->energy_flux  << endl ;
+      }
+    }
+  };
+  register_rule<output_integrated_values> register_output_integrated_values ;
+
+  $type integrate_moment(X) param<momentFlux> ;
+  
+  $rule unit(integrate_moment(X)),constraint(X,ref->momentCenter_BC) {
+    // The identity of the sum operation is zero.  Here we zero out
+    // all of our accumulated entries
+    $integrate_moment(X).moment_flux = vect3d(0.,0.,0.) ;
+    $integrate_moment(X).moment_reference = vect3d(0.,0.,0.) ;
+    $integrate_moment(X).moment_center = vect3d(0.,0.,0.) ;
+    $integrate_moment(X).init = -1 ; // moment_center not initialized
+  }
+  
+  $rule apply(integrate_moment(X)<-Pambient,area,facecenter,
+              ref->momentCenter_BC,iflux)[sum_moment_flux],
+     constraint(X,ref->momentCenter_BC) {
+    const int mi=1 ;
+    // Construct the fluxes for this face
+    momentFlux f ;
+    const vect3d mrp = $ref->$momentCenter_BC ;
+    const vect3d delta = $facecenter - mrp ;
+    const vect3d momentum_flux = vect3d($iflux[mi+0],$iflux[mi+1],$iflux[mi+2]) ;
+    const vect3d dmom = cross(delta,momentum_flux) ;
+    const vect3d dmoma = cross(delta,$area.sada*$Pambient*$area.n) ;
+    f.moment_flux = real(-1.0)*dmom ;
+    f.moment_reference = real(-1.0)*dmoma ;
+    f.moment_center = mrp ;
+    f.init = 1 ; // moment_center initialized
+    // join adds these face fluxes into the final result using the
+    // operator defined above.
+    join($integrate_moment(X),f) ;
+  }
+    
+  $rule apply(integrate_moment(X)<-Pambient,area,facecenter,
+              ref->momentCenter_BC,vflux)[sum_moment_flux],
+       constraint(X,ref->momentCenter_BC,vflux) {
+    const int mi=0 ;
+
+    // Construct the fluxes for this face
+    momentFlux f ;
+    const vect3d mrp = $ref->$momentCenter_BC ;
+    const vect3d delta = $facecenter - mrp ;
+    const vect3d momentum_flux = -1.0*vect3d($vflux[mi+0],$vflux[mi+1],$vflux[mi+2]) ;
+    const vect3d dmom = cross(delta,momentum_flux) ;
+    f.moment_flux = real(-1.0)*dmom ;
+    f.moment_reference = vect3d(0.,0.,0.) ;
+    f.moment_center = mrp ;
+    f.init = 1 ; // moment_center initialized
+    // join adds these face fluxes into the final result using the
+    // operator defined above.
+    join($integrate_moment(X),f) ;
+  }
+    
+
+  // Here we create a class that can be used to output the integrated flux
+  // over any subset of faces.
+  class new_output_integrated_param : public pointwise_rule {
+    const_param<string> bcname ;
+    const_param<int> ncycle ;
+    const_param<real> stime ;
+    const_param<conservativeFlux> in1 ;
+    const_blackbox<integratedFileDBManager> ifman ;
+    param<bool> OUTPUT ;
+  public:
+    new_output_integrated_param() {
+      name_store("boundaryName(X)",bcname) ;
+      name_store("integrate_flux(boundaryName(X))",in1) ;
+      name_store("OUTPUT",OUTPUT) ;
+      name_store("stime",stime) ;
+      name_store("ncycle",ncycle) ;
+      name_store("integratedOutputFileManager",ifman) ;
+      input("integratedOutputFileManager") ;
+      input("ncycle,stime") ;
+      input("boundaryName(X),integrate_flux(boundaryName(X))") ;
+      output("OUTPUT") ;
+      conditional("do_output_integrate") ;
+      set_parametric_variable("boundaryName(X)") ;
+    }
+    void compute(const sequence &seq) {
+      if(Loci::MPI_rank == 0 && in1->area != 0) {
+
+        string value_output = *bcname ;
+        string filename = "output/flux_" ;
+        filename += value_output ;
+        filename += ".dat" ;
+        ofstream *ofile = getStreamFluxFile(filename, *ncycle == 0) ;
+        vect3d tot_mom = in1->momentum_flux+in1->momentum_vis ;
+        if(!ofile->fail()) {
+          (*ofile) << *ncycle << ' ' << *stime << ' '
+                   << in1->mass_flux << ' '
+                   << tot_mom.x << ' ' << tot_mom.y << ' ' << tot_mom.z << ' '
+                   << in1->energy_flux << ' ' 
+                   << in1->area
+                   << endl ;
+        }
+
+        cout << "" << value_output<<" integrated boundary fluxes:" << endl
+             << value_output << ": mass flux = " << in1->mass_flux << " Kg/sec" << endl
+             << value_output<< ": momentum flux = " << in1->momentum_flux + in1->momentum_vis
+             << " Newtons " << endl 
+             << value_output << ":(viscous component is " << in1->momentum_vis<<")"<<endl 
+             << value_output << ": energy = " << in1->energy_flux  << " watts" << endl 
+             << value_output << ": Total Boundary Area = " << in1->area << " m^2"
+             << endl ;
+      }
+    }
+  };
+
+  register_rule<new_output_integrated_param> register_new_output_integrated_param ;
+  // Here we create a class that can be used to output the integrated flux
+  // over any subset of faces.
+  class output_integrated_param : public pointwise_rule {
+    string value_output ;
+    const_param<int> ncycle ;
+    const_param<real> stime ;
+    const_param<conservativeFlux> in1 ;
+    const_blackbox<integratedFileDBManager> ifman ;
+    param<bool> OUTPUT ;
+  public:
+    output_integrated_param(const char *v) {
+      value_output = v ;
+      string query_var = string("integrate_flux(")+value_output+string(")") ;
+      name_store(query_var,in1) ;
+      name_store("OUTPUT",OUTPUT) ;
+      name_store("stime",stime) ;
+      name_store("ncycle",ncycle) ;
+      name_store("integratedOutputFileManager",ifman) ;
+      input("integratedOutputFileManager") ;
+      input("ncycle,stime") ;
+      input(query_var) ;
+      output("OUTPUT") ;
+      conditional("do_output_integrate") ;
+    }
+    void compute(const sequence &seq) {
+      if(Loci::MPI_rank == 0 && in1->area != 0) {
+
+        string filename = "output/flux_" ;
+        filename += value_output ;
+        filename += ".dat" ;
+        ofstream *ofile = getStreamFluxFile(filename, *ncycle == 0) ;
+
+        vect3d tot_mom = in1->momentum_flux+in1->momentum_vis ;
+        if(!ofile->fail()) {
+          (*ofile) << *ncycle << ' ' << *stime << ' '
+                   << in1->mass_flux << ' '
+                   << tot_mom.x << ' ' << tot_mom.y << ' ' << tot_mom.z << ' '
+                   << in1->energy_flux << ' ' 
+                   << in1->area
+                   << endl ;
+        }
+
+        cout << "" << value_output<<" integrated boundary fluxes:" << endl
+             << value_output << ": mass flux = " << in1->mass_flux << " Kg/sec" << endl
+             << value_output<< ": momentum flux = " << in1->momentum_flux + in1->momentum_vis
+             << " Newtons " << endl 
+             << value_output << ":(viscous component is " << in1->momentum_vis<<")"<<endl 
+             << value_output << ": energy = " << in1->energy_flux  << " watts" << endl 
+             << value_output << ": Total Boundary Area = " << in1->area << " m^2"
+             << endl ;
+      }
+    }
+  };
+
+  // Here we create a class that can be used to output the integrated flux
+  // over any subset of faces.
+  class output_viscous_forces : public pointwise_rule {
+    const_param<conservativeFlux> in1 ;
+    param<bool> OUTPUT ;
+  public:
+    output_viscous_forces() {
+      name_store("integrate_flux(AllViscousBCs)",in1) ;
+      name_store("OUTPUT",OUTPUT) ;
+      input("integrate_flux(AllViscousBCs)") ;
+      output("OUTPUT") ;
+      constraint("AllViscousBCs") ;
+      conditional("do_output_integrate") ;
+    }
+    void compute(const sequence &seq) {
+      if(Loci::MPI_rank == 0 && in1->area != 0) {
+        cout << "Forces on all Viscous Noslip BC's:" << endl
+             << "  Pressure Forces = " << in1->momentum_flux
+             << " Newtons" << endl
+             << "  Viscous Drag Forces = " << in1->momentum_vis
+             << " Newtons" << endl
+             << "  Total Force = "
+             << in1->momentum_flux+in1->momentum_vis << " Newtons" << endl
+             << "  Total Heat Transfer = " << in1->energy_flux
+             << " Watts" << endl;
+      }
+    }
+  };
+ 
+  register_rule<output_viscous_forces> register_output_viscous_forces ;
+
+  class output_inviscid_forces : public pointwise_rule {
+    const_param<conservativeFlux> in1 ;
+    param<bool> OUTPUT ;
+  public:
+    output_inviscid_forces() {
+      name_store("integrate_flux(AllSlipBCs)",in1) ;
+      name_store("OUTPUT",OUTPUT) ;
+      input("integrate_flux(AllSlipBCs)") ;
+      output("OUTPUT") ;
+      constraint("AllSlipBCs") ;
+      conditional("do_output_integrate") ;
+    }
+    void compute(const sequence &seq) {
+      if(Loci::MPI_rank == 0 && in1->area != 0) {
+        cout << "Forces on all Viscous Slip BC's (includes impermeable and reflecting):" << endl
+             << "  Pressure Forces = " << in1->momentum_flux
+             << " Newtons" << endl
+             << "  Viscous Drag Forces = " << in1->momentum_vis
+             << " Newtons" << endl
+             << "  Total Force = "
+             << in1->momentum_flux+in1->momentum_vis << " Newtons" << endl
+             << "  Total Heat Transfer = " << in1->energy_flux
+             << " Watts" << endl;
+      }
+    }
+  };
+ 
+  register_rule<output_inviscid_forces> register_output_inviscid_forces ;
+  
+  // We use a macro to make it easy to create new classes for outputing
+  // different values
+#define OUTPUT_INT_BC(X) class X : public output_integrated_param {\
+                                  public:\
+                                  X() : output_integrated_param(# X ) {}\
+                                  };register_rule<X> register_##X
+
+  OUTPUT_INT_BC(outflow_BC) ;
+  OUTPUT_INT_BC(extrapolate_BC) ;
+  OUTPUT_INT_BC(supersonicOutflow_BC) ;
+  OUTPUT_INT_BC(inflow_BC) ;
+  OUTPUT_INT_BC(farfield_BC) ;
+  OUTPUT_INT_BC(supersonicInflow_BC) ;
+  OUTPUT_INT_BC(viscousWall_BC) ;
+  OUTPUT_INT_BC(wallLaw_BC) ;
+  OUTPUT_INT_BC(reflecting_BC) ;
+  OUTPUT_INT_BC(impermeable_BC) ;
+  OUTPUT_INT_BC(symmetry_BC) ;
+  OUTPUT_INT_BC(fixedMass_BC) ;
+  OUTPUT_INT_BC(fixedMassOutflow_BC) ;
+  OUTPUT_INT_BC(isentropicInflow_BC) ;
+
+  // Here we create a class that can be used to output the integrated flux
+  // over any subset of faces.
+  class new_output_integrated_moment : public pointwise_rule {
+    const_param<string> bcname ;
+    const_param<int> ncycle ;
+    const_param<real> stime ;
+    const_param<momentFlux> in1 ;
+    const_blackbox<integratedFileDBManager> ifman ;
+    param<bool> OUTPUT ;
+  public:
+    new_output_integrated_moment() {
+      name_store("boundaryName(X)",bcname) ;
+      name_store("integrate_moment(boundaryName(X))",in1) ;
+      name_store("OUTPUT",OUTPUT) ;
+      name_store("stime",stime) ;
+      name_store("ncycle",ncycle) ;
+      name_store("integratedOutputFileManager",ifman) ;
+      input("integratedOutputFileManager") ;
+      input("ncycle,stime") ;
+      input("boundaryName(X),integrate_moment(boundaryName(X))") ;
+      output("OUTPUT") ;
+      conditional("do_output_integrate") ;
+      set_parametric_variable("boundaryName(X)") ;
+    }
+    void compute(const sequence &seq) {
+      if(Loci::MPI_rank == 0) {
+        string value_output = *bcname ;
+        string filename = "output/moment_" ;
+        filename += value_output ;
+        filename += ".dat" ;
+        ofstream *ofile = getStreamFluxFile(filename, *ncycle == 0) ;
+        if(!ofile->fail()) {
+          (*ofile) << *ncycle << ' ' << *stime << ' '
+                   << in1->moment_flux.x << ' '
+                   << in1->moment_flux.y << ' '
+                   << in1->moment_flux.z << ' '
+                   << in1->moment_reference.x << ' '
+                   << in1->moment_reference.y << ' '
+                   << in1->moment_reference.z
+                   << endl ;
+        }
+        if(in1->init == -1) {
+          cerr << "momentCenter not initialized for " << value_output << endl ;
+        } else if(in1->init == -2) {
+          cerr << "momentCenter not the same for all faces of " << value_output << endl ;
+        } else if(in1->init != 1) {
+          cerr << "Internal error in summing moment for " << value_output << endl ;
+        }
+
+        cout << "boundary " << value_output << " moment = " << in1->moment_flux
+             << " Newton-meters, with " << endl
+             << "the p0 reference moment = "
+             << in1->moment_reference << " Newton-meters."
+             << endl ;
+      }
+    }
+  };
+
+  register_rule<new_output_integrated_moment> register_new_output_integrated_moment ;
+  
+  class output_integrated_moment : public pointwise_rule {
+    string value_output ;
+    const_param<int> ncycle ;
+    const_param<real> stime ;
+    const_param<momentFlux> in1 ;
+    const_blackbox<integratedFileDBManager> ifman ;
+    param<bool> OUTPUT ;
+  public:
+    output_integrated_moment(const char *v) {
+      value_output = v ;
+      string query_var = string("integrate_moment(")+value_output+string(")") ;
+      name_store(query_var,in1) ;
+      name_store("OUTPUT",OUTPUT) ;
+      name_store("stime",stime) ;
+      name_store("ncycle",ncycle) ;
+      name_store("integratedOutputFileManager",ifman) ;
+      input("integratedOutputFileManager") ;
+      input("ncycle,stime") ;
+      input(query_var) ;
+      output("OUTPUT") ;
+      conditional("do_output_integrate") ;
+    }
+    void compute(const sequence &seq) {
+      if(Loci::MPI_rank == 0) {
+        string filename = "output/moment_" ;
+        filename += value_output ;
+        filename += ".dat" ;
+        ofstream *ofile = getStreamFluxFile(filename, *ncycle == 0) ;
+
+        if(!ofile->fail()) {
+          (*ofile) << *ncycle << ' ' << *stime << ' '
+                   << in1->moment_flux.x << ' '
+                   << in1->moment_flux.y << ' '
+                   << in1->moment_flux.z << ' '
+                   << in1->moment_reference.x << ' '
+                   << in1->moment_reference.y << ' '
+                   << in1->moment_reference.z
+                   << endl ;
+        }
+        if(in1->init == -1) {
+          cerr << "momentCenter not initialized for " << value_output << endl ;
+        } else if(in1->init == -2) {
+          cerr << "momentCenter not the same for all faces of " << value_output << endl ;
+        } else if(in1->init != 1) {
+          cerr << "Internal error in summing moment for " << value_output << endl ;
+        }
+
+        cout << "boundary " << value_output << " moment = " << in1->moment_flux
+             << " Newton-meters, with " << endl
+             << "the p0 reference moment = "
+             << in1->moment_reference << " Newton-meters."
+             << endl ;
+      }
+    }
+  };
+  // We use a macro to make it easy to create new classes for outputing
+  // different values
+#define OUTPUT_MOMENT_BC(X) class moment##X : public output_integrated_moment {\
+                                 public:\
+                               moment##X() : output_integrated_moment(# X ) {}\
+                              };register_rule<moment##X> register_moment##X
+
+  OUTPUT_MOMENT_BC(outflow_BC) ;
+  OUTPUT_MOMENT_BC(extrapolate_BC) ;
+  OUTPUT_MOMENT_BC(supersonicOutflow_BC) ;
+  OUTPUT_MOMENT_BC(inflow_BC) ;
+  OUTPUT_MOMENT_BC(farfield_BC) ;
+  OUTPUT_MOMENT_BC(supersonicInflow_BC) ;
+  OUTPUT_MOMENT_BC(viscousWall_BC) ;
+  OUTPUT_MOMENT_BC(wallLaw_BC) ;
+  OUTPUT_MOMENT_BC(reflecting_BC) ;
+  OUTPUT_MOMENT_BC(impermeable_BC) ;
+  OUTPUT_MOMENT_BC(symmetry_BC) ;
+  OUTPUT_MOMENT_BC(fixedMass_BC) ;
+  OUTPUT_MOMENT_BC(fixedMassOutflow_BC) ;
+  OUTPUT_MOMENT_BC(isentropicInflow_BC) ;
+
+
+
+  struct volumeIntegratedValues {
+    real vol ;
+    real energy ;
+    real enthalpy ;
+    real mass ;
+  } ;
+
+  volumeIntegratedValues &operator+=(volumeIntegratedValues &v1,
+                                   const volumeIntegratedValues &v2) {
+    v1.vol += v2.vol ;
+    v1.energy += v2.energy ;
+    v1.enthalpy += v2.enthalpy ;
+    v1.mass += v2.mass ;
+    return v1 ;
+  }
+}
+namespace Loci {
+  // Tell Loci how to deal with the conservativeFlux data structure
+  template <> struct data_schema_traits<flowPsi::volumeIntegratedValues> {
+    typedef IDENTITY_CONVERTER Schema_Converter ;
+    static DatatypeP get_type() {
+      CompoundDatatypeP ct = CompoundFactory(flowPsi::volumeIntegratedValues()) ;
+      LOCI_INSERT_TYPE(ct,flowPsi::volumeIntegratedValues,vol) ;
+      LOCI_INSERT_TYPE(ct,flowPsi::volumeIntegratedValues,energy) ;
+      LOCI_INSERT_TYPE(ct,flowPsi::volumeIntegratedValues,enthalpy) ;
+      LOCI_INSERT_TYPE(ct,flowPsi::volumeIntegratedValues,mass) ;
+      return DatatypeP(ct) ;
+    }
+  } ;
+}
+
+namespace flowPsi {
+    
+
+  $type volumeIntegration param<volumeIntegratedValues> ;
+  $rule unit(volumeIntegration),constraint(geom_cells) {
+    $volumeIntegration.vol = 0 ;
+    $volumeIntegration.energy = 0 ;
+    $volumeIntegration.enthalpy = 0 ;
+    $volumeIntegration.mass = 0 ;
+  }
+  
+  $rule apply(volumeIntegration<-e_internal,rho,vol,u,pressure)[Loci::Summation],
+    constraint(geom_cells) {
+    // compute total energy density
+    const real re0 = $rho*($e_internal+.5*dot($u,$u)) ;
+    const real rh0 = re0 + $pressure ;
+    // Total energy per cell volume is vol*re0
+    volumeIntegratedValues cell ;
+    cell.vol = $vol ;
+    cell.energy = re0*$vol ;
+    cell.enthalpy = rh0*$vol ;
+    cell.mass = $rho*$vol ;
+    join($volumeIntegration,cell) ;
+  }    
+  
+  $rule pointwise(OUTPUT<-volumeIntegration),conditional(do_output_integrate),
+    prelude {
+      if(Loci::MPI_rank == 0) {
+        real total_mass = (*$volumeIntegration).mass ;
+        
+        cout << "total volume = " << (*$volumeIntegration).vol 
+             << ", total energy = " << (*$volumeIntegration).energy 
+             << ", total enthalpy = " << (*$volumeIntegration).enthalpy
+             << ", total mass = " << total_mass
+	     << endl ;
+      }
+  } ;
+  
+}
+

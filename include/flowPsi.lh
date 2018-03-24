@@ -1,0 +1,269 @@
+#include <Loci>
+#include <flowTypes.h>
+
+$include "FVM.lh"
+
+$type plot_output param<flowPsi::list_input> ;
+$type plot_output_exclusive param<flowPsi::list_input> ;
+
+$type modelName param<std::string> ;
+// Transform for periodic bc's (should this be in FVM.lh?)
+$type periodicTransform store<Loci::rigid_transform> ;
+
+
+// EoS settings
+$type molecularMass param<flowPsi::real> ;
+$type Rtilde param<flowPsi::real> ;
+$type gamma param<flowPsi::real> ;
+$type Cp    param<flowPsi::real> ;
+
+$type p0 param<PressureValue> ;
+
+// Initial Conditions
+$type temperature_ic store<flowPsi::real> ;
+$type gagePressure_ic store<flowPsi::real> ;
+$type u_ic store<flowPsi::vect3d> ;
+
+// Ambient Pressure used to define gage pressure
+$type Pambient          param<flowPsi::real> ;
+$type temperature       store<flowPsi::real> ;
+// cell density
+$type rho               store<flowPsi::real> ;
+// cell pressure
+$type pressure          store<flowPsi::real> ;
+$type e_internal        store<flowPsi::real> ;
+// cell speed of sound
+
+$type soundSpeed        store<flowPsi::real> ;
+$type gagePressure     store<flowPsi::real> ;
+
+// fluid velocity at a cell
+$type u                 store<flowPsi::vect3d> ;
+// grid velocity at face
+$type us_n store<flowPsi::real> ;
+$type us store<flowPsi::vect3d> ;
+$type gcl_sum store<flowPsi::real>;
+
+$type mu        store<flowPsi::real> ; // fluid viscosity cell
+$type mu_f      store<flowPsi::real> ; // fluid viscosity face
+$type mu(T)     store<flowPsi::real> ;
+$type tmu       store<flowPsi::real> ; // turbulent viscosity cell
+$type tmu_f     store<flowPsi::real> ; // turbulent viscosity face
+$type muTotal   store<flowPsi::real> ;
+$type muTotal_f store<flowPsi::real> ;
+
+$type kconduct store<flowPsi::real> ; // fluid conductivity cell
+$type kconduct_f store<flowPsi::real> ; // fluid conductivity face
+$type kconduct(T) store<flowPsi::real> ;
+$type turbulentPrandtlNumber param<flowPsi::real> ; // Turbulent Prandtl number
+// Contributions from fluxes to cell
+$type src store<Loci::Array<flowPsi::real,5> > ;
+// Right hand side of Newton method
+$type rhs store<Loci::Array<flowPsi::real,5> > ;
+// Inviscid Flux
+$type iflux store<Loci::Array<flowPsi::real,5> > ;
+// Viscous Flux
+$type vflux store<Loci::Array<flowPsi::real,4> > ;
+
+// Low Speed Preconditioning Work
+$type Mref store<flowPsi::real> ; // Reference Mach number used for preconditioning
+$type PLimPC param<flowPsi::real> ;// Pressure jump limit on preconditioning
+$type Minf param<flowPsi::real> ; // Free stream Mach number
+$type etaT param<flowPsi::real> ; // Stagnation point limit factor
+$type Eta_p store<flowPsi::real> ; // Eta factor used in preconditioning
+$type Eta_pf store<flowPsi::real> ; // Eta factor used in preconditioning
+
+// Jacobian Assembly
+$type fjp storeMat<flowPsi::real_fj> ;
+$type fjm storeMat<flowPsi::real_fj> ;
+$type srcJ storeMat<flowPsi::real_fj> ;
+
+// Fluid Matrix, lower, upper, and diagonal components
+$type fluid_U storeMat<flowPsi::real_fj> ;
+$type fluid_L storeMat<flowPsi::real_fj> ;
+$type fluid_D storeMat<flowPsi::real_fj> ;
+$type fluid_B storeVec<flowPsi::real_fj> ;
+$type fluid_D_inv storeMat<flowPsi::real_fj> ;
+$type fluid_pivot storeVec<pivot_type> ;
+// Face values
+$type gagePressure_f    store<flowPsi::real> ;
+$type pressure_f        store<flowPsi::real> ;
+$type temperature_f     store<flowPsi::real> ;
+$type rho_f             store<flowPsi::real> ;
+$type soundSpeed_f      store<flowPsi::real> ;
+$type u_f               store<flowPsi::vect3d> ;
+
+$type bc_total_area store<flowPsi::real> ;
+$type bc_total_force store<flowPsi::real> ;
+$type bc_average_pressure store<flowPsi::real> ;
+
+$type flow_direction store<flowPsi::vect3d> ;
+$type rigid_u store<flowPsi::vect3d> ;
+$type p0Ref store<flowPsi::real> ;
+$type T0Ref store<flowPsi::real> ;
+$type massFluxRef store<flowPsi::real> ;
+$type temperatureRef store<flowPsi::real> ;
+$type gagePressureRef store<flowPsi::real> ;
+$type uRef store<flowPsi::vect3d> ;
+// Solution Clipping
+$type TclipMin param<TemperatureValue> ;
+$type TclipMax param<TemperatureValue> ;
+$type PclipMin param<PressureValue> ;
+// Fluid Stress
+$type tau               store<flowPsi::symmetricTensor> ;
+// Boundary Condition Parameters
+$type Uwall_BC          store<flowPsi::vect3d> ;
+$type T_BC              store<flowPsi::real> ;
+$type T0_BC             store<flowPsi::real> ;
+$type p0_BC             store<flowPsi::real> ;
+$type rho_BC            store<flowPsi::real> ;
+$type Twall_BC          store<flowPsi::real> ;
+$type qwall_BC          store<flowPsi::real> ;
+$type massFlux_BC       store<flowPsi::real> ;
+$type mdot_BC           store<flowPsi::real> ;
+$type swirlAngle_BC     store<flowPsi::real> ;
+$type swirlCenter_BC    store<flowPsi::vect3d> ;
+$type momentCenter_BC   store<flowPsi::vect3d> ;
+$type M_BC              store<flowPsi::vect3d> ;
+$type u_BC              store<flowPsi::vect3d> ;
+$type p_BC store<flowPsi::real> ;
+$type pMean_BC store<flowPsi::real> ;
+$type BC_inflow_type store<int> ;
+$type temperatureRef_BC store<flowPsi::real> ;
+$type gagePressureRef_BC store<flowPsi::real> ;
+$type uRef_BC store<flowPsi::vect3d> ;
+
+$type angVel_BC store<flowPsi::vect3d> ;
+$type rotAxis_BC store<flowPsi::vect3d> ;
+$type rotCenter_BC store<flowPsi::vect3d> ;
+$type swirlAxis_BC store<flowPsi::vect3d> ;
+$type flowDir_BC store<flowPsi::vect3d> ;
+$type boundary_area store<flowPsi::real> ;
+
+$type Twall store<flowPsi::real> ;
+$type Twall_prescribed store<flowPsi::real> ;
+$type T_interface store<flowPsi::real> ;
+$type qwall store<flowPsi::real> ;
+$type qwall_prescribed store<flowPsi::real> ;
+$type wallVelocity store<flowPsi::vect3d> ;
+$type heatf store<flowPsi::real> ;
+$type wall_stress store<flowPsi::vect3d> ;
+$type yplus_w store<flowPsi::real> ;
+
+$type stime             param<flowPsi::real> ; // simulation time
+$type ncycle            param<int> ; // simulation iteration number
+$type newtonMaxIter     param<int> ;
+$type newtonFinished    param<bool> ;
+$type lastNewton        param<bool> ;
+$type urelax            param<flowPsi::real> ;
+$type dtmax             param<flowPsi::TimeValue> ;
+$type timeStepSize      param<flowPsi::real> ;
+$type cflmax            param<flowPsi::real> ;
+$type cflpdt            store<flowPsi::real> ; // Multiply this by dt to get cfl
+$type cfl               param<std::pair<flowPsi::real,flowPsi::real> > ;
+
+$type dtau              store<flowPsi::real> ;
+$type iblank store<flowPsi::byte_t> ;
+
+// General Turbulence Model
+// Map from cell to nearest viscous wall
+$type min_cell2noslip    Map ;
+$type multi_scale param<std::string> ;
+
+$type divu store<flowPsi::real> ;
+
+// vorticity
+$type vortMag            store<flowPsi::real> ;
+$type vort               store<flowPsi::vect3d> ;
+$type vort_f             store<flowPsi::vect3d> ;
+
+// strain rate
+$type strainRate         store<flowPsi::real> ;
+
+// helicity
+$type helicity           store<flowPsi::real> ;
+$type helicity_f         store<flowPsi::real> ;
+
+// distance to nearest viscous wall
+$type dist_noslip        store<flowPsi::real> ;
+$type dist_noslip_f      store<flowPsi::real> ;
+
+$type initialConditions param<Loci::options_list> ;
+$type initialConditionRegions param<Loci::options_list> ;
+$type icRegionInfo blackbox<std::vector<flowPsi::ICstate_info> >;
+$type icRegionId store<int> ;
+
+$type print_freq  param<int> ;
+$type plot_freq   param<int> ;
+$type plot_modulo param<int> ;
+$type do_plot     param<bool> ;
+$type plot_postfix param<std::string> ;
+$type do_boundary_plot     param<bool> ;
+
+$type plot_status       param<int> ;
+$type restart_freq      param<int> ;
+$type restart_modulo    param<int> ;
+$type restart_directory param<std::string> ;
+$type restart_postfix   param<std::string> ;
+$type do_restart        param<bool> ;
+$type icfile            param<std::string> ;
+
+$type maximumRunTime    param<flowPsi::TimeValue> ;
+
+
+$type grid_vol_iblank param<flowPsi::real> ;
+$type integratedOutputFileManager blackbox<flowPsi::integratedFileDBManager> ;
+$type do_output_integrate param<bool> ;
+
+$type localPBias store<realF> ;
+$type localPBias_next store<realF> ;
+$type timeSteppingMode param<int> ;
+
+$type gravityAccel param<flowPsi::vect3d> ;
+
+// Solver averaging types
+$type meanFreq param<int> ;
+$type meanCount param<flowPsi::real> ;
+$type meanCount_ic param<pair<int,flowPsi::real> > ;
+$type scalarMean(X) store<flowPsi::real> ;
+$type scalarMean_f(X) store<flowPsi::real> ;
+$type scalarMeanAll_f(X) store<flowPsi::real> ;
+$type scalarMeanFaceAll_X_ic store<flowPsi::real> ;
+$type scalarM2(X) store<flowPsi::real> ;
+$type scalarVariance(X) store<flowPsi::real> ;
+$type scalarM2_f(X) store<flowPsi::real> ;
+$type scalarVariance_f(X) store <flowPsi::real> ;
+$type vect3dMean(X) store<flowPsi::vect3d> ;
+$type vect3dMean_f(X) store<flowPsi::vect3d> ;
+$type vect3dM2(X) store<flowPsi::vect3d> ;
+$type vect3dVariance(X) store<flowPsi::vect3d> ;
+$type vect3dM2_f(X) store<flowPsi::vect3d> ;
+$type vect3dVariance_f(X) store<flowPsi::vect3d> ;
+$type vect3dMX2(X) store<flowPsi::vect3d> ;
+$type vect3dCoVariance(X) store<flowPsi::vect3d> ;
+$type vect3dMX2_f(X) store<flowPsi::vect3d> ;
+$type vect3dCoVariance_f(X) store<flowPsi::vect3d> ;
+$type scalarFavreMean(X) store<flowPsi::real> ;
+$type scalarFavreMeanBase(X) store<flowPsi::real> ;
+$type scalarFavreMean_f(X) store<flowPsi::real> ;
+$type scalarFavreMeanBase_f(X) store<flowPsi::real> ;
+$type scalarFavreVar(X) store<flowPsi::real> ;
+$type scalarFavreVarBase(X) store<flowPsi::real> ;
+$type scalarFavreVar_f(X) store<flowPsi::real> ;
+$type scalarFavreVarBase_f(X) store<flowPsi::real> ;
+$type vect3dFavreMean(X) store<flowPsi::vect3d> ;
+$type vect3dFavreMeanBase(X) store<flowPsi::vect3d> ;
+$type vect3dFavreMean_f(X) store<flowPsi::vect3d> ;
+$type vect3dFavreMeanBase_f(X) store<flowPsi::vect3d> ;
+$type vect3dFavreVar(X) store<flowPsi::vect3d> ;
+$type vect3dFavreVarBase(X) store<flowPsi::vect3d> ;
+$type vect3dFavreVar_f(X) store<flowPsi::vect3d> ;
+$type vect3dFavreVarBase_f(X) store<flowPsi::vect3d> ;
+$type vect3dFavreCoVar(X) store<flowPsi::vect3d> ;
+$type vect3dFavreCoVarBase(X) store<flowPsi::vect3d> ;
+$type vect3dFavreCoVar_f(X) store<flowPsi::vect3d> ;
+$type vect3dFavreCoVarBase_f(X) store<flowPsi::vect3d> ;
+
+$type scalarTransportP(X,C) store<flowPsi::real> ;
+$type scalarTransport(X,C) store<flowPsi::real> ;
+

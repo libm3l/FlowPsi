@@ -1,0 +1,230 @@
+//#############################################################################
+//#
+//# Copyright 2015, Mississippi State University
+//#
+//# This file is part of the flowPsi computational fluid dynamics solver.
+//#
+//# The flowPsi solver is free software: you can redistribute it and/or modify
+//# it under the terms of the GNU General Public License as published by
+//# the Free Software Foundation, either version 3 of the License, or
+//# (at your option) any later version.
+//#
+//# The flowPsi solver is distributed in the hope that it will be useful,
+//# but WITHOUT ANY WARRANTY; without even the implied warranty of
+//# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//# GNU General Public License for more details.
+//#
+//# You should have received a copy of the GNU General Public License
+//# along with the flowPsi solver.  If not, see <http://www.gnu.org/licenses>
+//#
+//#############################################################################
+
+#include <Loci.h>
+$include "flowPsi.lh"
+
+namespace flowPsi {
+  using std::cerr ;
+  using std::endl ;
+
+  // Initialize newton to past timestep value
+  $type temperature_i store<real> ;
+  $type gagePressure_i store<real> ;
+  $type u_i store<vect3d> ;
+  
+  $rule pointwise(temperature_i{n,it=0}<-temperature{n}),
+    constraint(geom_cells) {
+    $temperature_i{n,it=0}= $temperature{n} ;
+  }
+  $rule pointwise(gagePressure_i{n,it=0}<-gagePressure{n}),
+    constraint(geom_cells) {
+    $gagePressure_i{n,it=0} = $gagePressure{n} ;
+  }
+  $rule pointwise(u_i{n,it=0}<-u{n}),
+    constraint(geom_cells) {
+    $u_i{n,it=0} = $u{n} ;
+  }
+
+  // These rules will allow replacement by iblanked cells
+  $rule pointwise(temperature{n,it}<-temperature_i{n,it}),
+  	inplace(temperature{n,it}|temperature_i{n,it}),prelude {} ;
+  $rule pointwise(gagePressure{n,it}<-gagePressure_i{n,it}),
+  	inplace(gagePressure{n,it}|gagePressure_i{n,it}),prelude {} ;
+  $rule pointwise(u{n,it}<-u_i{n,it}),inplace(u{n,it}|u_i{n,it}),prelude {} ;
+
+  $type dfluid storeVec<real> ;
+  $rule pointwise(temperature_i{n,it+1},gagePressure_i{n,it+1},u_i{n,it+1}<- 
+		  temperature{n,it},gagePressure{n,it},u{n,it},dfluid{n,it},
+		  Pambient),
+    inplace(temperature_i{n,it+1}|temperature{n,it}),
+    inplace(gagePressure_i{n,it+1}|gagePressure{n,it}),
+    inplace(u_i{n,it+1}|u{n,it}),constraint(geom_cells,timeStepSteadyState) {
+    const real dT = $dfluid{n,it}[0] ;
+    const vect3d du($dfluid{n,it}[1],$dfluid{n,it}[2],$dfluid{n,it}[3]) ;
+    const real dp = $dfluid{n,it}[4] ;
+    real alpha = 1.0 ;
+    alpha = min(alpha,0.9*$temperature{n,it}/(fabs(dT)+1e-30)) ;
+    alpha = min(alpha,0.9*($gagePressure{n,it}+$Pambient)/(fabs(dp)+1e-30)) ;
+    $temperature_i{n,it+1} = $temperature{n,it} + alpha*dT;
+    $gagePressure_i{n,it+1} = $gagePressure{n,it} + alpha*dp ;
+    $u_i{n,it+1} = $u{n,it} + alpha*du ;
+  }
+
+  $rule pointwise(temperature{n+1},gagePressure{n+1},u{n+1}<-
+		  temperature{n,it},gagePressure{n,it},u{n,it}),
+      inplace(temperature{n+1}|temperature{n,it}),
+      inplace(gagePressure{n+1}|gagePressure{n,it}),
+      inplace(u{n+1}|u{n,it}),
+    constraint(geom_cells,timeStepSteadyState),
+    conditional(newtonFinished{n,it}), prelude { } ;
+  //    compute {
+  //      $temperature{n+1}=$temperature{n,it} ;
+  //      $gagePressure{n+1}=$gagePressure{n,it} ;
+  //      $u{n+1} = $u{n,it} ;
+  //    }
+  
+  $rule pointwise(temperature_i{n,it+1},gagePressure_i{n,it+1},u_i{n,it+1}<- 
+		  temperature{n,it},gagePressure{n,it},u{n,it},dfluid{n,it},
+                  localPBias{n,it},iblank{n,it},
+		  temperature{n},gagePressure{n},
+		  Pambient),
+    inplace(temperature_i{n,it+1}|temperature{n,it}),
+    inplace(gagePressure_i{n,it+1}|gagePressure{n,it}),
+    inplace(u_i{n,it+1}|u{n,it}),
+    constraint(geom_cells,timeStepAccurate) {
+    const real dT = $dfluid{n,it}[0] ;
+    const vect3d du($dfluid{n,it}[1],$dfluid{n,it}[2],$dfluid{n,it}[3]) ;
+    const real dp = $dfluid{n,it}[4] ;
+    real alpha = 1.0 ;
+    real relax = 0.8 ;
+    const real Tstar = $temperature{n,it} ;
+    const real Tn = $temperature{n} ;
+
+
+    real dTlim = (relax*(2*Tn-Tstar))/2.0 ;
+    
+    alpha = min<real>(alpha,dTlim/max<real>(fabs(dT),1e-30)) ;
+
+    const real pgstar = $gagePressure{n,it} ;
+    const real peps = $localPBias{n,it} ;
+    const real pgnp1 = (2.*pgstar-(1.-peps)*$gagePressure{n})/(1+peps) ;
+
+    real dplim = (1+peps)*relax*(pgnp1+$Pambient)/2.0 ;
+    alpha = min(alpha,dplim/max<real>(fabs(dp),1e-30)) ;
+    alpha = ($iblank{n,it}>1)?0.0:alpha ;
+    $temperature_i{n,it+1} = $temperature{n,it} + alpha*dT;
+    $gagePressure_i{n,it+1} = $gagePressure{n,it} + alpha*dp ;
+    $u_i{n,it+1} = $u{n,it} + alpha*du ;
+  }
+
+
+  $rule pointwise(temperature{n+1},gagePressure{n+1},u{n+1}<-
+		  temperature{n,it},gagePressure{n,it},u{n,it},iblank{n,it},
+                  temperature{n},gagePressure{n},u{n},
+                  localPBias_next{n,it},Pambient,Rtilde),
+    inplace(temperature{n+1}|temperature{n,it}),
+    inplace(gagePressure{n+1}|gagePressure{n,it}),
+    inplace(u{n+1}|u{n,it}),
+    constraint(geom_cells,timeStepAccurate),
+    conditional(newtonFinished{n,it}) {
+    const real Tstar = $temperature{n,it} ;
+    const real Tn = $temperature{n} ;
+    // Use harmonic mean of temperature to define Tstar
+    const real Tnp1 = Tn*Tstar/(2.*Tn-Tstar) ;
+
+
+    const real pgstar = $gagePressure{n,it} ;
+    const real peps = $localPBias_next{n,it} ;
+    const real pgnp1 = (2.*pgstar-(1.-peps)*$gagePressure{n})/(1+peps) ;
+    
+    const real rhon = ($gagePressure{n}+$Pambient)/($Rtilde*$temperature{n}) ;
+    const real rhonp = (pgnp1+$Pambient)/($Rtilde*Tnp1) ;
+
+    const real srhonp = sqrt(rhonp) ;
+    const real srhon = sqrt(rhon) ;
+    const real w1 = (srhonp+srhon)/srhonp ;
+    const real w2 = srhon/srhonp ;
+    
+    vect3d unp1 = w1*$u{n,it}-w2*$u{n} ;
+    $gagePressure{n+1} = ($iblank{n,it} > 1)?$gagePressure{n,it}:pgnp1 ;
+    $temperature{n+1} = ($iblank{n,it} > 1)?$temperature{n,it}:Tnp1 ;
+    $u{n+1} = ($iblank{n,it} > 1)?$u{n,it}:unp1 ;
+  } 
+
+  $rule default(newtonMaxIter) {
+    $newtonMaxIter = 6 ;
+  }
+  
+  $type newtonFinalIter param<int> ;
+  
+  $rule singleton(newtonFinalIter<-newtonMaxIter,timeSteppingMode) {
+    $newtonFinalIter = 1 ;
+    if($timeSteppingMode > 0)
+      $newtonFinalIter=$newtonMaxIter ;
+  }
+  
+  $rule singleton(lastNewton{n,it}<-newtonFinalIter{n,it},$it{n,it}) {
+    $lastNewton{n,it}=($$it{n,it}+1 == $newtonFinalIter{n,it}) ;
+  }
+
+  
+  $type newtonFinished param<bool> ;
+  $rule singleton(newtonFinished{n,it}<-$it{n,it},newtonFinalIter) {
+    $newtonFinished{n,it} = ($$it{n,it} >= $newtonFinalIter) ;
+  }
+
+  $type fluidLinearSolver param<std::string> ;
+  $rule default(fluidLinearSolver),
+    comments("Select the type of linear solver to use when solving the mean flow equations. Options are 'sgs' for symmetric gauss seidel, 'fsgs' for a fast symmetric gauss seidel that uses more memory, 'lsgs' for a robustline symmetric gauss seidel solver, or 'petsc' for the petsc GMRES solver. The default is 'lsgs'") 
+  {
+    $fluidLinearSolver = "lsgs" ;
+  }
+
+  $type fluidLinearSolverSGS Constraint ;
+  $type fluidLinearSolverFSGS Constraint ;
+  $type fluidLinearSolverLSGS Constraint ;
+  $type fluidLinearSolverPETSC Constraint ;
+
+  $rule constraint(fluidLinearSolverSGS,fluidLinearSolverLSGS,fluidLinearSolverFSGS,
+		fluidLinearSolverPETSC<-fluidLinearSolver) {
+    $fluidLinearSolverSGS = EMPTY ;
+    $fluidLinearSolverFSGS = EMPTY ;
+    $fluidLinearSolverLSGS = EMPTY ;
+    $fluidLinearSolverPETSC = EMPTY ;
+    if($fluidLinearSolver == "petsc") {
+#ifndef USE_PETSC
+      cerr << "petsc not installed!" << endl ;
+      Loci::Abort() ;
+#endif
+      $fluidLinearSolverPETSC = ~EMPTY ;
+    } else if ($fluidLinearSolver == "lsgs") {
+      $fluidLinearSolverLSGS = ~EMPTY ;
+    } else if ($fluidLinearSolver == "fsgs") {
+      $fluidLinearSolverFSGS = ~EMPTY ;
+    } else {
+      $fluidLinearSolverSGS = ~EMPTY ;
+    }
+  }
+	 
+
+  $type SGSBlockedSSolve(fluid) storeVec<real> ;
+  $rule pointwise(dfluid<-SGSBlockedSSolve(fluid)),
+    constraint(geom_cells,fluidLinearSolverSGS),
+    inplace(dfluid|SGSBlockedSSolve(fluid)) {}
+
+  $type LSGSBlockedSSolve(fluid,fluid_B) storeVec<real> ;
+  $rule pointwise(dfluid<-LSGSBlockedSSolve(fluid,fluid_B)),
+    constraint(geom_cells,fluidLinearSolverLSGS),
+    inplace(dfluid|LSGSBlockedSSolve(fluid,fluid_B)) {}
+
+  $type FSGSBlockedSSolve(fluid) storeVec<real> ;
+  $rule pointwise(dfluid<-FSGSBlockedSSolve(fluid)),
+    constraint(geom_cells,fluidLinearSolverFSGS),
+    inplace(dfluid|FSGSBlockedSSolve(fluid)) {}
+
+  $type petscBlockedSSolve(fluid) storeVec<real> ;
+  $rule pointwise(dfluid<-petscBlockedSSolve(fluid)), 
+    constraint(geom_cells,fluidLinearSolverPETSC),
+    inplace(dfluid|petscBlockedSSolve(fluid)){} 
+
+
+}
