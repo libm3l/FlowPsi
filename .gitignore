@@ -1,4 +1,5 @@
 *.d
 *.o
+*.so
 examples/
 flowpsi-Linux-x86_64-rel-1-beta-5/
