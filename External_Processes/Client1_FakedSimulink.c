@@ -48,7 +48,7 @@
  * History:
  * Version   Author:               Date       Patch number  CLA     Comment
  * -------   -------               --------   --------      ---     -------
- * 1.1       Adam Jirasek/USAFA    2018-03-21                         Initial implementation
+ * 1.1       Adam Jirasek    2018-03-21                         Initial implementation
  *
  *
  *
