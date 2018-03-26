@@ -268,3 +268,5 @@ $type vect3dFavreCoVarBase_f(X) store<flowPsi::vect3d> ;
 $type scalarTransportP(X,C) store<flowPsi::real> ;
 $type scalarTransport(X,C) store<flowPsi::real> ;
 
+$type tot_force param<flowPsi::vect3d> ;
+
