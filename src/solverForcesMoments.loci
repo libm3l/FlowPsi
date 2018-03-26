@@ -119,6 +119,36 @@ namespace flowPsi {
   };
  
   register_rule<store_viscous_forces> register_store_viscous_forces ;
+
+
+class store_inviscid_forces : public pointwise_rule {
+    const_param<conservativeFlux> in1 ;
+    param<bool> OUTPUT ;
+  public:
+    store_inviscid_forces() {
+      name_store("integrate_flux(AllSlipBCs)",in1) ;
+      name_store("OUTPUT",OUTPUT) ;
+      input("integrate_flux(AllSlipBCs)") ;
+      output("OUTPUT") ;
+      constraint("AllSlipBCs") ;
+      conditional("do_output_integrate") ;
+    }
+    void compute(const sequence &seq) {
+      if(Loci::MPI_rank == 0 && in1->area != 0) {
+        cout << "Forces on all Viscous Slip BC's (includes impermeable and reflecting):" << endl
+             << "  Pressure Forces = " << in1->momentum_flux
+             << " Newtons" << endl
+             << "  Viscous Drag Forces = " << in1->momentum_vis
+             << " Newtons" << endl
+             << "  Total Force = "
+             << in1->momentum_flux+in1->momentum_vis << " Newtons" << endl
+             << "  Total Heat Transfer = " << in1->energy_flux
+             << " Watts" << endl;
+      }
+    }
+  };
+ 
+  register_rule<store_inviscid_forces> register_store_inviscid_forces ;
   
 }
 
