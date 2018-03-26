@@ -66,7 +66,7 @@
 #include "lsipdx.h"
 #include "src_bridges.h"
 
-lmint_t test_bridge(){
+lmint_t test_bridge(lmdouble_t ForceX, lmdouble_t ForceY, lmdouble_t ForceZ ){
 
 
 	node_t *Gnode=NULL, *TmpNode = NULL, *FoundNode = NULL;
@@ -138,6 +138,10 @@ lmint_t test_bridge(){
 		Error("socket_FlowPsi2simulink: m3l_Mklist");
         for (i=0; i<6; i++)
 	  TmpNode->data.df[i] = 1.*i;
+
+	TmpNode->data.df[0] = ForceX;
+	TmpNode->data.df[1] = ForceY;
+	TmpNode->data.df[2] = ForceZ;
 /*
  * add time, store it in double variable Time in CFD_2_SIM
  */

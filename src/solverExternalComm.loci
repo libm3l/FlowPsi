@@ -73,7 +73,7 @@ namespace flowPsi {
  *
  * the communication is done through root partition only
  */ 
-        test_bridge();
+        test_bridge($tot_force[0], $tot_force[1], $tot_force[2]);
         printf(" TOTAL FORCES        ----------------------  LOOP  %f  %f   %f \n", $tot_force[0], $tot_force[1], $tot_force[2]);
        
     }

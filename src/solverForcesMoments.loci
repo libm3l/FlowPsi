@@ -86,7 +86,8 @@ namespace flowPsi {
   } ;
 
 
- class store_viscous_forces : public pointwise_rule {
+// class store_viscous_forces : public pointwise_rule {
+ class store_viscous_forces : public singleton_rule {
     const_param<conservativeFlux> in1 ;
     param<bool> OUTPUT ;
     param<vect3d>tot_force;
@@ -111,9 +112,11 @@ namespace flowPsi {
              << "  Total Force = "
              << in1->momentum_flux+in1->momentum_vis << " Newtons" << endl
              << "  Total Heat Transfer = " << in1->energy_flux
-             << " Watts" << endl
-             << "Total Forces " << tot_force << endl;
+             << " Watts" << endl;
+
              tot_force = in1->momentum_flux+in1->momentum_vis;
+
+          cout << "Total Forces " << tot_force << endl;
       }
     }
   };
