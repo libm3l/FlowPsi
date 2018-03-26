@@ -89,18 +89,14 @@ namespace flowPsi {
 // class store_viscous_forces : public pointwise_rule {
  class store_viscous_forces : public singleton_rule {
     const_param<conservativeFlux> in1 ;
-    param<bool> OUTPUT ;
     param<vect3d>tot_force;
   public:
     store_viscous_forces() {
       name_store("integrate_flux(AllViscousBCs)",in1) ;
-      name_store("OUTPUT",OUTPUT) ;
       name_store("tot_force",tot_force) ;
       input("integrate_flux(AllViscousBCs)") ;
-      output("OUTPUT") ;
       output("tot_force");
       constraint("AllViscousBCs") ;
-      conditional("do_communicate") ;
     }
     void compute(const sequence &seq) {
       if(Loci::MPI_rank == 0 && in1->area != 0) {
@@ -115,8 +111,6 @@ namespace flowPsi {
              << " Watts" << endl;
 
              tot_force = in1->momentum_flux+in1->momentum_vis;
-
-          cout << "Total Forces " << tot_force << endl;
       }
     }
   };
