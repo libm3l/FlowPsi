@@ -17,6 +17,9 @@ setup: FRC
 	mkdir -p lib; true
 	mkdir -p bin; true
 
+flowpsi: setup 
+	$(MAKE) -C src LOCI_BASE="$(LOCI_BASE)" all
+
 turbulence: setup
 	$(MAKE) -C turbulence FLOWPSI_BASE="$(FLOWPSI_BASE)" all
 
