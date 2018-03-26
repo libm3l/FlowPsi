@@ -1,0 +1,149 @@
+//#############################################################################
+//#
+//# Copyright 2015, Mississippi State University
+//#
+//# This file is part of the flowPsi computational fluid dynamics solver.
+//#
+//# The flowPsi solver is free software: you can redistribute it and/or modify
+//# it under the terms of the GNU General Public License as published by
+//# the Free Software Foundation, either version 3 of the License, or
+//# (at your option) any later version.
+//#
+//# The flowPsi solver is distributed in the hope that it will be useful,
+//# but WITHOUT ANY WARRANTY; without even the implied warranty of
+//# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//# GNU General Public License for more details.
+//#
+//# You should have received a copy of the GNU General Public License
+//# along with the flowPsi solver.  If not, see <http://www.gnu.org/licenses>
+//#
+//#############################################################################
+
+
+/*
+ * 
+ * Description: This function calculates forces/moments
+ *    It uses some of the functions and types from IOintegrated.loci
+ *    It is executed conditionally based on comm_freq
+ *
+ *
+ * History:
+ * Version   Author:               Date       Patch number  CLA     Comment
+ * -------   -------               --------   --------      ---     -------
+ * 1.1       Adam Jirasek    2018-03-21                         Initial implementation
+ *
+ *
+ *
+ * 
+ */
+
+#include <Loci.h>
+$include "flowPsi.lh"
+#include "flowTypes.h"
+#include "flowPsiIO.h"
+#include "Tools/stream.h"
+
+
+
+#include <iostream>
+#include <fstream>
+#include <map>
+
+
+namespace flowPsi {
+
+ struct conservativeFlux {
+    real mass_flux ;
+    vect3d momentum_flux ;
+    vect3d momentum_vis ;
+    real energy_flux ;
+    real area ;
+    conservativeFlux() {
+      // Initialize these values to zero
+      mass_flux = 0. ;
+      momentum_flux.x = 0. ;
+      momentum_flux.y = 0. ;
+      momentum_flux.z = 0. ;
+      momentum_vis.x = 0 ;
+      momentum_vis.y = 0 ;
+      momentum_vis.z = 0 ;
+      energy_flux = 0. ;
+      area = 0. ;
+    }
+  } ;
+
+  struct momentFlux {
+    vect3d moment_flux ;
+    vect3d moment_reference ;
+    vect3d moment_center ;
+    int init ;
+    momentFlux() {
+      moment_flux = vect3d(0.,0.,0.) ;
+      moment_reference = moment_flux ;
+      moment_center = moment_flux ;
+      init = -5 ; // Not Initialized
+    }
+  } ;
+
+
+ class store_viscous_forces : public pointwise_rule {
+    const_param<conservativeFlux> in1 ;
+    param<bool> OUTPUT ;
+  public:
+    store_viscous_forces() {
+      name_store("integrate_flux(AllViscousBCs)",in1) ;
+      name_store("OUTPUT",OUTPUT) ;
+      input("integrate_flux(AllViscousBCs)") ;
+      output("OUTPUT") ;
+      constraint("AllViscousBCs") ;
+      conditional("do_communicate") ;
+    }
+    void compute(const sequence &seq) {
+      if(Loci::MPI_rank == 0 && in1->area != 0) {
+        cout << "------------------->>>>>>>>>>>>>>>>>>>>     >>>>>>>>>>>>>>>>>>>>>>>>>>Forces on all Viscous Noslip BC's:" << endl
+             << "  Pressure Forces = " << in1->momentum_flux
+             << " Newtons" << endl
+             << "  Viscous Drag Forces = " << in1->momentum_vis
+             << " Newtons" << endl
+             << "  Total Force = "
+             << in1->momentum_flux+in1->momentum_vis << " Newtons" << endl
+             << "  Total Heat Transfer = " << in1->energy_flux
+             << " Watts" << endl;
+      }
+    }
+  };
+ 
+  register_rule<store_viscous_forces> register_store_viscous_forces ;
+  
+}
+
+
+namespace Loci {
+
+  template <> struct data_schema_traits<flowPsi::momentFlux> {
+    typedef IDENTITY_CONVERTER Schema_Converter ;
+    static DatatypeP get_type() {
+      CompoundDatatypeP ct = CompoundFactory(flowPsi::momentFlux()) ;
+      LOCI_INSERT_TYPE(ct,flowPsi::momentFlux,moment_flux) ;
+      LOCI_INSERT_TYPE(ct,flowPsi::momentFlux,moment_reference) ;
+      LOCI_INSERT_TYPE(ct,flowPsi::momentFlux,moment_center) ;
+      LOCI_INSERT_TYPE(ct,flowPsi::momentFlux,init) ;
+      return DatatypeP(ct) ;
+    }
+  } ;
+    
+  // Tell Loci how to deal with the conservativeFlux data structure
+  template <> struct data_schema_traits<flowPsi::conservativeFlux> {
+    typedef IDENTITY_CONVERTER Schema_Converter ;
+    static DatatypeP get_type() {
+      CompoundDatatypeP ct = CompoundFactory(flowPsi::conservativeFlux()) ;
+      LOCI_INSERT_TYPE(ct,flowPsi::conservativeFlux,mass_flux) ;
+      LOCI_INSERT_TYPE(ct,flowPsi::conservativeFlux,momentum_flux) ;
+      LOCI_INSERT_TYPE(ct,flowPsi::conservativeFlux,momentum_vis) ;
+      LOCI_INSERT_TYPE(ct,flowPsi::conservativeFlux,energy_flux) ;
+      LOCI_INSERT_TYPE(ct,flowPsi::conservativeFlux,area) ;
+      return DatatypeP(ct) ;
+    }
+  } ;
+}
+

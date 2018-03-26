@@ -1,6 +1,6 @@
 //#############################################################################
 //#
-//# Copyright 2015, Mississippi State University
+//# Copyright 2015, Adam Jirasek
 //#
 //# This file is part of the flowPsi computational fluid dynamics solver.
 //#
@@ -51,8 +51,8 @@ $include "flowPsi.lh"
 #include "src_bridges.h"
 
 namespace flowPsi {
-  using std::cerr ;
-  using std::endl ;
+//  using std::cerr ;
+//  using std::endl ;
 
 //  $rule singleton(OUTPUT{n}<-ncycle{n}),conditional(do_communicate{n}),option(disable_threading) {
     $rule singleton(OUTPUT{n,it}<-cfl{n,it},newtonFinished{n,it},lastNewton{n,it}),
@@ -74,7 +74,10 @@ namespace flowPsi {
  * the communication is done through root partition only
  */ 
         test_bridge();
-
     }
   }
 }
+
+
+
+

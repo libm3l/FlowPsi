@@ -1,6 +1,8 @@
- /*
+ /*#############################################################################
  *     Copyright (C) 2018  Adam Jirasek
  * 
+ *     This file is part of the flowPsi computational fluid dynamics solver.
+ *
  *     This program is free software: you can redistribute it and/or modify
  *     it under the terms of the GNU General Public License as published by
  *     the Free Software Foundation, either version 3 of the License, or
@@ -16,6 +18,7 @@
  *     
  *     contact: libm3l@gmail.com
  * 
+ *#############################################################################
  */
 
 
