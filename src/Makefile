@@ -6,7 +6,7 @@ include $(LOCI_BASE)/Loci.conf
 #COPT=$(COPTLESS)
 
 
-INCLUDES = -I../include -I$(LIBM3LPATH) -I$(LSIPDXPATH) -I../src_bridges
+INCLUDES = -I../include 
 
 
 TARGET = flowpsi
@@ -28,7 +28,7 @@ OBJS =  \
 
 
 
-LOCAL_LIBS = $(LIBXML2_LIBS) -L$(LOCI_BASE)/lib ../src_bridges/libbridges.a 
+LOCAL_LIBS = $(LIBXML2_LIBS) -L$(LOCI_BASE)/lib 
 
 JUNK = *~  core debug .schedule .schedule-*
 
