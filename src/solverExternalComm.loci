@@ -51,19 +51,19 @@ $include "flowPsi.lh"
 #include "src_bridges.h"
 
 namespace flowPsi {
-//  using std::cerr ;
-//  using std::endl ;
 
 //  $rule singleton(OUTPUT{n}<-ncycle{n}),conditional(do_communicate{n}),option(disable_threading) {
-    $rule singleton(OUTPUT{n,it}<-cfl{n,it},newtonFinished{n,it},lastNewton{n,it}),
-        conditional(do_communicate_nit{n,it}),option(disable_threading) {
+//    $rule singleton(OUTPUT{n,it}<-cfl{n,it},newtonFinished{n,it},lastNewton{n,it},tot_force),
+//        conditional(do_communicate_nit{n,it}),option(disable_threading) {
+    $rule singleton(OUTPUT<-cfl,newtonFinished,lastNewton,tot_force),
+        conditional(do_communicate_nit),option(disable_threading) {
 /*
  * communicate_n_it is a condition which desides when to communicate, it is defines in solverSetup.loci
  */
     if(Loci::MPI_rank==0) {
 //	printf(" NEW ITERATION  ----------------------  LOOP #%3d \n", $ncycle{n});
-	printf("%s\n", $newtonFinished{n,it} ? "TRUE" : "FALSE");
-	printf("%s\n", $lastNewton{n,it} ? "L_TRUE" : "L_FALSE");
+//	printf("%s\n", $newtonFinished{n,it} ? "TRUE" : "FALSE");
+//	printf("%s\n", $lastNewton{n,it} ? "L_TRUE" : "L_FALSE");
 	printf(" NEW ITERATION  ----------------------  LOOP \n");
 /*
  * call function test_bridge
@@ -74,7 +74,7 @@ namespace flowPsi {
  * the communication is done through root partition only
  */ 
         test_bridge();
- //       printf(" TOTAL FORCES        ----------------------  LOOP  %f  %f   %f \n", $tot_force[0], $tot_force[1], $tot_force[2]);
+        printf(" TOTAL FORCES        ----------------------  LOOP  %f  %f   %f \n", $tot_force[0], $tot_force[1], $tot_force[2]);
        
     }
   }

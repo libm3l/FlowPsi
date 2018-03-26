@@ -94,9 +94,10 @@ namespace flowPsi {
     store_viscous_forces() {
       name_store("integrate_flux(AllViscousBCs)",in1) ;
       name_store("OUTPUT",OUTPUT) ;
+      name_store("tot_force",tot_force) ;
       input("integrate_flux(AllViscousBCs)") ;
       output("OUTPUT") ;
-  //    output("tot_force");
+      output("tot_force");
       constraint("AllViscousBCs") ;
       conditional("do_communicate") ;
     }
