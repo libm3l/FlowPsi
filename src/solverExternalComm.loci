@@ -53,9 +53,9 @@ $include "flowPsi.lh"
 namespace flowPsi {
 
 //  $rule singleton(OUTPUT{n}<-ncycle{n}),conditional(do_communicate{n}),option(disable_threading) {
-//    $rule singleton(OUTPUT{n,it}<-cfl{n,it},newtonFinished{n,it},lastNewton{n,it},tot_force),
+//    $rule singleton(OUTPUT{n,it}<-cfl{n,it},newtonFinished{n,it},lastNewton{n,it},global_visc_force),
 //        conditional(do_communicate_nit{n,it}),option(disable_threading) {
-    $rule singleton(OUTPUT<-cfl,newtonFinished,lastNewton,tot_force),
+    $rule singleton(OUTPUT,global_angles,global_displ,global_rot_center<-cfl,newtonFinished,lastNewton,global_visc_force),
         conditional(do_communicate_nit),option(disable_threading) {
 /*
  * communicate_n_it is a condition which desides when to communicate, it is defines in solverSetup.loci
@@ -73,9 +73,14 @@ namespace flowPsi {
  *
  * the communication is done through root partition only
  */ 
-        test_bridge($tot_force[0], $tot_force[1], $tot_force[2]);
-        printf(" TOTAL FORCES        ----------------------  LOOP  %f  %f   %f \n", $tot_force[0], $tot_force[1], $tot_force[2]);
-       
+        test_bridge($global_visc_force[0], $global_visc_force[1], $global_visc_force[2],
+		    $global_angles[0], $global_angles[1], $global_angles[2],
+		    $global_displ[0], $global_displ[1], $global_displ[2],
+		    $global_rot_center[0], $global_rot_center[1], $global_rot_center[2]);
+        printf(" TOTAL FORCES        ----------------------  LOOP  %f  %f   %f \n", $global_visc_force[0], $global_visc_force[1], $global_visc_force[2]);
+        printf("ANGLES        ----------------------  LOOP  %f  %f   %f \n", $global_angles[0], $global_angles[1], $global_angles[2]);
+        printf("transl        ----------------------  LOOP  %f  %f   %f \n", $global_displ[0], $global_displ[1], $global_displ[2]);
+        printf("rotc        ----------------------  LOOP  %f  %f   %f \n", $global_rot_center[0], $global_rot_center[1], $global_rot_center[2]);          
     }
   }
 }

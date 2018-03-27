@@ -268,5 +268,13 @@ $type vect3dFavreCoVarBase_f(X) store<flowPsi::vect3d> ;
 $type scalarTransportP(X,C) store<flowPsi::real> ;
 $type scalarTransport(X,C) store<flowPsi::real> ;
 
-$type tot_force param<flowPsi::vect3d> ;
+/*
+ * global data  (need to check if there is no duplicity to above declared variables)
+ * - forces, moments
+ * - euler angles
+ */
+$type global_visc_force param<flowPsi::vect3d> ;
+$type global_angles     param<flowPsi::vect3d> ;
+$type global_displ      param<flowPsi::vect3d> ;
+$type global_rot_center param<flowPsi::vect3d> ;
 

@@ -291,7 +291,7 @@ int main(int argc, char *argv[])
 		Error("m3l_Mklist");
 	tmpfloat = (lmdouble_t *)m3l_get_data_pointer(TmpNode);
 	tmpfloat[0] = 0;
-	tmpfloat[1] = 0;
+	tmpfloat[1] = 1;
 	tmpfloat[2] = 0;
 /*
  * print data on screen

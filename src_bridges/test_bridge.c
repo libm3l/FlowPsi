@@ -66,7 +66,10 @@
 #include "lsipdx.h"
 #include "src_bridges.h"
 
-lmint_t test_bridge(lmdouble_t ForceX, lmdouble_t ForceY, lmdouble_t ForceZ ){
+lmint_t test_bridge(lmdouble_t ForceX, lmdouble_t ForceY, lmdouble_t ForceZ , 
+                    lmdouble_t Alpha, lmdouble_t Beta, lmdouble_t Gamma,
+                    lmdouble_t TransX, lmdouble_t TransY, lmdouble_t TransZ,
+                    lmdouble_t RotCX, lmdouble_t RotCY, lmdouble_t RotCZ){
 
 
 	node_t *Gnode=NULL, *TmpNode = NULL, *FoundNode = NULL;
@@ -251,6 +254,10 @@ lmint_t test_bridge(lmdouble_t ForceX, lmdouble_t ForceY, lmdouble_t ForceZ ){
 		if( (tmpfloat = (lmdouble_t *)m3l_get_data_pointer(FoundNode)) == NULL)
 			Error("socket_FlowPsi2simulink: Did not find Angles data pointer");
 
+                Alpha = tmpfloat[0];
+                Beta  = tmpfloat[1];
+                Gamma = tmpfloat[2];
+
 		//for (i=0; i<tot_dim; i++)
 		//	Angles[i]  = tmpfloat[i];
 /* 
@@ -279,6 +286,9 @@ lmint_t test_bridge(lmdouble_t ForceX, lmdouble_t ForceY, lmdouble_t ForceZ ){
 		if( (tmpfloat = (lmdouble_t *)m3l_get_data_pointer(FoundNode)) == NULL)
 			Error("socket_FlowPsi2simulink: Did not find RotCenter data pointer");
 
+                RotCX = tmpfloat[0];
+                RotCY = tmpfloat[1];
+                RotCZ = tmpfloat[2];
 		//for (i=0; i<tot_dim; i++)
 		//	RotCenter[i]  = tmpfloat[i];
 /* 
@@ -307,6 +317,9 @@ lmint_t test_bridge(lmdouble_t ForceX, lmdouble_t ForceY, lmdouble_t ForceZ ){
 		if( (tmpfloat = (lmdouble_t *)m3l_get_data_pointer(FoundNode)) == NULL)
 			Error("socket_FlowPsi2simulink: Did not find TransVec data pointer");
 
+                TransX = tmpfloat[0];
+                TransY = tmpfloat[1];
+                TransZ = tmpfloat[2];
 		//for (i=0; i<tot_dim; i++)
 		//	TransVec[i]  = tmpfloat[i];
 /* 
