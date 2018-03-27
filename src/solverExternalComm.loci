@@ -25,14 +25,13 @@
  * 
  * Description: calls functions acting as a bridge between FlowPsi and externally driven processes
  *     For this purpose, it uses two external libraries, libm3l and lsipdx
- *      for more details go to www.github.com/libm3l/libm3l and www.github.com/libm3l/lsipdx 
- *       values of angles, rotation center and translation
- *
+ *     for more details go to www.github.com/libm3l/libm3l and www.github.com/libm3l/lsipdx 
+ *     values of angles, rotation center and translation
  *
  * History:
  * Version   Author:               Date       Patch number  CLA     Comment
  * -------   -------               --------   --------      ---     -------
- * 1.1       Adam Jirasek    2018-03-21                         Initial implementation
+ * 1.1       Adam Jirasek         2018-03-21                        Initial implementation
  *
  *
  *
@@ -52,9 +51,6 @@ $include "flowPsi.lh"
 
 namespace flowPsi {
 
-//  $rule singleton(OUTPUT{n}<-ncycle{n}),conditional(do_communicate{n}),option(disable_threading) {
-//    $rule singleton(OUTPUT{n,it}<-cfl{n,it},newtonFinished{n,it},lastNewton{n,it},global_visc_force),
-//        conditional(do_communicate_nit{n,it}),option(disable_threading) {
     $rule singleton(OUTPUT,global_angles,global_displ,global_rot_center<-cfl,newtonFinished,lastNewton,global_visc_force),
         conditional(do_communicate_nit),option(disable_threading) {
 /*
@@ -67,7 +63,7 @@ namespace flowPsi {
 	printf(" NEW ITERATION  ----------------------  LOOP \n");
 /*
  * call function test_bridge
- * this is obviously in contrast using LoCi to for scheduling, I think it may 
+ * this is obviously in contrast using LoCi in terms of scheduling, I think it may 
  * be done through reduction rule "apply[]" and "test_bridge" as an operator
  * but at the moment I'm OK with as it is now
  *
@@ -77,6 +73,7 @@ namespace flowPsi {
 		    $global_angles[0], $global_angles[1], $global_angles[2],
 		    $global_displ[0], $global_displ[1], $global_displ[2],
 		    $global_rot_center[0], $global_rot_center[1], $global_rot_center[2]);
+
         printf(" TOTAL FORCES        ----------------------  LOOP  %f  %f   %f \n", $global_visc_force[0], $global_visc_force[1], $global_visc_force[2]);
         printf("ANGLES        ----------------------  LOOP  %f  %f   %f \n", $global_angles[0], $global_angles[1], $global_angles[2]);
         printf("transl        ----------------------  LOOP  %f  %f   %f \n", $global_displ[0], $global_displ[1], $global_displ[2]);
