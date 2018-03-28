@@ -50,12 +50,12 @@ $include "flowPsi.lh"
 #include "src_bridges.h"
 
 namespace flowPsi {
-
-  /*  $rule singleton(OUTPUT,global_angles,global_displ,global_rot_center<-global_visc_force),
-        conditional(do_communicate_nit),option(disable_threading) {
-     */       
+    
                 $rule singleton(OUTPUT,global_angles,global_displ,global_rot_center<-global_visc_force),
-        option(disable_threading) {
+        option(disable_threading)  {
+            
+//            $rule singleton(OUTPUT,global_angles,global_displ,global_rot_center<-global_visc_force),
+//         option(disable_threading),constraint(movingMesh,area)  {
 /*
  * communicate_n_it is a condition which desides when to communicate, it is defines in solverSetup.loci
  */
