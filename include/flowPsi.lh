@@ -274,6 +274,7 @@ $type scalarTransport(X,C) store<flowPsi::real> ;
  * - euler angles
  */
 $type global_visc_force param<flowPsi::vect3d> ;
+$type global_invisc_force param<flowPsi::vect3d> ;
 $type global_angles     param<flowPsi::vect3d> ;
 $type global_displ      param<flowPsi::vect3d> ;
 $type global_rot_center param<flowPsi::vect3d> ;

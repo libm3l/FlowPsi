@@ -51,16 +51,15 @@ $include "flowPsi.lh"
 
 namespace flowPsi {
 
-    $rule singleton(OUTPUT,global_angles,global_displ,global_rot_center<-cfl,newtonFinished,lastNewton,global_visc_force),
+  /*  $rule singleton(OUTPUT,global_angles,global_displ,global_rot_center<-global_visc_force),
         conditional(do_communicate_nit),option(disable_threading) {
+     */       
+                $rule singleton(OUTPUT,global_angles,global_displ,global_rot_center<-global_visc_force),
+        option(disable_threading) {
 /*
  * communicate_n_it is a condition which desides when to communicate, it is defines in solverSetup.loci
  */
     if(Loci::MPI_rank==0) {
-//	printf(" NEW ITERATION  ----------------------  LOOP #%3d \n", $ncycle{n});
-//	printf("%s\n", $newtonFinished{n,it} ? "TRUE" : "FALSE");
-//	printf("%s\n", $lastNewton{n,it} ? "L_TRUE" : "L_FALSE");
-	printf(" NEW ITERATION  ----------------------  LOOP \n");
 /*
  * call function test_bridge
  * this is obviously in contrast using LoCi in terms of scheduling, I think it may 

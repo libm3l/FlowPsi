@@ -1,0 +1,95 @@
+//#############################################################################
+//#
+//# Copyright 2015, Mississippi State University
+//#
+//# This file is part of the flowPsi computational fluid dynamics solver.
+//#
+//# The flowPsi solver is free software: you can redistribute it and/or modify
+//# it under the terms of the GNU General Public License as published by
+//# the Free Software Foundation, either version 3 of the License, or
+//# (at your option) any later version.
+//#
+//# The flowPsi solver is distributed in the hope that it will be useful,
+//# but WITHOUT ANY WARRANTY; without even the implied warranty of
+//# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//# GNU General Public License for more details.
+//#
+//# You should have received a copy of the GNU General Public License
+//# along with the flowPsi solver.  If not, see <http://www.gnu.org/licenses>
+//#
+//#############################################################################
+
+
+/*
+ * 
+ * Description: This function calculates forces/moments
+ *    It uses some of the functions and types from IOintegrated.loci
+ *    It is executed conditionally based on comm_freq
+ *
+ *
+ * History:
+ * Version   Author:               Date       Patch number  CLA     Comment
+ * -------   -------               --------   --------      ---     -------
+ * 1.1       Adam Jirasek    2018-03-21                         Initial implementation
+ *
+ *
+ *
+ * 
+ */
+
+#include <Loci.h>
+$include "flowPsi.lh"
+#include "flowTypes.h"
+#include "flowPsiIO.h"
+#include "Tools/stream.h"
+
+#include <iostream>
+#include <fstream>
+#include <map>
+
+
+
+namespace flowPsi {
+  
+  $type volumeTag(X) param<string> ;
+  $type componentMotionTypes blackbox<std::set<std::string> > ;
+  $type componentMotion param<options_list> ;
+  $type componentServo_X Constraint ;
+
+
+//    $rule constraint(componentServo_X<-volumeTag(X),componentMotion,componentMotionTypes),
+//     parametric(volumeTag(X)) {
+  
+    $rule singleton(OUTPUT<-global_visc_force,volumeTag(X)), parametric(volumeTag(X)) {
+    string tag = $volumeTag(X) ;
+  
+//         $rule singleton(OUTPUT<-global_visc_force,volumeTag(X),componentMotion,componentMotionTypes), parametric(volumeTag(X)){
+//              string tag = $volumeTag(X) ;
+      
+        if(Loci::MPI_rank == 0)
+            std::cout << "================= >>>>>>>>>>   TADY    TAG " <<  tag << endl;
+        
+        
+        
+//         if($componentMotion.optionExists(tag)) {
+//       string name ;
+//       Loci::options_list::arg_list value_list ;
+//       $componentMotion.getOption(tag,name,value_list) ;
+//       if($componentMotionTypes.find(name) == $componentMotionTypes.end()) {
+//         cerr << "unknown component motion directive '" << name << "' for component '"
+//              << tag << "'" << endl ;
+//         Loci::Abort() ;
+//       }
+//         
+//    if(Loci::MPI_rank == 0)
+//           std::cout << "================= >>>>>>>>>>   COMPONENT " << name <<"   TAG " <<  tag << endl;
+//     } else {
+//       cerr << "No componentMotion information for component '" << tag << "'" << endl ;
+//       Loci::Abort() ;
+//     }
+  };
+  
+  
+
+}
+
