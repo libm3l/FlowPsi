@@ -311,22 +311,31 @@ namespace flowPsi {
 
     bool doprint = (Loci::MPI_rank == 0) ;
     
-    param<options_list> bc_info ;
+    param<options_list> bc_info, int_info ;
+    
+     int_info = facts.get_variable("interfaces") ;
+ 
+        std::cout <<" --------------INTINFO  :  " << int_info << "  " << endl ;
+    
     bc_info = facts.get_variable("boundary_conditions") ;
+/*
+    if(Loci::MPI_rank == 0)
+      std::cout <<" --------------BCINFO  :  " << bc_info << "  " << endl ;*/
 
     
     options_list::option_namelist nl = bc_info->getOptionNameList() ;
-
     options_list::option_namelist::iterator li;
 
     for(li=nl.begin();li!=nl.end();++li) {
       string bname = *li ;
-      Loci::option_value_type vt =
-        bc_info->getOptionValueType(bname);
+      Loci::option_value_type vt = bc_info->getOptionValueType(bname);
       Loci::option_values ov = bc_info->getOption(bname) ;
       options_list::arg_list value_list ;
       string name ;
-      bool func = false ;
+//      bool func = false ;
+
+
+      std::cout << "-------------  Partition and bname  " << Loci::MPI_rank<< "  " << bname << endl ;
 
       switch(vt) {
       case Loci::NAME :
@@ -334,7 +343,7 @@ namespace flowPsi {
         bc_info->setOption(bname,name) ;
         break ;
       case Loci::FUNCTION:
-        func = true ;
+//        func = true ;
         ov.get_value(name) ;
         ov.get_value(value_list) ;
         bc_info->setOption(bname,name,value_list) ;
