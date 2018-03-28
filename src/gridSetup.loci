@@ -311,18 +311,10 @@ namespace flowPsi {
 
     bool doprint = (Loci::MPI_rank == 0) ;
     
-    param<options_list> bc_info, int_info ;
-    
-     int_info = facts.get_variable("interfaces") ;
- 
-        std::cout <<" --------------INTINFO  :  " << int_info << "  " << endl ;
+    param<options_list> bc_info;
     
     bc_info = facts.get_variable("boundary_conditions") ;
-/*
-    if(Loci::MPI_rank == 0)
-      std::cout <<" --------------BCINFO  :  " << bc_info << "  " << endl ;*/
-
-    
+  
     options_list::option_namelist nl = bc_info->getOptionNameList() ;
     options_list::option_namelist::iterator li;
 
