@@ -56,41 +56,13 @@ namespace flowPsi {
   $type componentMotion param<options_list> ;
   $type componentServo_X Constraint ;
 
-
-//    $rule constraint(componentServo_X<-volumeTag(X),componentMotion,componentMotionTypes),
-//     parametric(volumeTag(X)) {
   
     $rule singleton(OUTPUT<-global_visc_force,volumeTag(X)), parametric(volumeTag(X)) {
     string tag = $volumeTag(X) ;
-  
-//         $rule singleton(OUTPUT<-global_visc_force,volumeTag(X),componentMotion,componentMotionTypes), parametric(volumeTag(X)){
-//              string tag = $volumeTag(X) ;
       
         if(Loci::MPI_rank == 0)
             std::cout << "================= >>>>>>>>>>   TADY    TAG " <<  tag  << endl;
-//            std::cout << "================= >>>>>>>>>>   TADY    TAG " <<  tag << "  MovMesh ", << movingMesh << endl;
-        
-        
-        
-//         if($componentMotion.optionExists(tag)) {
-//       string name ;
-//       Loci::options_list::arg_list value_list ;
-//       $componentMotion.getOption(tag,name,value_list) ;
-//       if($componentMotionTypes.find(name) == $componentMotionTypes.end()) {
-//         cerr << "unknown component motion directive '" << name << "' for component '"
-//              << tag << "'" << endl ;
-//         Loci::Abort() ;
-//       }
-//         
-//    if(Loci::MPI_rank == 0)
-//           std::cout << "================= >>>>>>>>>>   COMPONENT " << name <<"   TAG " <<  tag << endl;
-//     } else {
-//       cerr << "No componentMotion information for component '" << tag << "'" << endl ;
-//       Loci::Abort() ;
-//     }
   };
-
-
 
  $rule singleton(OUTPUT<-ncycle,volumeTag(X),componentMotion,componentMotionTypes), parametric(volumeTag(X)) {
         string tag = $volumeTag(X) ;
@@ -99,8 +71,11 @@ namespace flowPsi {
  */
         string name , type;
         Loci::options_list::arg_list value_list ;
+        
+        options_list ol ; 
+        ol.Input(value_list) ; // Convert to an options list
+        
         $componentMotion.getOption(tag,name,value_list) ;
-
 
         if($componentMotionTypes.find(name) == $componentMotionTypes.end()) {
          cerr << "unknown component motion directive '" << name << "' for component '"
@@ -109,11 +84,48 @@ namespace flowPsi {
        }
 
         if(Loci::MPI_rank == 0){
-            std::cout << "================= >>>>>>>>>>   COMPONENT " << name <<"   TAG " <<  tag << endl;
-
+            std::cout << "================= >>>>>>>>>>   COMPONENT " << name <<"   TAG " <<  tag << " Values  "<< value_list    <<endl;
          }
+         
+         
+         
   };
   
+  
+  /*
+  
+    options_list ol ; 
+    ol.Input(value_list) ; // Convert to an options list
+
+
+    vect3d vec(1,0,0) ;
+    if(ol.optionExists("axis")) { 
+      ol.getOptionUnits("axis","",vec) ;
+      vec = vec/(norm(vec)+1e-30) ;
+    } else {
+      if(Loci::MPI_rank) {
+        cerr << "WARNING: Defaulting to x-axis in component rotation!" << endl ;
+      }
+    }
+    $componentRotationAxis_X = vec ;
+
+    if(ol.optionExists("center")) { 
+      ol.getOptionUnits("center","m",$componentRotationCenter_X) ;
+    } else {
+      if(Loci::MPI_rank) {
+        cerr << "WARNING: Defaulting to origin for center of component rotation!" << endl ;
+      }
+    }
+
+    if(ol.optionExists("speed")) {
+      ol.getOptionUnits("speed","rpm",$componentRotationSpeed_X) ;
+      $componentRotationSpeed_X *= 2.*M_PI/60.;  //changes rpm to rad/s
+    } else {
+      if(Loci::MPI_rank) {
+        cerr << "FATAL:  No speed specified in componentMotion rotation specification!" << endl ;
+        Loci::Abort() ;
+      }
+    }*/
   
 
 }

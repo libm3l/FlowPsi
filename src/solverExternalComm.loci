@@ -49,6 +49,17 @@ $include "flowPsi.lh"
 #include "lsipdx.h"
 #include "src_bridges.h"
 
+#include <vector>
+#include <list>
+
+using std::list ;
+using std::vector ;
+//using std::pair ;
+//using std::make_pair ;
+using std::endl ;
+using std::cerr ;
+//using std::cout ;
+
 namespace flowPsi {
     
                 $rule singleton(OUTPUT,global_angles,global_displ,global_rot_center<-global_visc_force),
@@ -78,7 +89,107 @@ namespace flowPsi {
         printf("transl        ----------------------  LOOP  %f  %f   %f \n", $global_displ[0], $global_displ[1], $global_displ[2]);
         printf("rotc        ----------------------  LOOP  %f  %f   %f \n", $global_rot_center[0], $global_rot_center[1], $global_rot_center[2]);          
     }
+  };
+  
+  
+  
+  
+    struct bc_checker_info {
+      Loci::variableSet bc_check ;
+      Loci::variableSet bc_vars ;
+//      BC_implP checker ;
+    };
+  
+   bool get_interface_info(fact_db &facts) {
+      
+    bool error = false ;
+
+    bool doprint = (Loci::MPI_rank == 0) ;
+    
+    param<options_list> bc_info, int_info ;
+    list<bc_checker_info> bclist ;
+
+    
+     int_info = facts.get_variable("interfaces") ;
+ 
+        std::cout <<" --------------INTINFO  :  " << int_info << "  " << endl ;
+    
+    bc_info = facts.get_variable("boundary_conditions") ;
+    
+    options_list::option_namelist nl = bc_info->getOptionNameList() ;
+    options_list::option_namelist::iterator li;
+
+    for(li=nl.begin();li!=nl.end();++li) {
+      string bname = *li ;
+      Loci::option_value_type vt = bc_info->getOptionValueType(bname);
+      Loci::option_values ov = bc_info->getOption(bname) ;
+      options_list::arg_list value_list ;
+      string name ;
+
+      std::cout << "-------------  Partition and bname  " << Loci::MPI_rank<< "  " << bname << endl ;
+
+      switch(vt) {
+      case Loci::NAME :
+        ov.get_value(name) ;
+        bc_info->setOption(bname,name) ;
+        break ;
+      case Loci::FUNCTION:
+        ov.get_value(name) ;
+        ov.get_value(value_list) ;
+        bc_info->setOption(bname,name,value_list) ;
+        
+        break ;
+      default:
+        cerr << "setup_bc can not interpret value assigned to " << bname 
+             << " in boundary_conditions" << endl ;
+        exit(-1) ;
+      }
+      options_list ol ;
+      ol.Input(value_list) ;
+      Loci::variable bcv(name) ;
+
+      list<bc_checker_info>::iterator bi ;
+
+      options_list::option_namelist nlb = ol.getOptionNameList() ;
+
+      Loci::variableSet bvars ;
+      options_list::option_namelist::iterator lii;
+      for(lii=nlb.begin();lii!=nlb.end();++lii)
+        bvars += Loci::variable(*lii) ;
+
+      bool found_bcmatch = false;
+      bool found_empty_match = false ;
+      Loci::variableSet unchecked_variables = bvars ;
+      for(bi=bclist.begin();bi!=bclist.end();++bi) {
+        if(bi->bc_check.inSet(bcv)) {
+          if(bi->bc_check != ~EMPTY) {
+            found_bcmatch = true ;
+            if(bi->bc_vars == EMPTY) {
+              found_empty_match = true ;
+            }
+          }
+          if((bi->bc_vars & bvars) != EMPTY) {
+            try {
+//               if(bi->checker->checkOptions(ol)) {
+//                 unchecked_variables -= bi->bc_vars ;
+//               }
+            } catch(const Loci::BasicException &err) {
+              cerr << "ERROR: Boundary type " << name << " for boundary id "
+                   << bname << ":" << endl ;
+              err.Print(cerr) ;
+              error = true ;
+            }
+          }
+        }
+      }
+
+      
+    }
+    return error ;
   }
+  
+  
+  
 }
 
 
