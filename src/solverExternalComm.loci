@@ -58,7 +58,10 @@ using std::vector ;
 //using std::make_pair ;
 using std::endl ;
 using std::cerr ;
-//using std::cout ;
+
+/* 
+ * check gridComponent.loci for other smilarities
+ */
 
 namespace flowPsi {
     
