@@ -70,7 +70,9 @@ namespace flowPsi {
     vect3d us($xgvel,0.0,0.0) ;
     $us_n = dot(us,$area.n) ;
   }
-
+/*
+ * get grid velocities for moving mesh 
+ */
   $rule pointwise(moving::us_n{n,it}<-dtmax,face2node->(pos{n},pos{n,it}),area{n,it}),
     constraint(movingMesh,area) {
     int fsz = $face2node.size() ;
@@ -125,7 +127,9 @@ namespace flowPsi {
     // Get grid velocity at face by dividing by face area
     $us_n{n,it} = .25*us_n_int/(3.*max<real>($area{n,it}.sada,1e-30)*real($dtmax)) ;
   }
-
+/*
+ * get grid velocities for moving mesh in axisymmetric mode
+ */
   $rule pointwise(axi::moving::us_n{n,it}<-dtmax,face2node->(pos{n},pos{n,it}),area{n,it}),
     constraint(movingMesh,area,axisymmetricCoordinateModel) {
     int fsz = $face2node.size() ;

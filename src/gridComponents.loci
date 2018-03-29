@@ -560,7 +560,9 @@ namespace flowPsi {
   }
 
   $type prescribedMotion_X blackbox<motionSplines> ;
-  
+/*
+ * read motion file for prescribed motion
+ */
   $rule blackbox(prescribedMotion_X<-volumeTag(X)),
     constraint(componentPrescribed_X),parametric(volumeTag(X)),
     prelude {
@@ -630,7 +632,9 @@ namespace flowPsi {
     $prescribedMotion_X.getMotion(cg,q,0.0) ;
     $prescribedCG_X = cg ;
   }
-
+/*
+ * set prescribedMotion_X 
+ */
   $rule apply(componentMotionData<-prescribedMotion_X,prescribedCG_X,componentName_X,dtmax,stime)[Loci::NullOp],
     constraint(componentPrescribed_X),parametric(volumeTag(X)), prelude {
     real t = *$stime + real(*$dtmax) ;
@@ -644,7 +648,9 @@ namespace flowPsi {
     string name = *$componentName_X ;
     (*$componentMotionData)[name] = xform ;
   } ;
-
+/*
+ * this seems like transformation
+ */
   $rule pointwise(pos{n,it}<-pos{n},pos,componentTransformsn_X{n,it}),
     constraint(componentNodes_X{n},componentMotion),
     parametric(volumeTag(X)) {

@@ -67,7 +67,8 @@ namespace flowPsi {
 //              string tag = $volumeTag(X) ;
       
         if(Loci::MPI_rank == 0)
-            std::cout << "================= >>>>>>>>>>   TADY    TAG " <<  tag << endl;
+            std::cout << "================= >>>>>>>>>>   TADY    TAG " <<  tag  << endl;
+//            std::cout << "================= >>>>>>>>>>   TADY    TAG " <<  tag << "  MovMesh ", << movingMesh << endl;
         
         
         
@@ -87,6 +88,30 @@ namespace flowPsi {
 //       cerr << "No componentMotion information for component '" << tag << "'" << endl ;
 //       Loci::Abort() ;
 //     }
+  };
+
+
+
+ $rule singleton(OUTPUT<-ncycle,volumeTag(X),componentMotion,componentMotionTypes), parametric(volumeTag(X)) {
+        string tag = $volumeTag(X) ;
+/*
+ * example of rule which loops ver tags, get motion name and motion type
+ */
+        string name , type;
+        Loci::options_list::arg_list value_list ;
+        $componentMotion.getOption(tag,name,value_list) ;
+
+
+        if($componentMotionTypes.find(name) == $componentMotionTypes.end()) {
+         cerr << "unknown component motion directive '" << name << "' for component '"
+              << tag << "'" << endl ;
+         Loci::Abort() ;
+       }
+
+        if(Loci::MPI_rank == 0){
+            std::cout << "================= >>>>>>>>>>   COMPONENT " << name <<"   TAG " <<  tag << endl;
+
+         }
   };
   
   
