@@ -26,6 +26,7 @@
 
 #include "flowTypes.h"
 #include "readGrid.h"
+#include "solverExternalComm.h"
 
 #include <sys/stat.h>
 #include <unistd.h>
@@ -36,7 +37,8 @@
 using std::vector ;
 
 
-using flowPsi::read_grid ;
+using flowPsi::read_grid;
+using flowPsi::get_interface_info;
 
 
 using Loci::storeRepP ;
@@ -409,6 +411,8 @@ int main(int ac, char *av[]) {
   }
 
   read_grid(facts,rdb,av[1],dryrun) ;
+
+  get_interface_info(facts);
 
   if(command_vars.size() > 0) {
     for(size_t i=0;i<command_vars.size();++i) {

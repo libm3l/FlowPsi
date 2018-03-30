@@ -103,34 +103,38 @@ namespace flowPsi {
 //      BC_implP checker ;
     };
   
-   bool get_interface_info(fact_db &facts) {
+    bool get_interface_info(fact_db &facts) {
       
     bool error = false ;
 
     bool doprint = (Loci::MPI_rank == 0) ;
     
     param<options_list> bc_info, int_info ;
-    list<bc_checker_info> bclist ;
+    list<bc_checker_info> bclist ; 
+/*
+ * get interfaces facts 
+ */
+    int_info = facts.get_variable("interfaces") ;
 
-    
-     int_info = facts.get_variable("interfaces") ;
- 
-        std::cout <<" --------------INTINFO  :  " << int_info << "  " << endl ;
-    
-    bc_info = facts.get_variable("boundary_conditions") ;
-    
-    options_list::option_namelist nl = bc_info->getOptionNameList() ;
-    options_list::option_namelist::iterator li;
-
+    options_list::option_namelist nl = int_info->getOptionNameList() ;
+    options_list::option_namelist::iterator li;  
+/*
+ * loop over all interfaces 
+ */
     for(li=nl.begin();li!=nl.end();++li) {
       string bname = *li ;
-      Loci::option_value_type vt = bc_info->getOptionValueType(bname);
-      Loci::option_values ov = bc_info->getOption(bname) ;
+      Loci::option_value_type vt = int_info->getOptionValueType(bname);
+      Loci::option_values ov = int_info->getOption(bname) ;
       options_list::arg_list value_list ;
       string name ;
 
-      std::cout << "-------------  Partition and bname  " << Loci::MPI_rank<< "  " << bname << endl ;
-
+      std::cout << "=============================================================" << bname << endl ;
+      std::cout << "-------------  Partition and interface name  " << Loci::MPI_rank<< "  " << bname << endl ;
+     // std::cout << "-------------  OPTION-vt  " << vt << endl ;
+     // std::cout << "-------------  OPTION-ov  " << ov << endl ;
+/*
+ * get options in intf
+ */
       switch(vt) {
       case Loci::NAME :
         ov.get_value(name) ;
@@ -140,59 +144,34 @@ namespace flowPsi {
         ov.get_value(name) ;
         ov.get_value(value_list) ;
         bc_info->setOption(bname,name,value_list) ;
-        
         break ;
       default:
-        cerr << "setup_bc can not interpret value assigned to " << bname 
-             << " in boundary_conditions" << endl ;
+        cerr << "setup_interface can not interpret value assigned to " << bname 
+             << " in interfaces" << endl ;
         exit(-1) ;
       }
+/*
+ * parse options
+ */
       options_list ol ;
       ol.Input(value_list) ;
+/*
+ * at the moment bcv is going to be intfr_local or intrf_global
+ */
       Loci::variable bcv(name) ;
-
-      list<bc_checker_info>::iterator bi ;
-
+/*
+ * loop through options and add them to bvars
+ */
       options_list::option_namelist nlb = ol.getOptionNameList() ;
-
       Loci::variableSet bvars ;
       options_list::option_namelist::iterator lii;
-      for(lii=nlb.begin();lii!=nlb.end();++lii)
+      for(lii=nlb.begin();lii!=nlb.end();++lii){
         bvars += Loci::variable(*lii) ;
-
-      bool found_bcmatch = false;
-      bool found_empty_match = false ;
-      Loci::variableSet unchecked_variables = bvars ;
-      for(bi=bclist.begin();bi!=bclist.end();++bi) {
-        if(bi->bc_check.inSet(bcv)) {
-          if(bi->bc_check != ~EMPTY) {
-            found_bcmatch = true ;
-            if(bi->bc_vars == EMPTY) {
-              found_empty_match = true ;
-            }
-          }
-          if((bi->bc_vars & bvars) != EMPTY) {
-            try {
-//               if(bi->checker->checkOptions(ol)) {
-//                 unchecked_variables -= bi->bc_vars ;
-//               }
-            } catch(const Loci::BasicException &err) {
-              cerr << "ERROR: Boundary type " << name << " for boundary id "
-                   << bname << ":" << endl ;
-              err.Print(cerr) ;
-              error = true ;
-            }
-          }
+        std::cout << "-------------  OPTION LIST  " << bvars  << endl ;
         }
       }
-
-      
-    }
     return error ;
   }
-  
-  
-  
 }
 
 
