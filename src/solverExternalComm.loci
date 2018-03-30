@@ -93,16 +93,13 @@ namespace flowPsi {
         printf("rotc        ----------------------  LOOP  %f  %f   %f \n", $global_rot_center[0], $global_rot_center[1], $global_rot_center[2]);          
     }
   };
-  
-  
-  
-  
-    struct bc_checker_info {
-      Loci::variableSet bc_check ;
-      Loci::variableSet bc_vars ;
-//      BC_implP checker ;
-    };
-  
+
+
+
+
+/*
+ * loop through list of interfaces and parse parameters
+ */
     bool get_interface_info(fact_db &facts) {
       
     bool error = false ;
@@ -110,7 +107,6 @@ namespace flowPsi {
     bool doprint = (Loci::MPI_rank == 0) ;
     
     param<options_list> bc_info, int_info ;
-    list<bc_checker_info> bclist ; 
 /*
  * get interfaces facts 
  */
@@ -130,8 +126,6 @@ namespace flowPsi {
 
       std::cout << "=============================================================" << bname << endl ;
       std::cout << "-------------  Partition and interface name  " << Loci::MPI_rank<< "  " << bname << endl ;
-     // std::cout << "-------------  OPTION-vt  " << vt << endl ;
-     // std::cout << "-------------  OPTION-ov  " << ov << endl ;
 /*
  * get options in intf
  */
@@ -144,6 +138,7 @@ namespace flowPsi {
         ov.get_value(name) ;
         ov.get_value(value_list) ;
         bc_info->setOption(bname,name,value_list) ;
+        std::cout << "-------------  IN FUNCTION  " << value_list << endl ;
         break ;
       default:
         cerr << "setup_interface can not interpret value assigned to " << bname 
@@ -166,10 +161,27 @@ namespace flowPsi {
       Loci::variableSet bvars ;
       options_list::option_namelist::iterator lii;
       for(lii=nlb.begin();lii!=nlb.end();++lii){
+
         bvars += Loci::variable(*lii) ;
         std::cout << "-------------  OPTION LIST  " << bvars  << endl ;
+
+        if( *lii == "boundary_conditions" ){
+              std::cout << "-------------  BOUNDARY CONDITIONS FOUND ------------------- "<< endl ;
+              Loci::option_values oss = ol.getOption(*lii) ;
+              std::cout << "-------------  BC list in intf is  " << oss << endl ;
+           }
         }
+/*
+ * get value of comm_freq from interface
+ */
+        int comm_freq = 0 ;
+        real param = 0;
+        ol.getOptionUnits("comm_freq","",param);
+        comm_freq = (int)param;
+        std::cout << "-------------  value of comm_freq is  " << comm_freq  << endl ;
+
       }
+
     return error ;
   }
 }
