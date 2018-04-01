@@ -4,7 +4,10 @@
 #include <Loci.h>
 
 namespace flowPsi {
-  void get_interface_info(fact_db );
+    
+//   param<options_list> int_info_global ;
+    
+  bool get_interface_info(fact_db &facts);
 }
 
 #endif

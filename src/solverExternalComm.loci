@@ -41,13 +41,13 @@
 #include <Loci.h>
 #include <stdio.h>
 $include "flowPsi.lh"
-
 /*
  *  include header files for libm3l and lsipdx library and header file for bridges (located in ../src_bridges)
  */
 #include "libm3l.h"
 #include "lsipdx.h"
 #include "src_bridges.h"
+#include "solverExternalComm.h"
 
 #include <vector>
 #include <list>
@@ -100,7 +100,7 @@ namespace flowPsi {
 /*
  * loop through list of interfaces and parse parameters
  */
-    bool get_interface_info(fact_db facts) {
+    bool get_interface_info(fact_db &facts) {
       
     bool error = false ;
 
@@ -111,6 +111,7 @@ namespace flowPsi {
  * get interfaces facts 
  */
     int_info = facts.get_variable("interfaces") ;
+//     int_info_global = int_info;
 
     options_list::option_namelist nl = int_info->getOptionNameList() ;
     options_list::option_namelist::iterator li;  
