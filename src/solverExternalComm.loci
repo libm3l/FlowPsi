@@ -100,7 +100,7 @@ namespace flowPsi {
 /*
  * loop through list of interfaces and parse parameters
  */
-    bool get_interface_info(fact_db &facts) {
+    bool get_interface_info(fact_db facts) {
       
     bool error = false ;
 

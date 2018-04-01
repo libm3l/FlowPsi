@@ -48,7 +48,6 @@ $include "flowPsi.lh"
 #include <map>
 
 
-
 namespace flowPsi {
   
   $type volumeTag(X) param<string> ;
@@ -87,5 +86,43 @@ namespace flowPsi {
             std::cout << "================= >>>>>>>>>>   COMPONENT " << name <<"   TAG " <<  tag << " Values  "<< value_list    <<endl;
          }
   };
+  
+  
+  
+  
+  
+  
+  
+//   $rule singleton(OUTPUT<-ncycle) {
+// /*
+//  * example of function which opens OpenMPI processses 
+//  * and access iterface data in paralell
+//  */
+// //        Loci::fact_db facts = Loci::exec_current_fact_db->get_distribute_info();
+// 
+//         if(Loci::MPI_rank == 0){
+//         param<options_list> int_info ;       
+// //          int_info = facts.get_variable("interfaces") ;
+// //        int_info = Loci::exec_current_fact_db.get_variable("interfaces") ;
+// // 
+// //         options_list::option_namelist nl = int_info->getOptionNameList() ;
+// //         options_list::option_namelist::iterator li;  
+// /*
+//  * loop over all interfaces 
+//  */
+// //     for(li=nl.begin();li!=nl.end();++li) {
+// //       string bname = *li ;
+// //       Loci::option_value_type vt = int_info->getOptionValueType(bname);
+// //       Loci::option_values ov = int_info->getOption(bname) ;
+// //       options_list::arg_list value_list ;
+// //       string name ;
+// //       printf(" RULE :::       %s \n",  bname);
+// //          }
+//         }
+//   };
+  
+  
+  
+    
 }
 
