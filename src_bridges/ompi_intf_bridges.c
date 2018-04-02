@@ -59,8 +59,7 @@ int ompi_intf_bridges(fact_db &facts){
 /*
  * get access to current fact database
  */
-      int ithread, tid;
-      int nProcessors,nthreads;
+      int nProcessors;
 /*
  * get poonter on interfaces in facts 
  */
@@ -74,7 +73,6 @@ int ompi_intf_bridges(fact_db &facts){
       li = nl.begin();
       string bname;
 
-      ithread = 1;
       nProcessors = 3;
 /*
  * set number of processors to required number 
@@ -89,7 +87,7 @@ int ompi_intf_bridges(fact_db &facts){
 /*
  * spawn openmpi processes
  */
-#pragma omp parallel private(tid, bname)
+#pragma omp parallel private(bname)
 {
  
 #pragma omp critical
@@ -115,8 +113,8 @@ int ompi_intf_bridges(fact_db &facts){
  */
 
 
-//#pragma omp critical
-//{
+#pragma omp critical
+{
       param<options_list> bc_info;
       switch(vt) {
       case Loci::NAME :
@@ -148,6 +146,9 @@ int ompi_intf_bridges(fact_db &facts){
  */
       options_list::option_namelist nlb = ol.getOptionNameList() ;
       Loci::variableSet bvars ;
+      Loci::option_values oss, IP, I_channel_name, O_channel_name, tag, intf_name, type;
+      int portno,comm_freq;
+      double param;
 
       options_list::option_namelist::iterator lii;
       for(lii=nlb.begin();lii!=nlb.end();++lii){
@@ -156,20 +157,52 @@ int ompi_intf_bridges(fact_db &facts){
    //   std::cout << "-------------  OPENMPI   OPTION LIST  " <<  omp_get_thread_num() << "  "  << bvars  << endl ;
 
         if( *lii == "boundary_conditions" ){
-            std::cout << "-------------  OPENMPI BOUNDARY CONDITIONS FOUND ------------------- "<< endl ;
-            Loci::option_values oss = ol.getOption(*lii) ;
+            oss = ol.getOption(*lii) ;
             std::cout << "-------------  OPENMPI BC list in intf is  " <<  omp_get_thread_num() << "  " << oss << endl ;
+        }
+        else if(*lii == "I_channel" ){
+            I_channel_name = ol.getOption(*lii) ;
+            std::cout << "-------------  OPENMPI I_channel name is  " <<  omp_get_thread_num() << "  " << I_channel_name<< endl ;
+        }
+        else if(*lii == "O_channel" ){
+            O_channel_name = ol.getOption(*lii) ;
+            std::cout << "-------------  OPENMPI O_channel name is  " <<  omp_get_thread_num() << "  " << O_channel_name<< endl ;
+        }
+        else if(*lii == "tag" ){
+            tag = ol.getOption(*lii) ;
+            std::cout << "-------------  OPENMPI tag name is  " <<  omp_get_thread_num() << "  " << tag<< endl ;
+        }
+        else if(*lii == "name" ){
+            intf_name = ol.getOption(*lii) ;
+            std::cout << "-------------  OPENMPI name is  " <<  omp_get_thread_num() << "  " << intf_name<< endl ;
+        }
+        else if(*lii == "type" ){
+            type = ol.getOption(*lii) ;
+            std::cout << "-------------  OPENMPI type name is  " <<  omp_get_thread_num() << "  " << type<< endl ;
+        }
+        else if(*lii == "IP" ){
+            IP = ol.getOption(*lii) ;
+            std::cout << "-------------  OPENMPI IP name is  " <<  omp_get_thread_num() << "  " << IP<< endl ;
         }
       }
 /*
  * get value of comm_freq from interface
  */
-      int comm_freq = 0 ;
-      double param = 0;
       ol.getOptionUnits("comm_freq","",param);
       comm_freq = (int)param;
       std::cout << "-------------  OPENMPI value of comm_freq is  " <<  omp_get_thread_num() << "  " << comm_freq  << endl ;
-//}
+/*
+ * get port number
+ */
+      ol.getOptionUnits("portno","",param);
+      portno = (int)param;
+      std::cout << "-------------  OPENMPI value of portno is  " <<  omp_get_thread_num() << "  " << portno  << endl ;
+/*
+ * get comm channel name
+ */
+
+
+}
 /*
  * close MPI processes
  */
