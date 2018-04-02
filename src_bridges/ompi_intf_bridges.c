@@ -38,7 +38,6 @@
  */
 
 #include <Loci.h>
-#include "flowTypes.h"
 #include <string>
 #include <stdio.h>
 #include <omp.h>
@@ -61,47 +60,116 @@ int ompi_intf_bridges(fact_db &facts){
  * get access to current fact database
  */
       int ithread, tid;
-      int threads = 3;
       int nProcessors,nthreads;
-//      char* bname;
-
+/*
+ * get poonter on interfaces in facts 
+ */
       param<options_list> int_info ;
       int_info = facts.get_variable("interfaces") ;
       options_list::option_namelist nl = int_info->getOptionNameList() ;
       options_list::option_namelist::iterator li;
+/*
+ * set li to the beginning of list of interfaces
+ */
       li = nl.begin();
       string bname;
 
       ithread = 1;
       nProcessors = 3;
+/*
+ * set number of processors to required number 
+ * which is equal to number of interfaces
+ * each process will then handle its own interface
+ */
       omp_set_num_threads(nProcessors);  
-
+/*
+ * set li to the beginning of interface list
+ */
       li=nl.begin();
- 
+/*
+ * spawn openmpi processes
+ */
 #pragma omp parallel private(tid, bname)
 {
  
 #pragma omp critical
 {   
+/*
+ * if not the first process, increment li and set bname
+ * this is a critical section, protect it
+ */
        if(omp_get_thread_num() > 0)
          li++;
 
        bname = *li ;
 }   
-      tid = omp_get_thread_num(); 
-      if (omp_get_thread_num() == 0){
-         nthreads = omp_get_num_threads();
-         printf("Number of threads = %d\n", nthreads);
-      }
-
 
       Loci::option_value_type vt = int_info->getOptionValueType(bname);
       Loci::option_values ov = int_info->getOption(bname) ;
       options_list::arg_list value_list ;
       string name ;
-      std::cout << "-------------  RULE BLALALAL  RULEEEEEEEEEEEEEEE :::      " << omp_get_thread_num() << "  " << bname << endl ;
+      std::cout << "-------------  OPENMPI :::      " << omp_get_thread_num() << "  " << bname << endl ;
 
-      printf(" TID is %d \n", tid);
+/*
+ * get options in intf
+ */
+
+
+//#pragma omp critical
+//{
+      param<options_list> bc_info;
+      switch(vt) {
+      case Loci::NAME :
+        ov.get_value(name) ;
+        bc_info->setOption(bname,name) ;
+        break ;
+      case Loci::FUNCTION:
+        ov.get_value(name) ;
+        ov.get_value(value_list) ;
+        bc_info->setOption(bname,name,value_list) ;
+  //      std::cout << "-------------  OPENMPI IN FUNCTION  " <<  omp_get_thread_num() << "  " << value_list << endl ;
+        break ;
+      default:
+        cerr << "setup_interface can not interpret value assigned to " << bname 
+             << " in interfaces" << endl ;
+        exit(-1) ;
+      }
+/*
+ * parse options
+ */
+      options_list ol ;
+      ol.Input(value_list) ;
+/*
+ * at the moment bcv is going to be intfr_local or intrf_global
+ */
+      Loci::variable bcv(name) ;
+/*
+ * loop through options and add them to bvars
+ */
+      options_list::option_namelist nlb = ol.getOptionNameList() ;
+      Loci::variableSet bvars ;
+
+      options_list::option_namelist::iterator lii;
+      for(lii=nlb.begin();lii!=nlb.end();++lii){
+
+        bvars += Loci::variable(*lii) ;
+   //   std::cout << "-------------  OPENMPI   OPTION LIST  " <<  omp_get_thread_num() << "  "  << bvars  << endl ;
+
+        if( *lii == "boundary_conditions" ){
+            std::cout << "-------------  OPENMPI BOUNDARY CONDITIONS FOUND ------------------- "<< endl ;
+            Loci::option_values oss = ol.getOption(*lii) ;
+            std::cout << "-------------  OPENMPI BC list in intf is  " <<  omp_get_thread_num() << "  " << oss << endl ;
+        }
+      }
+/*
+ * get value of comm_freq from interface
+ */
+      int comm_freq = 0 ;
+      double param = 0;
+      ol.getOptionUnits("comm_freq","",param);
+      comm_freq = (int)param;
+      std::cout << "-------------  OPENMPI value of comm_freq is  " <<  omp_get_thread_num() << "  " << comm_freq  << endl ;
+//}
 /*
  * close MPI processes
  */
