@@ -165,7 +165,7 @@ echo "# " >> flowpsi.conf
 echo "# Location of libm3l and lsipd libraries" >> flowpsi.conf
 echo "LIBM3LPATH = " ${LIBM3LPATH} >> flowpsi.conf
 echo "LSIPDXPATH = " ${LSIPDXPATH} >> flowpsi.conf
-echo "LIBSFLPSI = -L\$(LIBM3LPATH) -lm3l -Wl,-rpath=\$(LIBM3LPATH) -lpthread -L\$(LSIPDXPATH) -llsipdx -Wl,-rpath=\$(LSIPDXPATH) " >> flowpsi.conf
+echo "LIBSLM3LLSPDX = -L\$(LIBM3LPATH) -lm3l -Wl,-rpath=\$(LIBM3LPATH) -lpthread -L\$(LSIPDXPATH) -llsipdx -Wl,-rpath=\$(LSIPDXPATH) " >> flowpsi.conf
 
 echo "# " >> flowpsi.conf
 echo "# openmpi library" >> flowpsi.conf

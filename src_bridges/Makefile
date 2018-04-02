@@ -10,9 +10,12 @@ EMPTYLS = $(shell find $(LSIPDXPATH) \( -name liblsipdx.so -o -iname lsipdx.h -o
 # OBJS=$(FILES:%.c=%.o)
 OBJS = $(shell ls *.c | sed 's/\.c/\.o/'  |   sed '/Server_Main.o/d' | sort -df)
 
-CC = gcc
+CC = mpic++
 CFLAGS = -fbounds-check -fstack-check -g 
 LFLAGS = -fbounds-check -fstack-check -g 
+
+INCLUDES = -I$(LOCI_BASE)
+
 #CFLAGS =
 #LFLAGS =
 #
@@ -62,8 +65,8 @@ prog: $(OBJS)
 -include $(OBJS:.o=.d)
 
 %.o: %.c
-	$(CC) -c -O  -Wall -fPIC -I$(LIBM3LPATH) -I$(LSIPDXPATH) -$(LIBOPENMPI) $*.c -o $*.o
-	$(CC) -MM -O  -Wall -fPIC  -I$(LIBM3LPATH) -I$(LSIPDXPATH)  $*.c > $*.d
+	$(CC) -c -O  -Wall -fPIC -I$(LIBM3LPATH) -I$(LSIPDXPATH) -I$(LOCI_BASE)/include -$(LIBOPENMPI) $*.c -o $*.o
+	$(CC) -MM -O  -Wall -fPIC  -I$(LIBM3LPATH) -I$(LSIPDXPATH) -I$(LOCI_BASE)/include $*.c > $*.d
 	@mv -f $*.d $*.d.tmp
 	@sed -e 's|.*:|$*.o:|' < $*.d.tmp > $*.d
 	@sed -e 's/.*://' -e 's/\\$$//' < $*.d.tmp | fmt -1 | \
