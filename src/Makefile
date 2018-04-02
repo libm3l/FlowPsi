@@ -29,7 +29,7 @@ OBJS =  \
 
 
 
-LOCAL_LIBS = $(LIBXML2_LIBS) -L$(LOCI_BASE)/lib ../src_bridges/libbridges.a 
+LOCAL_LIBS = $(LIBXML2_LIBS) -L$(LOCI_BASE)/lib ../src_bridges/libbridges.a
 
 JUNK = *~  core debug .schedule .schedule-*
 
@@ -41,7 +41,7 @@ all:
 
 
 $(TARGET): $(OBJS) 
-	$(LD) -o  $(TARGET)  $(RPATH)$(FLOWPSI_RPATH) $(OBJS) $(LOCAL_LIBS) $(LIBS) $(LIBSLM3LLSPDX) -$(LIBOPENMPI) $(LDFLAGS)
+	$(LD) -o  $(TARGET) $(RPATH)$(FLOWPSI_RPATH) $(OBJS) $(LOCAL_LIBS) $(LIBS) $(LIBSLM3LLSPDX) -$(LIBOPENMPI) $(LDFLAGS)
 	mv flowpsi ../bin/flowpsi
 
 FRC : 

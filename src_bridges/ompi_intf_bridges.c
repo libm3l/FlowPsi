@@ -37,11 +37,16 @@
  * 
  */
 
+//#include <Loci.h>
+//#include "flowTypes.h"
+//#include <string>
 #include <stdio.h>
-# include <omp.h>
+#include <omp.h>
+#include "src_bridges.h"
 
+
+//int ompi_intf_bridges(fact_db &facts){
 int ompi_intf_bridges(){
-
 /*
  * example of function which opens OpenMPI processses 
  * and access iterface data in paralell
@@ -81,4 +86,3 @@ int ompi_intf_bridges(){
 //omp_set_num_threads(1);   
 
 }
-

@@ -91,6 +91,12 @@ namespace flowPsi {
         printf("rotc        ----------------------  LOOP  %f  %f   %f \n", $global_rot_center[0], $global_rot_center[1], $global_rot_center[2]);
 
 
+
+
+        Loci::fact_db* factsP = Loci::exec_current_fact_db;
+        Loci::fact_db facts;
+        facts  = *factsP;
+
 	ompi_intf_bridges();
           
     }
