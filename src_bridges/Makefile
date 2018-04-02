@@ -62,7 +62,7 @@ prog: $(OBJS)
 -include $(OBJS:.o=.d)
 
 %.o: %.c
-	$(CC) -c -O  -Wall -fPIC -I$(LIBM3LPATH) -I$(LSIPDXPATH) $*.c -o $*.o
+	$(CC) -c -O  -Wall -fPIC -I$(LIBM3LPATH) -I$(LSIPDXPATH) -$(LIBOPENMPI) $*.c -o $*.o
 	$(CC) -MM -O  -Wall -fPIC  -I$(LIBM3LPATH) -I$(LSIPDXPATH)  $*.c > $*.d
 	@mv -f $*.d $*.d.tmp
 	@sed -e 's|.*:|$*.o:|' < $*.d.tmp > $*.d

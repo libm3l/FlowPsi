@@ -54,8 +54,6 @@ $include "flowPsi.lh"
 
 using std::list ;
 using std::vector ;
-//using std::pair ;
-//using std::make_pair ;
 using std::endl ;
 using std::cerr ;
 
@@ -90,7 +88,11 @@ namespace flowPsi {
         printf(" TOTAL FORCES        ----------------------  LOOP  %f  %f   %f \n", $global_visc_force[0], $global_visc_force[1], $global_visc_force[2]);
         printf("ANGLES        ----------------------  LOOP  %f  %f   %f \n", $global_angles[0], $global_angles[1], $global_angles[2]);
         printf("transl        ----------------------  LOOP  %f  %f   %f \n", $global_displ[0], $global_displ[1], $global_displ[2]);
-        printf("rotc        ----------------------  LOOP  %f  %f   %f \n", $global_rot_center[0], $global_rot_center[1], $global_rot_center[2]);          
+        printf("rotc        ----------------------  LOOP  %f  %f   %f \n", $global_rot_center[0], $global_rot_center[1], $global_rot_center[2]);
+
+
+	ompi_intf_bridges();
+          
     }
   };
 

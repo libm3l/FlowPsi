@@ -47,9 +47,6 @@ $include "flowPsi.lh"
 #include <fstream>
 #include <map>
 
-# include <omp.h>
-
-
 namespace flowPsi {
   
   $type volumeTag(X) param<string> ;
@@ -57,7 +54,6 @@ namespace flowPsi {
   $type componentMotion param<options_list> ;
   $type componentServo_X Constraint ;
 
-  
     $rule singleton(OUTPUT<-global_visc_force,volumeTag(X)), parametric(volumeTag(X)) {
     string tag = $volumeTag(X) ;
       
@@ -106,63 +102,89 @@ namespace flowPsi {
  */
         Loci::fact_db* factsP = Loci::exec_current_fact_db;
         Loci::fact_db facts;
-       facts  = *factsP;
+        facts  = *factsP;
 /*
  * find interfaces in the fact database and print their names
  */
 
         if(Loci::MPI_rank == 0){ 
             
-            std::cout << "=====+++++++++++ BLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL  "<< endl;   
-            param<options_list> int_info ;       
-            int_info = facts.get_variable("interfaces") ;
-
-            options_list::option_namelist nl = int_info->getOptionNameList() ;
-            options_list::option_namelist::iterator li;  
+     //       std::cout << "=====+++++++++++ BLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL  "<< endl;   
+     //       param<options_list> int_info ;       
+     //       int_info = facts.get_variable("interfaces") ;
+     //
+     //       options_list::option_namelist nl = int_info->getOptionNameList() ;
+     //       options_list::option_namelist::iterator li;  
 /*
  * loop over all interfaces 
  */
-            for(li=nl.begin();li!=nl.end();++li) {
-               string bname = *li ;
-               Loci::option_value_type vt = int_info->getOptionValueType(bname);
-               Loci::option_values ov = int_info->getOption(bname) ;
-               options_list::arg_list value_list ;
-               string name ;
-               std::cout << "-------------  RULE BLALALAL  RULEEEEEEEEEEEEEEE :::      " << Loci::MPI_rank<< "  " << bname << endl ;
-             }
+     //       for(li=nl.begin();li!=nl.end();++li) {
+     //          string bname = *li ;
+     //          Loci::option_value_type vt = int_info->getOptionValueType(bname);
+     //          Loci::option_values ov = int_info->getOption(bname) ;
+     //          options_list::arg_list value_list ;
+     //          string name ;
+     //          std::cout << "-------------  RULE BLALALAL  RULEEEEEEEEEEEEEEE :::      " << Loci::MPI_rank<< "  " << bname << endl ;
+     //        }
 
 /*
  * open MPI loop
  *
  * spaw number of processes you need
  */
+   //   int_info = facts.get_variable("interfaces") ;
+   //   options_list::option_namelist nl = int_info->getOptionNameList() ;
+   //   options_list::option_namelist::iterator li;
+   //   li = nl.begin();
+   //   int ithread, tid;
+   //   int threads = 3;
+   //   int nProcessors,nthreads;
+   //   string bname;
 
-//      li = nl.begin();
-//     omp_set_num_threads(nProcessors);   
-//#pragma omp parallel for private(i,j,tid,_hash)  
-    
-    
-    
-//# pragma omp critical
-//     {    
-//      li++;
-//     }
-//      Loci::option_value_type vt = int_info->getOptionValueType(bname);
+   //   ithread = 1;
+   //   nProcessors = 3;
+
+   //   omp_set_dynamic(0);
+   //   omp_set_num_threads(nProcessors);  
+ 
+//#pragma omp parallel private(tid, bname)
+//{
+ 
+//#pragma omp critical
+//{
+//       if(omp_get_thread_num()  > 0){
+//         li++;}
+//       
+//       bname = *li ;
+//       ithread++;
+//}   
+//      tid = omp_get_thread_num(); 
+//      if (tid == 0){
+//         nthreads = omp_get_num_threads();
+//         printf("Number of threads = %d\n", nthreads);
+//      }
+//
+//      std::cout << "-------------  MPI BLALALAL  TID  :::      "<< tid << endl ;
+//
+// //     string bname = *li ;
+// //     Loci::option_value_type vt = int_info->getOptionValueType(bname);
 //      Loci::option_values ov = int_info->getOption(bname) ;
 //      options_list::arg_list value_list ;
 //      string name ;
-//      std::cout << "-------------  MPI BLALALAL  RULEEEEEEEEEEEEEEE :::      " << Loci::MPI_rank<< "  " << bname << endl ;
+//      std::cout << "-------------  MPI BLALALAL  RULEEEEEEEEEEEEEEE :::      "<< ithread-1 <<"   " << bname << endl ;
 /*
  * close MPI processes
  */
-             
-             
-             
-             
+         
 //# pragma omp barrier            
-//          omp_set_num_threads(1);   
- //# pragma omp single       
-        }
+//     omp_set_num_threads(1);   
+////# pragma omp single       
+//        }
+
+//      ada();
+
+     }
+
   };
   
   
