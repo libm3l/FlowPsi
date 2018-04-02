@@ -14,7 +14,7 @@ CC = mpic++
 CFLAGS = -fbounds-check -fstack-check -g 
 LFLAGS = -fbounds-check -fstack-check -g 
 
-INCLUDES = -I$(LOCI_BASE)
+INCLUDES = -I$(LIBM3LPATH) -I$(LSIPDXPATH) -I$(LOCI_BASE)/include -I../include
 
 #CFLAGS =
 #LFLAGS =
@@ -58,15 +58,16 @@ endif
 
 
 prog: $(OBJS)
-	$(CC) -shared -Wl,-soname,libbridges.so.1.0 -o libbridges.so.1.0   $(OBJS)
-	ln -sf libbridges.so.1.0 libbridges.so	
+#	$(CC) -shared -Wl,-soname,libbridges.so.1.0 -o libbridges.so.1.0   $(OBJS)
+#	ln -sf libbridges.so.1.0 libbridges.so	
+	$(CC) -c $(OBJS)
 	ar  rcs libbridges.a  *.o    
 
 -include $(OBJS:.o=.d)
 
 %.o: %.c
-	$(CC) -c -O  -Wall -fPIC -I$(LIBM3LPATH) -I$(LSIPDXPATH) -I$(LOCI_BASE)/include -$(LIBOPENMPI) $*.c -o $*.o
-	$(CC) -MM -O  -Wall -fPIC  -I$(LIBM3LPATH) -I$(LSIPDXPATH) -I$(LOCI_BASE)/include $*.c > $*.d
+	$(CC) -c -O  -Wall -I$(LIBM3LPATH) -I$(LSIPDXPATH) -I$(LOCI_BASE)/include -I../include -$(LIBOPENMPI) $*.c -o $*.o
+	$(CC) -MM -O  -Wall   -I$(LIBM3LPATH) -I$(LSIPDXPATH) -I$(LOCI_BASE)/include -I../include $*.c > $*.d
 	@mv -f $*.d $*.d.tmp
 	@sed -e 's|.*:|$*.o:|' < $*.d.tmp > $*.d
 	@sed -e 's/.*://' -e 's/\\$$//' < $*.d.tmp | fmt -1 | \
