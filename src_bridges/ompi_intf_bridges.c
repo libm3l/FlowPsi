@@ -125,7 +125,7 @@ int ompi_intf_bridges(fact_db &facts){
         ov.get_value(name) ;
         ov.get_value(value_list) ;
         bc_info->setOption(bname,name,value_list) ;
-  //      std::cout << "-------------  OPENMPI IN FUNCTION  " <<  omp_get_thread_num() << "  " << value_list << endl ;
+  //      std::cout << "-------------  OPENMPI IN FUNCTION  " <<  omp_get_thread_num() << "  " << value_list << "  " << name << endl ;
         break ;
       default:
         cerr << "setup_interface can not interpret value assigned to " << bname 
@@ -146,9 +146,13 @@ int ompi_intf_bridges(fact_db &facts){
  */
       options_list::option_namelist nlb = ol.getOptionNameList() ;
       Loci::variableSet bvars ;
-      Loci::option_values oss, IP, I_channel_name, O_channel_name, tag, intf_name, type;
+      Loci::option_values oss;
       int portno,comm_freq;
       double param;
+      string name;
+      string type,tag,I_channel, O_channel, intf_name,IP, BCs, I_channel_name, O_channel_name;
+      const char *cIP,*ctype,*ctag,*cI_channel,*cO_channel,*cintf_name,
+              *cBCs,*cI_channel_name,*cO_channel_name;
 
       options_list::option_namelist::iterator lii;
       for(lii=nlb.begin();lii!=nlb.end();++lii){
@@ -156,32 +160,47 @@ int ompi_intf_bridges(fact_db &facts){
         bvars += Loci::variable(*lii) ;
    //   std::cout << "-------------  OPENMPI   OPTION LIST  " <<  omp_get_thread_num() << "  "  << bvars  << endl ;
 
+
         if( *lii == "boundary_conditions" ){
             oss = ol.getOption(*lii) ;
-            std::cout << "-------------  OPENMPI BC list in intf is  " <<  omp_get_thread_num() << "  " << oss << endl ;
+            ol.getOption(*lii,BCs);
+            std::cout << "-------------  OPENMPI BC list in intf is  " <<  omp_get_thread_num() << "   " << oss << endl ;
+            std::cout << "-------------  OPENMPI BC string in intf is  " <<  omp_get_thread_num() << "   " << BCs << endl ;
         }
         else if(*lii == "I_channel" ){
-            I_channel_name = ol.getOption(*lii) ;
+//            I_channel_name = ol.getOption(*lii) ;
+	    ol.getOption(*lii,I_channel_name) ;
+            cI_channel_name = I_channel_name.c_str();
             std::cout << "-------------  OPENMPI I_channel name is  " <<  omp_get_thread_num() << "  " << I_channel_name<< endl ;
         }
         else if(*lii == "O_channel" ){
-            O_channel_name = ol.getOption(*lii) ;
+//            O_channel_name = ol.getOption(*lii) ;
+	    ol.getOption(*lii,O_channel_name) ;
+            cO_channel_name = O_channel_name.c_str();
             std::cout << "-------------  OPENMPI O_channel name is  " <<  omp_get_thread_num() << "  " << O_channel_name<< endl ;
         }
         else if(*lii == "tag" ){
-            tag = ol.getOption(*lii) ;
+//            tag = ol.getOption(*lii) ;
+	    ol.getOption(*lii,tag) ;
+            ctag = tag.c_str();
             std::cout << "-------------  OPENMPI tag name is  " <<  omp_get_thread_num() << "  " << tag<< endl ;
         }
         else if(*lii == "name" ){
-            intf_name = ol.getOption(*lii) ;
+//            intf_name = ol.getOption(*lii) ;
+	    ol.getOption(*lii,intf_name) ;
+            cintf_name = intf_name.c_str();
             std::cout << "-------------  OPENMPI name is  " <<  omp_get_thread_num() << "  " << intf_name<< endl ;
         }
         else if(*lii == "type" ){
-            type = ol.getOption(*lii) ;
+//            type = ol.getOption(*lii) ;
+	    ol.getOption(*lii,type) ;
+            ctype = type.c_str();
             std::cout << "-------------  OPENMPI type name is  " <<  omp_get_thread_num() << "  " << type<< endl ;
         }
         else if(*lii == "IP" ){
-            IP = ol.getOption(*lii) ;
+//            IP = ol.getOption(*lii) ;
+            ol.getOption(*lii,IP) ;
+            cIP = IP.c_str();
             std::cout << "-------------  OPENMPI IP name is  " <<  omp_get_thread_num() << "  " << IP<< endl ;
         }
       }
@@ -200,8 +219,7 @@ int ompi_intf_bridges(fact_db &facts){
 /*
  * get comm channel name
  */
-
-
+      test_bridge1(cIP);
 }
 /*
  * close MPI processes

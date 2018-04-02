@@ -59,7 +59,9 @@ extern CPP_C  lmint_t test_bridge(lmdouble_t, lmdouble_t, lmdouble_t,
 				  lmdouble_t, lmdouble_t, lmdouble_t,
 				  lmdouble_t, lmdouble_t, lmdouble_t);
 
-  extern CPP_C int ompi_intf_bridges(fact_db &facts);
+extern CPP_C  lmint_t test_bridge1(const lmchar_t *);
+
+extern CPP_C int ompi_intf_bridges(fact_db &facts);
 
 //extern CPP_C int ompi_intf_bridges();
 
