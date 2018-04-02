@@ -47,6 +47,8 @@ $include "flowPsi.lh"
 #include <fstream>
 #include <map>
 
+# include <omp.h>
+
 
 namespace flowPsi {
   
@@ -115,19 +117,51 @@ namespace flowPsi {
             param<options_list> int_info ;       
             int_info = facts.get_variable("interfaces") ;
 
-        options_list::option_namelist nl = int_info->getOptionNameList() ;
-        options_list::option_namelist::iterator li;  
+            options_list::option_namelist nl = int_info->getOptionNameList() ;
+            options_list::option_namelist::iterator li;  
 /*
  * loop over all interfaces 
  */
-    for(li=nl.begin();li!=nl.end();++li) {
-      string bname = *li ;
-      Loci::option_value_type vt = int_info->getOptionValueType(bname);
-      Loci::option_values ov = int_info->getOption(bname) ;
-      options_list::arg_list value_list ;
-      string name ;
-      std::cout << "-------------  RULE BLALALAL  RULEEEEEEEEEEEEEEE :::      " << Loci::MPI_rank<< "  " << bname << endl ;
-         }
+            for(li=nl.begin();li!=nl.end();++li) {
+               string bname = *li ;
+               Loci::option_value_type vt = int_info->getOptionValueType(bname);
+               Loci::option_values ov = int_info->getOption(bname) ;
+               options_list::arg_list value_list ;
+               string name ;
+               std::cout << "-------------  RULE BLALALAL  RULEEEEEEEEEEEEEEE :::      " << Loci::MPI_rank<< "  " << bname << endl ;
+             }
+
+/*
+ * open MPI loop
+ *
+ * spaw number of processes you need
+ */
+
+//      li = nl.begin();
+//     omp_set_num_threads(nProcessors);   
+//#pragma omp parallel for private(i,j,tid,_hash)  
+    
+    
+    
+//# pragma omp critical
+//     {    
+//      li++;
+//     }
+//      Loci::option_value_type vt = int_info->getOptionValueType(bname);
+//      Loci::option_values ov = int_info->getOption(bname) ;
+//      options_list::arg_list value_list ;
+//      string name ;
+//      std::cout << "-------------  MPI BLALALAL  RULEEEEEEEEEEEEEEE :::      " << Loci::MPI_rank<< "  " << bname << endl ;
+/*
+ * close MPI processes
+ */
+             
+             
+             
+             
+//# pragma omp barrier            
+//          omp_set_num_threads(1);   
+ //# pragma omp single       
         }
   };
   
