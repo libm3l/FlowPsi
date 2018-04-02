@@ -43,7 +43,7 @@
 #ifndef __TESTBRDIGE_H__
 #define __TESTBRDIGE_H__
 
-//#include <Loci.h>
+#include <Loci.h>
 #include <libm3l.h>
 
 #ifndef CPP_C
@@ -59,9 +59,9 @@ extern CPP_C  lmint_t test_bridge(lmdouble_t, lmdouble_t, lmdouble_t,
 				  lmdouble_t, lmdouble_t, lmdouble_t,
 				  lmdouble_t, lmdouble_t, lmdouble_t);
 
-//  extern CPP_C int ompi_intf_bridges(fact_db &facts);
+  extern CPP_C int ompi_intf_bridges(fact_db &facts);
 
-extern CPP_C int ompi_intf_bridges();
+//extern CPP_C int ompi_intf_bridges();
 
 #endif
 

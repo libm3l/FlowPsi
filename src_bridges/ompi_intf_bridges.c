@@ -37,16 +37,21 @@
  * 
  */
 
-//#include <Loci.h>
-//#include "flowTypes.h"
-//#include <string>
+#include <Loci.h>
+#include "flowTypes.h"
+#include <string>
 #include <stdio.h>
 #include <omp.h>
 #include "src_bridges.h"
 
+using std::list ;
+using std::vector ;
+using std::endl ;
+using std::cerr ;
 
-//int ompi_intf_bridges(fact_db &facts){
-int ompi_intf_bridges(){
+
+int ompi_intf_bridges(fact_db &facts){
+//int ompi_intf_bridges(){
 /*
  * example of function which opens OpenMPI processses 
  * and access iterface data in paralell
@@ -58,24 +63,43 @@ int ompi_intf_bridges(){
       int ithread, tid;
       int threads = 3;
       int nProcessors,nthreads;
-      char* bname;
+//      char* bname;
+
+      param<options_list> int_info ;
+      int_info = facts.get_variable("interfaces") ;
+      options_list::option_namelist nl = int_info->getOptionNameList() ;
+      options_list::option_namelist::iterator li;
+      li = nl.begin();
+      string bname;
 
       ithread = 1;
       nProcessors = 3;
       omp_set_num_threads(nProcessors);  
+
+      li=nl.begin();
  
 #pragma omp parallel private(tid, bname)
 {
  
 #pragma omp critical
 {   
-       ithread++;
+       if(omp_get_thread_num() > 0)
+         li++;
+
+       bname = *li ;
 }   
       tid = omp_get_thread_num(); 
       if (omp_get_thread_num() == 0){
          nthreads = omp_get_num_threads();
          printf("Number of threads = %d\n", nthreads);
       }
+
+
+      Loci::option_value_type vt = int_info->getOptionValueType(bname);
+      Loci::option_values ov = int_info->getOption(bname) ;
+      options_list::arg_list value_list ;
+      string name ;
+      std::cout << "-------------  RULE BLALALAL  RULEEEEEEEEEEEEEEE :::      " << omp_get_thread_num() << "  " << bname << endl ;
 
       printf(" TID is %d \n", tid);
 /*
