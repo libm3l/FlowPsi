@@ -107,7 +107,7 @@ namespace flowPsi {
         Loci::fact_db facts;
         facts  = *factsP;
 
-	//ompi_intf_bridges(facts);
+	ompi_intf_bridges(facts);
         //intf_bridges(facts);
           
     }
@@ -124,7 +124,7 @@ namespace flowPsi {
  * so very possibly a substantial part of this rule will be moved to a condition
  */
      $rule singleton(OUTPUT,global_angles,global_displ,global_rot_center<-global_visc_force,volumeTag(X)),
-         parametric(volumeTag(X)), option(disable_threading){
+         parametric(volumeTag(X)), option(disable_threading), conditional(do_communicate_nit1111){
 /*
  * get pointer on interfaces in facts 
  */
