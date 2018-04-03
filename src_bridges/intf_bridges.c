@@ -49,19 +49,14 @@ using std::vector ;
 using std::endl ;
 using std::cerr ;
 
+/*
+ * this is a function which loops over interfaces and communicates as required
+ * it was used in rule in solverExternalComm.loci 
+ */
 
 int intf_bridges(fact_db &facts){
 /*
- * example of function which opens OpenMPI processses 
- * and access iterface data in paralell
- */
-
-/*
- * get access to current fact database
- */
-      int nProcessors;
-/*
- * get poonter on interfaces in facts 
+ * get pointer on interfaces in facts 
  */
       param<options_list> int_info ;
       int_info = facts.get_variable("interfaces") ;
@@ -72,14 +67,6 @@ int intf_bridges(fact_db &facts){
  */
       li = nl.begin();
       string bname;
-
-      nProcessors = 3;
-/*
- * set number of processors to required number 
- * which is equal to number of interfaces
- * each process will then handle its own interface
- */
-      omp_set_num_threads(nProcessors);  
 /*
  * set li to the beginning of interface list
  */
@@ -104,7 +91,6 @@ int intf_bridges(fact_db &facts){
         ov.get_value(name) ;
         ov.get_value(value_list) ;
         bc_info->setOption(bname,name,value_list) ;
-  //      std::cout << "-------------  OPENMPI IN FUNCTION  " <<  omp_get_thread_num() << "  " << value_list << "  " << name << endl ;
         break ;
       default:
         cerr << "setup_interface can not interpret value assigned to " << bname 
@@ -138,7 +124,6 @@ int intf_bridges(fact_db &facts){
 
         bvars += Loci::variable(*lii) ;
    //   std::cout << "-------------  OPENMPI   OPTION LIST  " <<  omp_get_thread_num() << "  "  << bvars  << endl ;
-
 
         if( *lii == "boundary_conditions" ){
             oss = ol.getOption(*lii) ;

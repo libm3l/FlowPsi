@@ -53,7 +53,10 @@ namespace flowPsi {
   $type componentMotionTypes blackbox<std::set<std::string> > ;
   $type componentMotion param<options_list> ;
   $type componentServo_X Constraint ;
-
+/*
+ * this is an example of parametric rule which loops over volume tags
+ * and prints the name
+ */
     $rule singleton(OUTPUT<-global_visc_force,volumeTag(X)), parametric(volumeTag(X)) {
     string tag = $volumeTag(X) ;
       
@@ -61,11 +64,13 @@ namespace flowPsi {
             std::cout << "================= >>>>>>>>>>   TADY    TAG " <<  tag  << endl;
   };
 
+
+/*
+ * example of parametric rule which loops volume tags, get motion name and motion type for each tag
+ */
  $rule singleton(OUTPUT<-ncycle,volumeTag(X),componentMotion,componentMotionTypes), parametric(volumeTag(X)) {
         string tag = $volumeTag(X) ;
-/*
- * example of rule which loops volume tags, get motion name and motion type
- */
+
         string name , type;
         Loci::options_list::arg_list value_list ;
         
@@ -83,6 +88,18 @@ namespace flowPsi {
         if(Loci::MPI_rank == 0){
             std::cout << "================= >>>>>>>>>>   COMPONENT " << name <<"   TAG " <<  tag << " Values  "<< value_list    <<endl;
          }
+  };
+
+
+/*
+ * this is an example of parametric rule which loops overinterfaces
+ * and prints the name
+ */
+    $rule singleton(OUTPUT<-global_visc_force,volumeTag(X)), parametric(volumeTag(X)) {
+    string tag = $volumeTag(X) ;
+      
+        if(Loci::MPI_rank == 0)
+            std::cout << "================= >>>>>>>>>>   TADY    TAG " <<  tag  << endl;
   };
     
 }
