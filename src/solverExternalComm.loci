@@ -96,7 +96,9 @@ namespace flowPsi {
         Loci::fact_db facts;
         facts  = *factsP;
 
-	ompi_intf_bridges(facts);
+	//ompi_intf_bridges(facts);
+
+        intf_bridges(facts);
           
     }
   };

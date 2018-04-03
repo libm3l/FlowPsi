@@ -364,11 +364,15 @@ lmint_t test_bridge1(comm_struct_t *pcomm_str){
 	opts_t *Popts_1, opts, opts_1, *Popts;
 	find_t *SFounds;
 
-        printf("INPUT NAME EXAMPLE IS %s\n",pcomm_str->I_channel);
-        printf("OUTPUT NAME EXAMPLE IS %s\n",pcomm_str->O_channel);
-        printf("PORTNO  EXAMPLE IS %d\n",pcomm_str->portno);
+        ForceX = 0;
+        ForceY = 0;
+        ForceZ = 0;
 
-        return 1;
+  //      printf("INPUT NAME EXAMPLE IS %s\n",pcomm_str->I_channel);
+  //      printf("OUTPUT NAME EXAMPLE IS %s\n",pcomm_str->O_channel);
+  //      printf("PORTNO  EXAMPLE IS %d\n",pcomm_str->portno);
+
+       // return 1;
 
 
 /*
@@ -443,6 +447,7 @@ lmint_t test_bridge1(comm_struct_t *pcomm_str){
  */
 #pragma omp critical
 {
+        printf(" Opening channel %s  %d   %s  \n", pcomm_str->IP, pcomm_str->portno, PInpPar->channel_name);
 	if( (sockfd = open_connection_to_server(pcomm_str->IP, pcomm_str->portno, PInpPar, Popts_1)) < 1)
 		Error("socket_FlowPsi2simulink: Error when opening socket");
 }

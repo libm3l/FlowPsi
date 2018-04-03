@@ -50,8 +50,7 @@ using std::endl ;
 using std::cerr ;
 
 
-int ompi_intf_bridges(fact_db &facts){
-//int ompi_intf_bridges(){
+int intf_bridges(fact_db &facts){
 /*
  * example of function which opens OpenMPI processses 
  * and access iterface data in paralell
@@ -84,38 +83,17 @@ int ompi_intf_bridges(fact_db &facts){
 /*
  * set li to the beginning of interface list
  */
-      li=nl.begin();
-/*
- * spawn openmpi processes
- */
-#pragma omp parallel private(bname)
-{
- 
-#pragma omp critical
-{   
-/*
- * if not the first process, increment li and set bname
- * this is a critical section, protect it
- */
-       if(omp_get_thread_num() > 0)
-         li++;
+      for(li=nl.begin();li!=nl.end();++li) {
 
-       bname = *li ;
-}   
+        bname = *li ;
 
-      Loci::option_value_type vt = int_info->getOptionValueType(bname);
-      Loci::option_values ov = int_info->getOption(bname) ;
-      options_list::arg_list value_list ;
-      string name ;
-      std::cout << "-------------  OPENMPI :::      " << omp_get_thread_num() << "  " << bname << endl ;
-
+        Loci::option_value_type vt = int_info->getOptionValueType(bname);
+        Loci::option_values ov = int_info->getOption(bname) ;
+        options_list::arg_list value_list ;
+        string name ;
 /*
  * get options in intf
  */
-
-
-//#pragma omp critical
-//{
       param<options_list> bc_info;
       switch(vt) {
       case Loci::NAME :
@@ -217,12 +195,5 @@ int ompi_intf_bridges(fact_db &facts){
  * get comm channel name
  */
       test_bridge1(pcomm_str);
-//}
-/*
- * close MPI processes
- */
-# pragma omp barrier            
-}
-//omp_set_num_threads(1);   
-
+  }
 }
