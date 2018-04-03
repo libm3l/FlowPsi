@@ -89,15 +89,14 @@ namespace flowPsi {
         printf("ANGLES        ----------------------  LOOP  %f  %f   %f \n", $global_angles[0], $global_angles[1], $global_angles[2]);
         printf("transl        ----------------------  LOOP  %f  %f   %f \n", $global_displ[0], $global_displ[1], $global_displ[2]);
         printf("rotc        ----------------------  LOOP  %f  %f   %f \n", $global_rot_center[0], $global_rot_center[1], $global_rot_center[2]);
-
-
-
-
+/*
+ * get facts database
+ */
         Loci::fact_db* factsP = Loci::exec_current_fact_db;
         Loci::fact_db facts;
         facts  = *factsP;
 
-	    ompi_intf_bridges(facts);
+	ompi_intf_bridges(facts);
           
     }
   };

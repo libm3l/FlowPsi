@@ -347,41 +347,26 @@ lmint_t test_bridge(lmdouble_t ForceX, lmdouble_t ForceY, lmdouble_t ForceZ ,
 }
 
 
-
-
-
-
 lmint_t test_bridge1(comm_struct_t *pcomm_str){
-
 
         lmdouble_t ForceX; lmdouble_t ForceY; lmdouble_t ForceZ ; 
                     lmdouble_t Alpha; lmdouble_t Beta; lmdouble_t Gamma;
                     lmdouble_t TransX; lmdouble_t TransY; lmdouble_t TransZ;
                     lmdouble_t RotCX; lmdouble_t RotCY; lmdouble_t RotCZ;
 
-
 	node_t *Gnode=NULL, *TmpNode = NULL, *FoundNode = NULL;
 	lmsize_t dim[1], i, tot_dim;
 
-//	lmchar_t hostname[80], channel_name[80];
-
-	lmint_t sockfd, portno;
-
-	lmchar_t *name ="CFD2SIM";
-	lmchar_t *name1="SIM2CFD";
-        lmchar_t *hostname ="localhost";
+	lmint_t sockfd;
 
 	lmdouble_t *tmpfloat;
 	client_fce_struct_t InpPar, *PInpPar;
 	opts_t *Popts_1, opts, opts_1, *Popts;
 	find_t *SFounds;
 
-
-
         printf("INPUT NAME EXAMPLE IS %s\n",pcomm_str->I_channel);
         printf("OUTPUT NAME EXAMPLE IS %s\n",pcomm_str->O_channel);
-       printf("PORTNO  EXAMPLE IS %d\n",pcomm_str->portno);
-
+        printf("PORTNO  EXAMPLE IS %d\n",pcomm_str->portno);
 
         return 1;
 
@@ -390,10 +375,9 @@ lmint_t test_bridge1(comm_struct_t *pcomm_str){
  * Set parameters which are needed for opening the socket for sending data
  */
         PInpPar = &InpPar;
-	PInpPar->channel_name = name;   /* name of channel where to send data*/
+	PInpPar->channel_name = pcomm_str->O_channel;   /* name of channel where to send data*/
 	PInpPar->SR_MODE = 'S';         /* set R or S, because we will write outgoing data to this 
-                                                   socket, set it to S */
-
+                                              socket, set it to S */
 /*
  *  this parameter determines two modes.
  *  for this case it is set to D as direct, meaning we will open the socket and get the data only
@@ -421,8 +405,6 @@ lmint_t test_bridge1(comm_struct_t *pcomm_str){
  */
 	m3l_set_Send_receive_tcpipsocket(&Popts_1);
 	m3l_set_Find(&Popts);
-
-        portno = 31000;
 
 //=======================================================================
 
@@ -459,8 +441,11 @@ lmint_t test_bridge1(comm_struct_t *pcomm_str){
 /*
  * open socket
  */
-	if( (sockfd = open_connection_to_server(hostname, portno, PInpPar, Popts_1)) < 1)
+#pragma omp critical
+{
+	if( (sockfd = open_connection_to_server(pcomm_str->IP, pcomm_str->portno, PInpPar, Popts_1)) < 1)
 		Error("socket_FlowPsi2simulink: Error when opening socket");
+}
 /*
  * send data 
  */
@@ -469,8 +454,11 @@ lmint_t test_bridge1(comm_struct_t *pcomm_str){
 /*
  * close socket
  */
+#pragma omp critical
+{
 	if( close(sockfd) == -1)
 		Perror("socket_FlowPsi2simulink: close");
+}
 /*
  * free borrowed memory
  */
@@ -480,9 +468,9 @@ lmint_t test_bridge1(comm_struct_t *pcomm_str){
  * receive data 
  */
 	PInpPar = &InpPar;
-	PInpPar->channel_name = name1;       /* name of channel */
-	PInpPar->SR_MODE = 'R';              /* set R or S, because we will read incoming data from this 
-                                                   socket, set it to R */
+	PInpPar->channel_name = pcomm_str->I_channel;    /* name of channel */
+	PInpPar->SR_MODE = 'R';                          /* set R or S, because we will read incoming  
+                                                            data from this socket, set it to R */
 /*
  *  this parameter determines two modes.
  *  for this case it is set to D as direct, meaning we will open the socket and get the data only
@@ -511,8 +499,11 @@ lmint_t test_bridge1(comm_struct_t *pcomm_str){
 /*
  * open socket for reading data 
  */
-	if( (sockfd = open_connection_to_server(hostname, portno, PInpPar, Popts_1)) < 1)
+#pragma omp critical
+{
+	if( (sockfd = open_connection_to_server(pcomm_str->IP, pcomm_str->portno, PInpPar, Popts_1)) < 1)
 		Error("client_sender: Error when opening socket");
+}
 /*
  * receive data from socket
  */
@@ -521,8 +512,11 @@ lmint_t test_bridge1(comm_struct_t *pcomm_str){
 /*
  * close socket 
  */
+#pragma omp critical
+{
 	if( close(sockfd) == -1)
 		Perror("socket_FlowPsi2simulink: close");
+}
 /*
  * print data on screen
  */
