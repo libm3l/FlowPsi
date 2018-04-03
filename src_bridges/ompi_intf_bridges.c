@@ -41,6 +41,7 @@
 #include <string>
 #include <stdio.h>
 #include <omp.h>
+#include "src_bridges_types.h"
 #include "src_bridges.h"
 
 using std::list ;
@@ -113,8 +114,8 @@ int ompi_intf_bridges(fact_db &facts){
  */
 
 
-#pragma omp critical
-{
+//#pragma omp critical
+//{
       param<options_list> bc_info;
       switch(vt) {
       case Loci::NAME :
@@ -149,10 +150,10 @@ int ompi_intf_bridges(fact_db &facts){
       Loci::option_values oss;
       int portno,comm_freq;
       double param;
-      string name;
       string type,tag,I_channel, O_channel, intf_name,IP, BCs, I_channel_name, O_channel_name;
-      const char *cIP,*ctype,*ctag,*cI_channel,*cO_channel,*cintf_name,
-              *cBCs,*cI_channel_name,*cO_channel_name;
+      
+      comm_struct_t *pcomm_str, comm_str;
+      pcomm_str = &comm_str;
 
       options_list::option_namelist::iterator lii;
       for(lii=nlb.begin();lii!=nlb.end();++lii){
@@ -168,59 +169,55 @@ int ompi_intf_bridges(fact_db &facts){
             std::cout << "-------------  OPENMPI BC string in intf is  " <<  omp_get_thread_num() << "   " << BCs << endl ;
         }
         else if(*lii == "I_channel" ){
-//            I_channel_name = ol.getOption(*lii) ;
-	    ol.getOption(*lii,I_channel_name) ;
-            cI_channel_name = I_channel_name.c_str();
-            std::cout << "-------------  OPENMPI I_channel name is  " <<  omp_get_thread_num() << "  " << I_channel_name<< endl ;
+            ol.getOption(*lii,I_channel_name) ;
+            pcomm_str->I_channel = I_channel_name.c_str();
+            std::cout << "-------------  OPENMPI I_channel name is  " <<  omp_get_thread_num() << "  " << pcomm_str->I_channel<< endl ;
         }
         else if(*lii == "O_channel" ){
-//            O_channel_name = ol.getOption(*lii) ;
-	    ol.getOption(*lii,O_channel_name) ;
-            cO_channel_name = O_channel_name.c_str();
-            std::cout << "-------------  OPENMPI O_channel name is  " <<  omp_get_thread_num() << "  " << O_channel_name<< endl ;
+	         ol.getOption(*lii,O_channel_name) ;
+            pcomm_str->O_channel = O_channel_name.c_str();
+            std::cout << "-------------  OPENMPI O_channel name is  " <<  omp_get_thread_num() << "  " << pcomm_str->O_channel<< endl ;
         }
         else if(*lii == "tag" ){
-//            tag = ol.getOption(*lii) ;
-	    ol.getOption(*lii,tag) ;
-            ctag = tag.c_str();
-            std::cout << "-------------  OPENMPI tag name is  " <<  omp_get_thread_num() << "  " << tag<< endl ;
+	        ol.getOption(*lii,tag) ;
+            pcomm_str->tag = tag.c_str();
+            std::cout << "-------------  OPENMPI tag name is  " <<  omp_get_thread_num() << "  " << pcomm_str->tag<< endl ;
         }
         else if(*lii == "name" ){
-//            intf_name = ol.getOption(*lii) ;
-	    ol.getOption(*lii,intf_name) ;
-            cintf_name = intf_name.c_str();
-            std::cout << "-------------  OPENMPI name is  " <<  omp_get_thread_num() << "  " << intf_name<< endl ;
+	        ol.getOption(*lii,intf_name) ;
+            pcomm_str->intf_name = intf_name.c_str();
+            std::cout << "-------------  OPENMPI name is  " <<  omp_get_thread_num() << "  " << pcomm_str->intf_name<< endl ;
         }
         else if(*lii == "type" ){
 //            type = ol.getOption(*lii) ;
-	    ol.getOption(*lii,type) ;
-            ctype = type.c_str();
-            std::cout << "-------------  OPENMPI type name is  " <<  omp_get_thread_num() << "  " << type<< endl ;
+	        ol.getOption(*lii,type) ;
+            pcomm_str->type = type.c_str();
+            std::cout << "-------------  OPENMPI type name is  " <<  omp_get_thread_num() << "  " << pcomm_str->type<< endl ;
         }
         else if(*lii == "IP" ){
 //            IP = ol.getOption(*lii) ;
             ol.getOption(*lii,IP) ;
-            cIP = IP.c_str();
-            std::cout << "-------------  OPENMPI IP name is  " <<  omp_get_thread_num() << "  " << IP<< endl ;
+            pcomm_str->IP = IP.c_str();
+            std::cout << "-------------  OPENMPI IP name is  " <<  omp_get_thread_num() << "  " << pcomm_str->IP<< endl ;
         }
       }
 /*
  * get value of comm_freq from interface
  */
       ol.getOptionUnits("comm_freq","",param);
-      comm_freq = (int)param;
-      std::cout << "-------------  OPENMPI value of comm_freq is  " <<  omp_get_thread_num() << "  " << comm_freq  << endl ;
+      pcomm_str->comm_freq = (int)param;
+      std::cout << "-------------  OPENMPI value of comm_freq is  " <<  omp_get_thread_num() << "  " << pcomm_str->comm_freq  << endl ;
 /*
  * get port number
  */
       ol.getOptionUnits("portno","",param);
-      portno = (int)param;
-      std::cout << "-------------  OPENMPI value of portno is  " <<  omp_get_thread_num() << "  " << portno  << endl ;
+      pcomm_str->portno = (int)param;
+      std::cout << "-------------  OPENMPI value of portno is  " <<  omp_get_thread_num() << "  " << pcomm_str->portno  << endl ;
 /*
  * get comm channel name
  */
-      test_bridge1(cIP);
-}
+      test_bridge1(pcomm_str);
+//}
 /*
  * close MPI processes
  */

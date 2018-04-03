@@ -40,31 +40,23 @@
  * 
  */
 
-#ifndef __SRC_BRIDGES_H__
-#define __SRC_BRIDGES_H__
+#include <libm3l.h> 
 
-#include <Loci.h>
-#include <libm3l.h>
-#include "src_bridges_types.h"
+#ifndef __SRC_BRIDGES_TYPES_H__
+#define __SRC_BRIDGES_TYPES_H__
 
-#ifndef CPP_C
-#ifdef __cplusplus 
-#define CPP_C "C"
-#else
-#define CPP_C
-#endif
-#endif
-
-extern CPP_C  lmint_t test_bridge(lmdouble_t, lmdouble_t, lmdouble_t,
-				  lmdouble_t, lmdouble_t, lmdouble_t,
-				  lmdouble_t, lmdouble_t, lmdouble_t,
-				  lmdouble_t, lmdouble_t, lmdouble_t);
-
-extern CPP_C  lmint_t test_bridge1(comm_struct_t *);
-
-extern CPP_C int ompi_intf_bridges(fact_db &facts);
-
-//extern CPP_C int ompi_intf_bridges();
+typedef struct comm_struct {
+    const lmchar_t *type;
+    const lmchar_t *tag;
+    const lmchar_t *I_channel;
+    const lmchar_t *O_channel;
+    const lmchar_t *IP;    
+    const lmchar_t *intf_name;
+    
+    lmint_t portno;
+    lmint_t comm_freq;
+    
+}comm_struct_t;
 
 #endif
 

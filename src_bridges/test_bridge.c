@@ -64,7 +64,9 @@
 
 #include "libm3l.h"
 #include "lsipdx.h"
+#include "src_bridges_types.h"
 #include "src_bridges.h"
+
 
 lmint_t test_bridge(lmdouble_t ForceX, lmdouble_t ForceY, lmdouble_t ForceZ , 
                     lmdouble_t Alpha, lmdouble_t Beta, lmdouble_t Gamma,
@@ -349,7 +351,7 @@ lmint_t test_bridge(lmdouble_t ForceX, lmdouble_t ForceY, lmdouble_t ForceZ ,
 
 
 
-lmint_t test_bridge1(const lmchar_t *input_name_example){
+lmint_t test_bridge1(comm_struct_t *pcomm_str){
 
 
         lmdouble_t ForceX; lmdouble_t ForceY; lmdouble_t ForceZ ; 
@@ -376,7 +378,11 @@ lmint_t test_bridge1(const lmchar_t *input_name_example){
 
 
 
-        printf("INPUT NAME EXAMPLE IS %s\n", input_name_example);
+        printf("INPUT NAME EXAMPLE IS %s\n",pcomm_str->I_channel);
+        printf("OUTPUT NAME EXAMPLE IS %s\n",pcomm_str->O_channel);
+       printf("PORTNO  EXAMPLE IS %d\n",pcomm_str->portno);
+
+
         return 1;
 
 
