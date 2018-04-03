@@ -67,9 +67,12 @@ namespace flowPsi {
   $type componentMotionTypes blackbox<std::set<std::string> > ;
   $type componentMotion param<options_list> ;
   $type componentServo_X Constraint ;
+  $type do_communicate_nit1111 param<bool> ;
+
+//  $type commnow param<int> ;
     
         $rule singleton(OUTPUT,global_angles,global_displ,global_rot_center<-global_visc_force),
-              option(disable_threading)  {
+              option(disable_threading), conditional(do_communicate_nit)  {
             
 //        $rule singleton(OUTPUT,global_angles,global_displ,global_rot_center<-global_visc_force),
 //              option(disable_threading),constraint(movingMesh,area)  {
@@ -121,7 +124,7 @@ namespace flowPsi {
  * so very possibly a substantial part of this rule will be moved to a condition
  */
      $rule singleton(OUTPUT,global_angles,global_displ,global_rot_center<-global_visc_force,volumeTag(X)),
-              parametric(volumeTag(X)), option(disable_threading)  {
+         parametric(volumeTag(X)), option(disable_threading){
 /*
  * get pointer on interfaces in facts 
  */
@@ -185,7 +188,7 @@ namespace flowPsi {
       options_list::option_namelist nlb = ol.getOptionNameList() ;
       Loci::variableSet bvars ;
       Loci::option_values oss;
-      int portno,comm_freq;
+    //  int portno,comm_freq;
       double param;
       string type,tag,I_channel, O_channel, intf_name,IP, BCs, I_channel_name, O_channel_name;
       
@@ -254,8 +257,116 @@ end_loop: continue;
 
 
 
+/*
+ * condition specifying when to communicate
+ */
+
+  $rule singleton(do_communicate_nit1111{n,it}<-ncycle{n},$it{n,it},volumeTag(X)) {
+/*
+ * get pointer on interfaces in facts 
+ */
+      std::cout << "-------------  in do11111 " <<  endl ;
+      int commnow;
+      string Vol_tag = $volumeTag(X) ;
+      string tag;
+
+      Loci::fact_db* factsP = Loci::exec_current_fact_db;
+      Loci::fact_db facts;
+      facts  = *factsP;
+
+      param<options_list> int_info ;
+      int_info = facts.get_variable("interfaces") ;
+      options_list::option_namelist nl = int_info->getOptionNameList() ;
+      options_list::option_namelist::iterator li;
+
+      std::cout << "-------------  in do11111 tag  is  " << "  " << tag<< endl ;
+/*
+ * set li to the beginning of list of interfaces
+ */
+      li = nl.begin();
+      string bname; 
+/*
+ * set li to the beginning of interface list
+ */
+      for(li=nl.begin();li!=nl.end();++li) {
+
+        bname = *li ;
+
+        std::cout << "-------------  in do11111 bname  is  " << "  " << bname << endl ;
+
+        Loci::option_value_type vt = int_info->getOptionValueType(bname);
+        Loci::option_values ov = int_info->getOption(bname) ;
+        options_list::arg_list value_list ;
+        string name ;
+/*
+ * get options in intf
+ */
+        param<options_list> bc_info;
+        switch(vt) {
+        case Loci::NAME :
+          ov.get_value(name) ;
+          bc_info->setOption(bname,name) ;
+          break ;
+        case Loci::FUNCTION:
+          ov.get_value(name) ;
+          ov.get_value(value_list) ;
+          bc_info->setOption(bname,name,value_list) ;
+          break ;
+        default:
+          cerr << "setup_interface can not interpret value assigned to " << bname 
+             << " in interfaces" << endl ;
+          exit(-1) ;
+        }
+/*
+ * parse options
+ */
+        options_list ol ;
+        ol.Input(value_list) ;
+/*
+ * at the moment bcv is going to be intfr_local or intrf_global
+ */
+        Loci::variable bcv(name) ;
+/*
+ * loop through options and add them to bvars
+ */
+        options_list::option_namelist nlb = ol.getOptionNameList() ;
+        Loci::variableSet bvars ;
+        Loci::option_values oss;
+    //    int portno,comm_freq;
+        double param;
+        bool commtag = false;
+
+        options_list::option_namelist::iterator lii;
+        for(lii=nlb.begin();lii!=nlb.end();++lii){
+
+          bvars += Loci::variable(*lii) ;
+          if(*lii == "tag" ){
+            ol.getOption(*lii,tag) ;
+            std::cout << "-------------  OPENMPI tag  is  " << "  " << tag<< "   " << Vol_tag << endl ;
+
+            if((Vol_tag.compare(tag)) == 0){
+/*
+ * get value of comm_freq from interface
+ */
+              ol.getOptionUnits("comm_freq","",param);
+              commtag = true;
+              goto end_loop;
+            }
+        }
+    }
+
+end_loop: continue;
+
+    if((int)param < 0){
+        $do_communicate_nit1111{n,it} = ($$it{n,it} % -(int)param) == 0 && commtag;
+    }
+    else{
+        $do_communicate_nit1111{n,it} = ($ncycle{n} % (int)param) == 0 && ($$it{n,it} == 0) && commtag ;
+    }
+ };
 
 
+}
 
 
 
@@ -265,7 +376,7 @@ end_loop: continue;
 /*
  * loop through list of interfaces and parse parameters
  */
-    bool get_interface_info(fact_db &facts) {
+    bool get_interface_info(fact_db &facts){
       
     bool error = false ;
 
@@ -276,7 +387,6 @@ end_loop: continue;
  * get interfaces facts 
  */
     int_info = facts.get_variable("interfaces") ;
-//     int_info_global = int_info;
 
     options_list::option_namelist nl = int_info->getOptionNameList() ;
     options_list::option_namelist::iterator li;  
@@ -349,7 +459,8 @@ end_loop: continue;
       }
 
     return error ;
-  }
+  };
+
 }
 
 

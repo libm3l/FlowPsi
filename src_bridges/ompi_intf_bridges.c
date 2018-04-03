@@ -51,7 +51,6 @@ using std::cerr ;
 
 
 int ompi_intf_bridges(fact_db &facts){
-//int ompi_intf_bridges(){
 /*
  * example of function which opens OpenMPI processses 
  * and access iterface data in paralell
@@ -107,7 +106,7 @@ int ompi_intf_bridges(fact_db &facts){
       Loci::option_values ov = int_info->getOption(bname) ;
       options_list::arg_list value_list ;
       string name ;
-      std::cout << "-------------  OPENMPI :::      " << omp_get_thread_num() << "  " << bname << endl ;
+//      std::cout << "-------------  OPENMPI :::      " << omp_get_thread_num() << "  " << bname << endl ;
 
 /*
  * get options in intf
@@ -126,7 +125,6 @@ int ompi_intf_bridges(fact_db &facts){
         ov.get_value(name) ;
         ov.get_value(value_list) ;
         bc_info->setOption(bname,name,value_list) ;
-  //      std::cout << "-------------  OPENMPI IN FUNCTION  " <<  omp_get_thread_num() << "  " << value_list << "  " << name << endl ;
         break ;
       default:
         cerr << "setup_interface can not interpret value assigned to " << bname 

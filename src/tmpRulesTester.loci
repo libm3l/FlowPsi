@@ -90,17 +90,5 @@ namespace flowPsi {
          }
   };
 
-
-/*
- * this is an example of parametric rule which loops overinterfaces
- * and prints the name
- */
-    $rule singleton(OUTPUT<-global_visc_force,volumeTag(X)), parametric(volumeTag(X)) {
-    string tag = $volumeTag(X) ;
-      
-        if(Loci::MPI_rank == 0)
-            std::cout << "================= >>>>>>>>>>   TADY    TAG " <<  tag  << endl;
-  };
-    
 }
 
