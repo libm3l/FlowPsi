@@ -174,7 +174,7 @@ int ompi_intf_bridges(fact_db &facts){
         else if(*lii == "O_channel" ){
 	         ol.getOption(*lii,O_channel_name) ;
             pcomm_str->O_channel = O_channel_name.c_str();
-            std::cout << "-------------  OPENMPI O_channel name is  " <<  omp_get_thread_num() << "  " << pcomm_str->O_channel<< endl ;
+  //          std::cout << "-------------  OPENMPI O_channel name is  " <<  omp_get_thread_num() << "  " << pcomm_str->O_channel<< endl ;
         }
         else if(*lii == "tag" ){
 	        ol.getOption(*lii,tag) ;
