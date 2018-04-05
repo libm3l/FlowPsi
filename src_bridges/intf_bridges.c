@@ -36,7 +36,6 @@
  *
  * 
  */
-
 #include <Loci.h>
 #include <string>
 #include <stdio.h>
@@ -123,18 +122,14 @@ int intf_bridges(fact_db &facts){
       for(lii=nlb.begin();lii!=nlb.end();++lii){
 
         bvars += Loci::variable(*lii) ;
-   //   std::cout << "-------------  OPENMPI   OPTION LIST  " <<  omp_get_thread_num() << "  "  << bvars  << endl ;
 
         if( *lii == "boundary_conditions" ){
             oss = ol.getOption(*lii) ;
             ol.getOption(*lii,BCs);
-  //          std::cout << "-------------  OPENMPI BC list in intf is  " <<  omp_get_thread_num() << "   " << oss << endl ;
-  //          std::cout << "-------------  OPENMPI BC string in intf is  " <<  omp_get_thread_num() << "   " << BCs << endl ;
         }
         else if(*lii == "I_channel" ){
             ol.getOption(*lii,I_channel_name) ;
             pcomm_str->I_channel = I_channel_name.c_str();
-  //          std::cout << "-------------  OPENMPI I_channel name is  " <<  omp_get_thread_num() << "  " << pcomm_str->I_channel<< endl ;
         }
         else if(*lii == "O_channel" ){
 	         ol.getOption(*lii,O_channel_name) ;
@@ -144,24 +139,18 @@ int intf_bridges(fact_db &facts){
         else if(*lii == "tag" ){
 	        ol.getOption(*lii,tag) ;
             pcomm_str->tag = tag.c_str();
-  //          std::cout << "-------------  OPENMPI tag name is  " <<  omp_get_thread_num() << "  " << pcomm_str->tag<< endl ;
         }
         else if(*lii == "name" ){
 	        ol.getOption(*lii,intf_name) ;
             pcomm_str->intf_name = intf_name.c_str();
-  //          std::cout << "-------------  OPENMPI name is  " <<  omp_get_thread_num() << "  " << pcomm_str->intf_name<< endl ;
         }
         else if(*lii == "type" ){
-//            type = ol.getOption(*lii) ;
 	        ol.getOption(*lii,type) ;
             pcomm_str->type = type.c_str();
-  //          std::cout << "-------------  OPENMPI type name is  " <<  omp_get_thread_num() << "  " << pcomm_str->type<< endl ;
         }
         else if(*lii == "IP" ){
-//            IP = ol.getOption(*lii) ;
             ol.getOption(*lii,IP) ;
             pcomm_str->IP = IP.c_str();
-  //          std::cout << "-------------  OPENMPI IP name is  " <<  omp_get_thread_num() << "  " << pcomm_str->IP<< endl ;
         }
       }
 /*
@@ -169,13 +158,11 @@ int intf_bridges(fact_db &facts){
  */
       ol.getOptionUnits("comm_freq","",param);
       pcomm_str->comm_freq = (int)param;
-  //    std::cout << "-------------  OPENMPI value of comm_freq is  " <<  omp_get_thread_num() << "  " << pcomm_str->comm_freq  << endl ;
 /*
  * get port number
  */
       ol.getOptionUnits("portno","",param);
       pcomm_str->portno = (int)param;
-  //    std::cout << "-------------  OPENMPI value of portno is  " <<  omp_get_thread_num() << "  " << pcomm_str->portno  << endl ;
 /*
  * get comm channel name
  */

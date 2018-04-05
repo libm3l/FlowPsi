@@ -379,12 +379,6 @@ lmint_t test_bridge1(comm_struct_t *pcomm_str){
         ForceX = 0;
         ForceY = 0;
         ForceZ = 0;
-
-   //     printf("INPUT NAME EXAMPLE IS %s\n",pcomm_str->I_channel);
-   //     printf("OUTPUT NAME EXAMPLE IS %s\n",pcomm_str->O_channel);
-   //     printf("PORTNO  EXAMPLE IS %d\n",pcomm_str->portno);
-
-//        return 1;
 /*
  * Set parameters which are needed for opening the socket for sending data
  */
@@ -448,26 +442,18 @@ lmint_t test_bridge1(comm_struct_t *pcomm_str){
 		Error("socket_FlowPsi2simulink: m3l_Mklist");
 	TmpNode->data.df[0] = 1.54;
 /*
- * print data on screen
- */
-   //     if(m3l_Cat(Gnode, "--all", "-P", "-L",  "*",   (char *)NULL) != 0)
- //	  Error("CatData");
-/*
  * open socket
  */
 #pragma omp critical
 {
-    //    printf(" Opening channel %s  %d   %s  \n", pcomm_str->IP, pcomm_str->portno, PInpPar->channel_name);
  	if( (sockfd = open_connection_to_server(pcomm_str->IP, pcomm_str->portno, PInpPar, Popts_1)) < 1)
 		Error("socket_FlowPsi2simulink: Error when opening socket");
-    //    printf("INPUT NAME EXAMPLE IS  - oepened %s\n",pcomm_str->I_channel);
 }
 /*
  * send data 
  */
 	if ( client_sender(Gnode, sockfd, PInpPar, (opts_t *)NULL, (opts_t *)NULL) !=1 )
 		Error("socket_FlowPsi2simulink: client_sender()"); 
-   //    printf("INPUT NAME EXAMPLE IS  - sent %s\n",pcomm_str->I_channel);
 /*
  * close socket
  */
@@ -475,8 +461,6 @@ lmint_t test_bridge1(comm_struct_t *pcomm_str){
 {
 	if( close(sockfd) == -1)
 		Perror("socket_FlowPsi2simulink: close");
-
-    //   printf("INPUT NAME EXAMPLE IS  - closed %s\n",pcomm_str->I_channel);
 }
 /*
  * free borrowed memory
@@ -522,14 +506,12 @@ lmint_t test_bridge1(comm_struct_t *pcomm_str){
 {
 	if( (sockfd = open_connection_to_server(pcomm_str->IP, pcomm_str->portno, PInpPar, Popts_1)) < 1)
 		Error("client_sender: Error when opening socket");
-    //   printf("INPUT NAME EXAMPLE IS  - opened 1 %s\n",pcomm_str->I_channel);
 }
 /*
  * receive data from socket
  */
 	if ( (Gnode = client_receiver(sockfd, PInpPar, (opts_t *)NULL, (opts_t *)NULL)) == NULL)
 		Error("socket_FlowPsi2simulink: client_receiver()");
-     //  printf("INPUT NAME EXAMPLE IS  - sent 1 %s\n",pcomm_str->I_channel);
 /*
  * close socket 
  */
@@ -537,7 +519,6 @@ lmint_t test_bridge1(comm_struct_t *pcomm_str){
 {
 	if( close(sockfd) == -1)
 		Perror("socket_FlowPsi2simulink: close");
-     //  printf("INPUT NAME EXAMPLE IS  - closed 1 %s\n",pcomm_str->I_channel);
 }
 /*
  * print data on screen

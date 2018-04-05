@@ -111,10 +111,6 @@ int ompi_intf_bridges(fact_db &facts){
 /*
  * get options in intf
  */
-
-
-//#pragma omp critical
-//{
       param<options_list> bc_info;
       switch(vt) {
       case Loci::NAME :
