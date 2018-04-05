@@ -91,21 +91,23 @@ namespace flowPsi {
  * global_visc_force is calculated in solverForcesMoments.loci
  *
  */ 
- //       test_bridge($global_visc_force[0], $global_visc_force[1], $global_visc_force[2],
-//		    $global_angles[0], $global_angles[1], $global_angles[2],
-//		    $global_displ[0], $global_displ[1], $global_displ[2],
-//		    $global_rot_center[0], $global_rot_center[1], $global_rot_center[2]);
+       test_bridge($global_visc_force[0], $global_visc_force[1], $global_visc_force[2],
+		    $global_angles[0], $global_angles[1], $global_angles[2],
+		    $global_displ[0], $global_displ[1], $global_displ[2],
+		    $global_rot_center[0], $global_rot_center[1], $global_rot_center[2]);
 
-//        printf(" TOTAL FORCES        ----------------------  LOOP  %f  %f   %f \n", $global_visc_force[0], $global_visc_force[1], $global_visc_force[2]);
-//        printf("ANGLES        ----------------------  LOOP  %f  %f   %f \n", $global_angles[0], $global_angles[1], $global_angles[2]);
-//        printf("transl        ----------------------  LOOP  %f  %f   %f \n", $global_displ[0], $global_displ[1], $global_displ[2]);
-//        printf("rotc        ----------------------  LOOP  %f  %f   %f \n", $global_rot_center[0], $global_rot_center[1], $global_rot_center[2]);
+        printf(" TOTAL FORCES        ----------------------  LOOP  %f  %f   %f \n", $global_visc_force[0], $global_visc_force[1], $global_visc_force[2]);
+        printf("ANGLES        ----------------------  LOOP  %f  %f   %f \n", $global_angles[0], $global_angles[1], $global_angles[2]);
+        printf("transl        ----------------------  LOOP  %f  %f   %f \n", $global_displ[0], $global_displ[1], $global_displ[2]);
+        printf("rotc        ----------------------  LOOP  %f  %f   %f \n", $global_rot_center[0], $global_rot_center[1], $global_rot_center[2]);
 /*
  * get facts database
  */
         Loci::fact_db* factsP = Loci::exec_current_fact_db;
         Loci::fact_db facts;
         facts  = *factsP;
+
+//        printf("LOOP N  IT         ----------------------  LOOP  %d  \n", $ncycle{n});   
 
 	ompi_intf_bridges(facts);
         //intf_bridges(facts);
@@ -120,10 +122,10 @@ namespace flowPsi {
  * rule loops over tags, find if there is associated interface 
  * and establishes communication in case it is required
  * 
- * NOTE - thre should be a condition based on tag==intf(tag) && comm_freq
+ * NOTE - there should be a condition based on tag==intf(tag) && comm_freq
  * so very possibly a substantial part of this rule will be moved to a condition
  */
-     $rule singleton(OUTPUT,global_angles,global_displ,global_rot_center<-global_visc_force,volumeTag(X)),
+     $rule singleton(OUTPUT,global_angles,global_displ,global_rot_center<-global_visc_force,volumeTag(X),ncycle{n},$it{n,it}),
          parametric(volumeTag(X)), option(disable_threading), conditional(do_communicate_nit1111){
 /*
  * get pointer on interfaces in facts 
@@ -218,7 +220,11 @@ namespace flowPsi {
             pcomm_str->tag = tag.c_str();
             std::cout << "-------------  OPENMPI tag  is  " << "  " << tag<< "   " << Vol_tag << endl ;
 
-            if((Vol_tag.compare(tag)) != 0){
+            if((Vol_tag.compare(tag) && Vol_tag.compare("All")) != 0){
+/*
+ * if tag different from tag specfied in interface specification or 
+ * if tag in interface not All, skip
+ */
                 goto end_loop;
             }
         }
@@ -386,7 +392,11 @@ end_loop: continue;
 /*
  * get interfaces facts 
  */
-    int_info = facts.get_variable("interfaces") ;
+    int_info = facts.get_variable("interfaces");
+
+    if(Loci::MPI_rank == 0){
+       std::cout << "Interfaces: " << endl ;
+       std::cout << "----------- " << endl ;}
 
     options_list::option_namelist nl = int_info->getOptionNameList() ;
     options_list::option_namelist::iterator li;  
@@ -399,9 +409,8 @@ end_loop: continue;
       Loci::option_values ov = int_info->getOption(bname) ;
       options_list::arg_list value_list ;
       string name ;
-
-      std::cout << "=============================================================" << bname << endl ;
-      std::cout << "-------------  Partition and interface name  " << Loci::MPI_rank<< "  " << bname << endl ;
+      if(Loci::MPI_rank == 0)
+        std::cout << "Interface name  " << bname << endl ;
 /*
  * get options in intf
  */
@@ -414,7 +423,10 @@ end_loop: continue;
         ov.get_value(name) ;
         ov.get_value(value_list) ;
         bc_info->setOption(bname,name,value_list) ;
-        std::cout << "-------------  IN FUNCTION  " << value_list << endl ;
+  
+        if(Loci::MPI_rank == 0) 
+          std::cout << "Interface value list: " << value_list << endl;
+
         break ;
       default:
         cerr << "setup_interface can not interpret value assigned to " << bname 
@@ -439,12 +451,12 @@ end_loop: continue;
       for(lii=nlb.begin();lii!=nlb.end();++lii){
 
         bvars += Loci::variable(*lii) ;
-        std::cout << "-------------  OPTION LIST  " << bvars  << endl ;
+//        std::cout << "-------------  OPTION LIST  " << bvars  << endl ;
 
         if( *lii == "boundary_conditions" ){
-              std::cout << "-------------  BOUNDARY CONDITIONS FOUND ------------------- "<< endl ;
+      //        std::cout << "-------------  BOUNDARY CONDITIONS FOUND ------------------- "<< endl ;
               Loci::option_values oss = ol.getOption(*lii) ;
-              std::cout << "-------------  BC list in intf is  " << oss << endl ;
+      //        std::cout << "-------------  BC list in intf is  " << oss << endl ;
            }
         }
 /*
@@ -454,7 +466,7 @@ end_loop: continue;
         real param = 0;
         ol.getOptionUnits("comm_freq","",param);
         comm_freq = (int)param;
-        std::cout << "-------------  value of comm_freq is  " << comm_freq  << endl ;
+   //     std::cout << "-------------  value of comm_freq is  " << comm_freq  << endl ;
 
       }
 
