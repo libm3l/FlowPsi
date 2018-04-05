@@ -25,7 +25,7 @@ OBJS =  \
 	IOplot.o IOintegrated.o IOgrid.o IOprobe.o IOClipSurfaces.o \
 	linearSolverSGS.o linearSolverFSGS.o linearSolverLSGS.o \
 	fluxInviscid.o fluxLowDiss.o fluxViscous.o intrfstuff.o \
-	tmpRulesTester.o
+	tmpRulesTester.o addOutput.o
 
 
 

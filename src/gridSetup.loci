@@ -417,6 +417,8 @@ namespace flowPsi {
       }
       
     }
+    if(Loci::MPI_rank == 0)
+      std::cout << "    " << endl;
     return error ;
   }
 
@@ -848,6 +850,5 @@ namespace flowPsi {
     constraint hasViscousWalls ;
     *hasViscousWalls = ~EMPTY ;
     facts.create_fact("hasViscousWalls",hasViscousWalls) ;
-  }
-
+  };
 }

@@ -53,17 +53,6 @@ namespace flowPsi {
   $type componentMotionTypes blackbox<std::set<std::string> > ;
   $type componentMotion param<options_list> ;
   $type componentServo_X Constraint ;
-/*
- * this is an example of parametric rule which loops over volume tags
- * and prints the name
- */
-    $rule singleton(OUTPUT<-global_visc_force,volumeTag(X)), parametric(volumeTag(X)) {
-    string tag = $volumeTag(X) ;
-      
-        if(Loci::MPI_rank == 0)
-            std::cout << "================= >>>>>>>>>>   TADY    TAG " <<  tag  << endl;
-  };
-
 
 /*
  * example of parametric rule which loops volume tags, get motion name and motion type for each tag
