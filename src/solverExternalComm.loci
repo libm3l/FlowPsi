@@ -91,15 +91,15 @@ namespace flowPsi {
  * global_visc_force is calculated in solverForcesMoments.loci
  *
  */ 
-       test_bridge($global_visc_force[0], $global_visc_force[1], $global_visc_force[2],
-		    $global_angles[0], $global_angles[1], $global_angles[2],
-		    $global_displ[0], $global_displ[1], $global_displ[2],
-		    $global_rot_center[0], $global_rot_center[1], $global_rot_center[2]);
+ //      test_bridge($global_visc_force[0], $global_visc_force[1], $global_visc_force[2],
+//		    $global_angles[0], $global_angles[1], $global_angles[2],
+//		    $global_displ[0], $global_displ[1], $global_displ[2],
+//		    $global_rot_center[0], $global_rot_center[1], $global_rot_center[2]);
 
-        printf(" TOTAL FORCES        ----------------------  LOOP  %f  %f   %f \n", $global_visc_force[0], $global_visc_force[1], $global_visc_force[2]);
-        printf("ANGLES        ----------------------  LOOP  %f  %f   %f \n", $global_angles[0], $global_angles[1], $global_angles[2]);
-        printf("transl        ----------------------  LOOP  %f  %f   %f \n", $global_displ[0], $global_displ[1], $global_displ[2]);
-        printf("rotc        ----------------------  LOOP  %f  %f   %f \n", $global_rot_center[0], $global_rot_center[1], $global_rot_center[2]);
+//        printf(" TOTAL FORCES        ----------------------  LOOP  %f  %f   %f \n", $global_visc_force[0], $global_visc_force[1], $global_visc_force[2]);
+ //       printf("ANGLES        ----------------------  LOOP  %f  %f   %f \n", $global_angles[0], $global_angles[1], $global_angles[2]);
+ //       printf("transl        ----------------------  LOOP  %f  %f   %f \n", $global_displ[0], $global_displ[1], $global_displ[2]);
+ //       printf("rotc        ----------------------  LOOP  %f  %f   %f \n", $global_rot_center[0], $global_rot_center[1], $global_rot_center[2]);
 /*
  * get facts database
  */
@@ -109,8 +109,35 @@ namespace flowPsi {
 
 //        printf("LOOP N  IT         ----------------------  LOOP  %d  \n", $ncycle{n});   
 
-	ompi_intf_bridges(facts);
+//	ompi_intf_bridges(facts);
         //intf_bridges(facts);
+          
+    }
+  };
+  
+  
+    $rule singleton(OUTPUT<-global_visc_force),
+              option(disable_threading), conditional(do_communicate_nit)  {
+            
+//        $rule singleton(OUTPUT,global_angles,global_displ,global_rot_center<-global_visc_force),
+//              option(disable_threading),constraint(movingMesh,area)  {
+/*
+ * communicate_n_it is a condition which desides when to communicate, it is defines in solverSetup.loci
+ */
+    if(Loci::MPI_rank==0) {
+/*
+ * call function test_bridge
+ * this is obviously in contrast using LoCi in terms of scheduling, I think it may 
+ * be done through reduction rule "apply[]" and "test_bridge" as an operator
+ * but at the moment I'm OK with as it is now
+ *
+ * the communication is done through root partition only
+ *
+ * global_visc_force is calculated in solverForcesMoments.loci
+ *
+ */       
+           std::cout << "Global force is   " << "  " << $global_visc_force << endl ;
+
           
     }
   };
