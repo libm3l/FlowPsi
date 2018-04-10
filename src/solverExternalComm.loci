@@ -91,15 +91,15 @@ namespace flowPsi {
  * global_visc_force is calculated in solverForcesMoments.loci
  *
  */ 
-       test_bridge($global_visc_force[0], $global_visc_force[1], $global_visc_force[2],
-		    $global_angles[0], $global_angles[1], $global_angles[2],
-		    $global_displ[0], $global_displ[1], $global_displ[2],
-		    $global_rot_center[0], $global_rot_center[1], $global_rot_center[2]);
-
-        printf(" TOTAL FORCES        ----------------------  LOOP  %f  %f   %f \n", $global_visc_force[0], $global_visc_force[1], $global_visc_force[2]);
-        printf("ANGLES        ----------------------  LOOP  %f  %f   %f \n", $global_angles[0], $global_angles[1], $global_angles[2]);
-        printf("transl        ----------------------  LOOP  %f  %f   %f \n", $global_displ[0], $global_displ[1], $global_displ[2]);
-        printf("rotc        ----------------------  LOOP  %f  %f   %f \n", $global_rot_center[0], $global_rot_center[1], $global_rot_center[2]);
+//       test_bridge($global_visc_force[0], $global_visc_force[1], $global_visc_force[2],
+//		    $global_angles[0], $global_angles[1], $global_angles[2],
+//		    $global_displ[0], $global_displ[1], $global_displ[2],
+//		    $global_rot_center[0], $global_rot_center[1], $global_rot_center[2]);
+//
+//        printf(" TOTAL FORCES        ----------------------  LOOP  %f  %f   %f \n", $global_visc_force[0], $global_visc_force[1], $global_visc_force[2]);
+//        printf("ANGLES        ----------------------  LOOP  %f  %f   %f \n", $global_angles[0], $global_angles[1], $global_angles[2]);
+//        printf("transl        ----------------------  LOOP  %f  %f   %f \n", $global_displ[0], $global_displ[1], $global_displ[2]);
+//        printf("rotc        ----------------------  LOOP  %f  %f   %f \n", $global_rot_center[0], $global_rot_center[1], $global_rot_center[2]);
 /*
  * get facts database
  */
@@ -109,7 +109,7 @@ namespace flowPsi {
 
 //        printf("LOOP N  IT         ----------------------  LOOP  %d  \n", $ncycle{n});   
 
-	ompi_intf_bridges(facts);
+//	ompi_intf_bridges(facts);
         //intf_bridges(facts);
           
     }
@@ -121,12 +121,17 @@ namespace flowPsi {
 /*
  * rule loops over tags, find if there is associated interface 
  * and establishes communication in case it is required
+ * this is a serial communication which is not ideal as a running process
+ * block all other processes
  * 
  * NOTE - there should be a condition based on tag==intf(tag) && comm_freq
  * so very possibly a substantial part of this rule will be moved to a condition
  */
      $rule singleton(OUTPUT,global_angles,global_displ,global_rot_center<-global_visc_force,volumeTag(X),ncycle{n},$it{n,it}),
          parametric(volumeTag(X)), option(disable_threading), conditional(do_communicate_nit1111){
+
+//     $rule singleton(OUTPUT,global_angles,global_displ,global_rot_center<-global_visc_force,volumeTag(X)),
+//         parametric(volumeTag(X)), option(disable_threading){
 /*
  * get pointer on interfaces in facts 
  */
@@ -255,7 +260,7 @@ namespace flowPsi {
  * get comm channel name
  */ 
       std::cout << "-------------  TAGS calling test_bridge_1 " << "  " << tag<< "   " << Vol_tag << endl ;
-      test_bridge1(pcomm_str);
+     // test_bridge1(pcomm_str);
 
 end_loop: continue;
   }
