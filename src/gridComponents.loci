@@ -645,7 +645,8 @@ namespace flowPsi {
     (*$componentMotionData)[name] = xform ;
   } ;
 /*
- * this seems like transformation
+ * AJ note: this is transformation, prototype of applyXform is in ../include/gridComponent.h
+ * it seems this is both rotation and translation of the mesh
  */
   $rule pointwise(pos{n,it}<-pos{n},pos,componentTransformsn_X{n,it}),
     constraint(componentNodes_X{n},componentMotion),
@@ -662,7 +663,9 @@ namespace flowPsi {
   }
   
   $type componentVectorRotation_X param<tens3d> ;
-
+/*
+ * AJ note: this is rotation of the mesh
+ */
   $rule singleton(componentVectorRotation_X<-componentTransformsn_X), parametric(volumeTag(X)) {
     int sz = $componentTransformsn_X.size() ;
     vect3d v = vect3d(1,0,0) ;
