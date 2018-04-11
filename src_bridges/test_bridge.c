@@ -406,7 +406,7 @@ lmint_t test_bridge1(comm_struct_t *pcomm_str){
 /*
  * this is just a structure containing additional data
  */
-	Popts   = &opts;o
+	Popts   = &opts;
 	Popts_1 = &opts_1;
 /*
  *  use the set options to set parameters for connection
