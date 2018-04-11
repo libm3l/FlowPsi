@@ -51,6 +51,8 @@ using std::cerr ;
 /*
  * this is a function which loops over interfaces and communicates as required
  * it was used in rule in solverExternalComm.loci 
+ * this is a serial communication which is not ideal as a running process
+ * block all other processes
  */
 
 int intf_bridges(fact_db &facts){

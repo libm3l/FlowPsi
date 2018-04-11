@@ -100,19 +100,17 @@ namespace flowPsi {
   $type componentRotation_X Constraint ;
   $type componentServo_X Constraint ;
   $type componentPrescribed_X Constraint ;
-  $type componentPrescribed_XE Constraint ;
   $type componentStationary_X Constraint ;
   $type volumeTag(X) param<string> ;
   
   /*
    * set the constraint flag depending on type of motion
    */
-  $rule constraint(componentServo_X,componentRotation_X,componentPrescribed_X,componentPrescribed_XE, componentStationary_X<-volumeTag(X),componentMotion,componentMotionTypes), parametric(volumeTag(X)) {
+  $rule constraint(componentServo_X,componentRotation_X,componentPrescribed_X, componentStationary_X<-volumeTag(X),componentMotion,componentMotionTypes), parametric(volumeTag(X)) {
         
     string tag = $volumeTag(X) ;
     $componentRotation_X = EMPTY ;
     $componentPrescribed_X = EMPTY ;
-    $componentPrescribed_XE = EMPTY ;
     $componentStationary_X = EMPTY ;
     $componentServo_X = EMPTY ;
     if($componentMotion.optionExists(tag)) {
@@ -133,8 +131,6 @@ namespace flowPsi {
         $componentPrescribed_X = ~EMPTY ;
       } else if(name == "stationary") {
         $componentStationary_X = ~EMPTY ;
-      } else if(name == "prescribed_external") {
-        $componentPrescribed_XE = ~EMPTY ;
       }
     } else {
       cerr << "No componentMotion information for component '" << tag << "'" << endl ;
@@ -649,7 +645,8 @@ namespace flowPsi {
     (*$componentMotionData)[name] = xform ;
   } ;
 /*
- * this seems like transformation
+ * AJ note: this is transformation, prototype of applyXform is in ../include/gridComponent.h
+ * it seems this is both rotation and translation of the mesh
  */
   $rule pointwise(pos{n,it}<-pos{n},pos,componentTransformsn_X{n,it}),
     constraint(componentNodes_X{n},componentMotion),
@@ -666,7 +663,9 @@ namespace flowPsi {
   }
   
   $type componentVectorRotation_X param<tens3d> ;
-
+/*
+ * AJ note: this is rotation of the mesh
+ */
   $rule singleton(componentVectorRotation_X<-componentTransformsn_X), parametric(volumeTag(X)) {
     int sz = $componentTransformsn_X.size() ;
     vect3d v = vect3d(1,0,0) ;
