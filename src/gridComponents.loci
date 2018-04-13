@@ -107,12 +107,13 @@ namespace flowPsi {
   /*
    * set the constraint flag depending on type of motion
    */
-  $rule constraint(componentServo_X,componentRotation_X,componentPrescribed_X, componentStationary_X<-volumeTag(X),componentMotion,componentMotionTypes), parametric(volumeTag(X)) {
+  $rule constraint(componentServo_X,componentRotation_X,componentPrescribed_X, componentStationary_X,
+       componentPrescribed_E<-volumeTag(X),componentMotion,componentMotionTypes), parametric(volumeTag(X)) {
         
     string tag = $volumeTag(X) ;
     $componentRotation_X = EMPTY ;
     $componentPrescribed_X = EMPTY ;
-    $componentStationary_E = EMPTY ;
+    $componentPrescribed_E = EMPTY ;
     $componentServo_X = EMPTY ;
     if($componentMotion.optionExists(tag)) {
       string name ;
