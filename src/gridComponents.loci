@@ -100,6 +100,7 @@ namespace flowPsi {
   $type componentRotation_X Constraint ;
   $type componentServo_X Constraint ;
   $type componentPrescribed_X Constraint ;
+  $type componentPrescribed_E Constraint ;
   $type componentStationary_X Constraint ;
   $type volumeTag(X) param<string> ;
   
@@ -111,7 +112,7 @@ namespace flowPsi {
     string tag = $volumeTag(X) ;
     $componentRotation_X = EMPTY ;
     $componentPrescribed_X = EMPTY ;
-    $componentStationary_X = EMPTY ;
+    $componentStationary_E = EMPTY ;
     $componentServo_X = EMPTY ;
     if($componentMotion.optionExists(tag)) {
       string name ;
@@ -129,6 +130,8 @@ namespace flowPsi {
         $componentServo_X = ~EMPTY ;
       } else if(name == "prescribed") {
         $componentPrescribed_X = ~EMPTY ;
+      } else if(name == "prescribed_external") {
+        $componentPrescribed_E = ~EMPTY ;
       } else if(name == "stationary") {
         $componentStationary_X = ~EMPTY ;
       }
@@ -207,7 +210,9 @@ namespace flowPsi {
   $type componentRotationAxis_X param<vect3d> ;
   $type componentRotationCenter_X param<vect3d> ;
   $type componentRotationSpeed_X param<real> ;
-
+/*
+ * AJ note: set parameters for rotation
+ */
   $rule singleton(componentRotationAxis_X,componentRotationCenter_X,
                   componentRotationSpeed_X<-componentMotion,componentName_X),
     constraint(componentRotation_X), parametric(volumeTag(X)) {
@@ -629,7 +634,7 @@ namespace flowPsi {
     $prescribedCG_X = cg ;
   }
 /*
- * set prescribedMotion_X 
+ * AJ note: set prescribedMotion_X 
  */
   $rule apply(componentMotionData<-prescribedMotion_X,prescribedCG_X,componentName_X,dtmax,stime)[Loci::NullOp],
     constraint(componentPrescribed_X),parametric(volumeTag(X)), prelude {

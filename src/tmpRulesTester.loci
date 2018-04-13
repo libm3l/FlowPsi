@@ -79,5 +79,14 @@ namespace flowPsi {
          }
   };
 
+
+ $rule singleton(OUTPUT<-global_visc_force, volumeTag(X)), parametric(volumeTag(X)) {
+
+        string tag = $volumeTag(X) ;
+         if(Loci::MPI_rank == 0){
+           cerr << "-------------GOLBAL FORCES are  '" << $global_visc_force << "NAME " << tag <<  endl;
+         }
+  };
+
 }
 
