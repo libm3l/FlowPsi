@@ -46,7 +46,9 @@ namespace flowPsi {
   $rule pointwise(movingMesh),constraint(componentMotion) {
     $movingMesh = true ;
   }
-  
+/*
+ * initiate  hasMeshMotion = 0
+ */
   $type hasMeshMotion param<int> ;
   $rule unit(hasMeshMotion),constraint(UNIVERSE) {
     $hasMeshMotion = 0 ;
@@ -54,11 +56,16 @@ namespace flowPsi {
 
   $rule apply(hasMeshMotion)[Loci::Maximum],constraint(pos), prelude {
   } ;
-
+/*
+ * if motion, set hasMeshMotion = 1
+ */
   $rule apply(hasMeshMotion)[Loci::Maximum],constraint(movingMesh),prelude {
     join(*$hasMeshMotion,1) ;
+    printf(" ----------------   HAS MOTION \n");
   } ;
-    
+/*
+ * initiate grid velocities to 0
+ */
   $rule pointwise(us_n),constraint(area) {
     $us_n = 0 ;
   }
@@ -212,7 +219,7 @@ namespace flowPsi {
     // reassemble vector so that half step normal velocity is aligned with
     // current normal, remainder of grid velocity goes in current tangetial
     // direction.
-    $us{n,it} = $us_n{n,it}*n + ut*utn ;
+    $us{n,it} = $us_n{n,it}*n + ut*utn;
   }
 
 
