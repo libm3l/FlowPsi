@@ -54,9 +54,12 @@ namespace flowPsi {
 
   $rule apply(hasMeshMotion)[Loci::Maximum],constraint(pos), prelude {
   } ;
-
+/*
+ * set flag that meshes are moving if at least one moving
+ */
   $rule apply(hasMeshMotion)[Loci::Maximum],constraint(movingMesh),prelude {
     join(*$hasMeshMotion,1) ;
+    printf(" ======================== Has motion \n");
   } ;
     
   $rule pointwise(us_n),constraint(area) {

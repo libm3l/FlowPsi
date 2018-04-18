@@ -51,6 +51,9 @@ namespace flowPsi {
   $type min_cell2face Map ;
   
   $type componentMotion param<options_list> ;
+
+  $type componentMotion1 param<options_list> ;
+
   $type componentHierarchy param<options_list> ;
   $type componentGeometry param<options_list> ;
   $type componentPriority param<options_list> ;
@@ -339,6 +342,7 @@ namespace flowPsi {
     xform.q = rotation ;
     string name = *$componentName_X ;
     (*$componentMotionData)[name] = xform ;
+    std::cout << "================= >>>>>>>>>>   COMPONENT NAME I2  " << name << endl;
   } ;
 
   $type ServoPositionInfo blackbox<map<string,real> > ;
@@ -649,6 +653,7 @@ namespace flowPsi {
     xform.q = q ;
     string name = *$componentName_X ;
     (*$componentMotionData)[name] = xform ;
+    std::cout << "================= >>>>>>>>>>   COMPONENT NAME I2  " << name << " QUAT " << endl;
   } ;
 /*
  * AJ note: this is transformation, prototype of applyXform is in ../include/gridComponent.h
