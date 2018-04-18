@@ -142,7 +142,7 @@ namespace flowPsi {
       facts  = *factsP;
 
       param<options_list> int_info ;
-      int_info = facts.get_variable("interfaces") ;
+      int_info = facts.get_variable("ext_interfaces") ;
       options_list::option_namelist nl = int_info->getOptionNameList() ;
       options_list::option_namelist::iterator li;
 /*
@@ -177,7 +177,7 @@ namespace flowPsi {
         break ;
       default:
         cerr << "setup_interface can not interpret value assigned to " << bname 
-             << " in interfaces" << endl ;
+             << " in ext_interfaces" << endl ;
         exit(-1) ;
       }
 /*
@@ -286,7 +286,7 @@ end_loop: continue;
       facts  = *factsP;
 
       param<options_list> int_info ;
-      int_info = facts.get_variable("interfaces") ;
+      int_info = facts.get_variable("ext_interfaces") ;
       options_list::option_namelist nl = int_info->getOptionNameList() ;
       options_list::option_namelist::iterator li;
 
@@ -325,7 +325,7 @@ end_loop: continue;
           break ;
         default:
           cerr << "setup_interface can not interpret value assigned to " << bname 
-             << " in interfaces" << endl ;
+             << " in ext_interfaces" << endl ;
           exit(-1) ;
         }
 /*
