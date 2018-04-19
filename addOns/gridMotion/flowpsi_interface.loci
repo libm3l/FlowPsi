@@ -85,12 +85,12 @@ namespace flowPsi {
 // Rules to set the grid speed terms to zero for steady state cases
 //--------------------------------------------------------------------
 $rule pointwise( priority::moving::us ),
-  constraint( movingMesh, local_timestep ) {
+  constraint( movingMesh, timeStepSteadyState ) {
   $us = vect3d(0.0,0.0,0.0) ;
 }
 //--------------------------------------------------------------------
 $rule pointwise( priority::moving::us_n ),
-  constraint( movingMesh, local_timestep ) {
+  constraint( movingMesh, timeStepSteadyState ) {
   $us_n = 0. ;
 }
 
@@ -258,7 +258,7 @@ $rule pointwise( priority::moving::us_n ),
 
 }
 namespace {
-  const char *revision_name = "$Name: rel-1-beta-5 $" ;
+  const char *revision_name = "$Name: rel-1-beta-6 $" ;
 
   std::string version() {
     const char *p = revision_name;

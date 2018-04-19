@@ -141,6 +141,7 @@ case "$ARCH" in
     ;;
 esac    
 
+
 DATE=$(date +%Y-%m-%d)
 SYS=$(uname -srvmo)
 USER=$(whoami)
@@ -170,7 +171,6 @@ echo "LIBSLM3LLSPDX = -L\$(LIBM3LPATH) -lm3l -Wl,-rpath=\$(LIBM3LPATH) -lpthread
 echo "# " >> flowpsi.conf
 echo "# openmpi library" >> flowpsi.conf
 echo "LIBOPENMPI = "${LIBOPENMPI} >> flowpsi.conf
-
 
 if [ $PREFIX_SET -eq 0 ]; then
     echo "*******************************************************************************"

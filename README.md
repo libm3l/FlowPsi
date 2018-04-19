@@ -6,3 +6,5 @@ The version which was used to initialize this git repo is flowPsi-rel-1-beta-5.t
 The flowPsi code is a Loci framework code that provides a full featured open source solution to modeling compressible fluid flows. 
 This software uses the Loci framework which can be found at https://sourceforge.net/projects/loci-framework or from https://github.com/libm3l/LoCi
 
+
+[![Analytics](https://ga-beacon.appspot.com/UA-116847055-1/libm3l/FlowPsi)](https://github.com/igrigorik/ga-beacon)
