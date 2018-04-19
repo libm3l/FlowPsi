@@ -76,6 +76,8 @@ namespace flowPsi {
  * get interfaces facts 
  */
     int_info = facts.get_variable("ext_interfaces");
+ //   ext_interfaces = facts.get_variable("ext_interfaces");
+
     error = true ;
 
     if(Loci::MPI_rank == 0){

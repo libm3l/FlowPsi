@@ -279,3 +279,7 @@ $type global_angles     param<flowPsi::vect3d> ;
 $type global_displ      param<flowPsi::vect3d> ;
 $type global_rot_center param<flowPsi::vect3d> ;
 
+/*
+ * external interfaces data sets
+ */
+$type ext_interfaces param<Loci::options_list> ;
