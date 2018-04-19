@@ -12,6 +12,12 @@
 #include <Tools/parse.h>
 #include <Tools/unit_type.h>
 
+#ifdef LOCI_V5
+using Loci::gKeySpaceP ;
+using Loci::GEMPTY ;
+using Loci::gParam ;
+#endif
+
 namespace flowPsi {
   
   typedef Loci::real_t real ;

@@ -6,7 +6,7 @@ include $(LOCI_BASE)/Loci.conf
 #COPT=$(COPTLESS)
 
 
-INCLUDES = -I../include 
+INCLUDES = -I../include
 
 
 TARGET = flowpsi
@@ -40,7 +40,7 @@ all:
 
 
 $(TARGET): $(OBJS) 
-	$(LD) -o  $(TARGET)  $(RPATH)$(FLOWPSI_RPATH) $(OBJS) $(LOCAL_LIBS) $(LIBS) $(LIBSFLPSI) $(LDFLAGS)
+	$(LD) -o  $(TARGET)  $(RPATH)$(FLOWPSI_RPATH) $(OBJS) $(LOCAL_LIBS) $(LIBS) $(LDFLAGS)
 	mv flowpsi ../bin/flowpsi
 
 FRC : 
