@@ -1,0 +1,51 @@
+This is BibTeX, Version 0.99d (TeX Live 2015)
+Capacity: max_strings=35307, hash_size=35307, hash_prime=30011
+The top-level auxiliary file: guide.aux
+The style file: unsrt.bst
+Database file #1: guide.bib
+Warning--I didn't find a database entry for "Barnes.1986"
+Warning--I didn't find a database entry for "Greengard.1987"
+Warning--I didn't find a database entry for "Bhushan.2012"
+Warning--I didn't find a database entry for "Walters.2013"
+You've used 25 entries,
+            1791 wiz_defined-function locations,
+            627 strings with 7166 characters,
+and the built_in function-call counts, 5647 in all, are:
+= -- 532
+> -- 191
+< -- 0
++ -- 75
+- -- 50
+* -- 421
+:= -- 905
+add.period$ -- 79
+call.type$ -- 25
+change.case$ -- 26
+chr.to.int$ -- 0
+cite$ -- 25
+duplicate$ -- 222
+empty$ -- 578
+format.name$ -- 50
+if$ -- 1243
+int.to.chr$ -- 0
+int.to.str$ -- 25
+missing$ -- 24
+newline$ -- 131
+num.names$ -- 25
+pop$ -- 38
+preamble$ -- 1
+purify$ -- 0
+quote$ -- 0
+skip$ -- 79
+stack$ -- 0
+substring$ -- 516
+swap$ -- 24
+text.length$ -- 0
+text.prefix$ -- 0
+top$ -- 0
+type$ -- 0
+warning$ -- 0
+while$ -- 54
+width$ -- 27
+write$ -- 281
+(There were 4 warnings)

@@ -127,11 +127,8 @@ namespace flowPsi {
  * NOTE - there should be a condition based on tag==intf(tag) && comm_freq
  * so very possibly a substantial part of this rule will be moved to a condition
  */
-     $rule singleton(OUTPUT,global_angles,global_displ,global_rot_center<-global_visc_force,volumeTag(X),ncycle{n},$it{n,it}),
-         parametric(volumeTag(X)), option(disable_threading), conditional(do_communicate_nit1111){
-
-//     $rule singleton(OUTPUT,global_angles,global_displ,global_rot_center<-global_visc_force,volumeTag(X)),
-//         parametric(volumeTag(X)), option(disable_threading){
+     $rule singleton(OUTPUT,global_angles,global_displ,global_rot_center<-global_visc_force,volumeTag(X),ext_interfaces),
+         parametric(volumeTag(X)), option(disable_threading){
 /*
  * get pointer on interfaces in facts 
  */
@@ -142,7 +139,8 @@ namespace flowPsi {
       facts  = *factsP;
 
       param<options_list> int_info ;
-      int_info = facts.get_variable("interfaces") ;
+      int_info = $ext_interfaces;
+
       options_list::option_namelist nl = int_info->getOptionNameList() ;
       options_list::option_namelist::iterator li;
 /*
@@ -177,7 +175,7 @@ namespace flowPsi {
         break ;
       default:
         cerr << "setup_interface can not interpret value assigned to " << bname 
-             << " in interfaces" << endl ;
+             << " in ext_interfaces" << endl ;
         exit(-1) ;
       }
 /*
@@ -272,7 +270,7 @@ end_loop: continue;
  * condition specifying when to communicate
  */
 
-  $rule singleton(do_communicate_nit1111{n,it}<-ncycle{n},$it{n,it},volumeTag(X)) {
+  $rule singleton(do_communicate_nit1111{n,it}<-ncycle{n},$it{n,it},volumeTag(X),ext_interfaces) {
 /*
  * get pointer on interfaces in facts 
  */
@@ -286,7 +284,7 @@ end_loop: continue;
       facts  = *factsP;
 
       param<options_list> int_info ;
-      int_info = facts.get_variable("interfaces") ;
+      int_info = $ext_interfaces;
       options_list::option_namelist nl = int_info->getOptionNameList() ;
       options_list::option_namelist::iterator li;
 
@@ -325,7 +323,7 @@ end_loop: continue;
           break ;
         default:
           cerr << "setup_interface can not interpret value assigned to " << bname 
-             << " in interfaces" << endl ;
+             << " in ext_interfaces" << endl ;
           exit(-1) ;
         }
 /*

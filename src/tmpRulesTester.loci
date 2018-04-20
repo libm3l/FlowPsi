@@ -84,9 +84,36 @@ namespace flowPsi {
 
         string tag = $volumeTag(X) ;
          if(Loci::MPI_rank == 0){
-           cerr << "-------------GOLBAL FORCES are  '" << $global_visc_force << "NAME " << tag <<  endl;
+           std::cout << "-------------GOLBAL FORCES are  '" << $global_visc_force << "NAME " << tag <<  endl;
          }
   };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ $rule singleton(OUTPUT<-global_visc_force,volumeTag(X),ext_interfaces),
+         parametric(volumeTag(X)), option(disable_threading){
+
+//     $rule singleton(OUTPUT,global_angles,global_displ,global_rot_center<-global_visc_force,volumeTag(X)),
+//         parametric(volumeTag(X)), option(disable_threading){
+/*
+ * get pointer on interfaces in facts 
+ */
+      string Vol_tag = $volumeTag(X) ;
+      std::cout << "-------------GOLBAL intrrrrrrrrrrrrrrr are  '" << $global_visc_force << "NAME " << Vol_tag <<  endl;
+      std::cout << "-------------GOLBAL intrrrrrrrrrrrrrrr1111 are  '" << $ext_interfaces <<  endl;
+};
 
 }
 

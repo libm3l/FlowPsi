@@ -75,12 +75,14 @@ namespace flowPsi {
 /*
  * get interfaces facts 
  */
-    int_info = facts.get_variable("interfaces");
+    int_info = facts.get_variable("ext_interfaces");
+ //   ext_interfaces = facts.get_variable("ext_interfaces");
+
     error = true ;
 
     if(Loci::MPI_rank == 0){
        std::cout << "    " << endl ;
-       std::cout << "Interfaces: " << endl ;
+       std::cout << "ext_interfaces: " << endl ;
        std::cout << "----------- " << endl ;}
 
     options_list::option_namelist nl = int_info->getOptionNameList() ;
@@ -115,7 +117,7 @@ namespace flowPsi {
         break ;
       default:
         cerr << "setup_interface can not interpret value assigned to " << bname 
-             << " in interfaces" << endl ;
+             << " in ext_interfaces" << endl ;
         exit(-1) ;
       }
 /*

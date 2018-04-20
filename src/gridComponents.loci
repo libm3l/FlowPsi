@@ -48,13 +48,6 @@ $include "flowPsi.lh"
 
 namespace flowPsi {
 
-  $type min_cell2face Map ;
-  
-  $type componentMotion param<options_list> ;
-  $type componentHierarchy param<options_list> ;
-  $type componentGeometry param<options_list> ;
-  $type componentPriority param<options_list> ;
-
   $rule optional(componentMotion),
     comments("Specify motions of individual mesh components") {
   }
@@ -82,38 +75,27 @@ namespace flowPsi {
     *$componentMotionTypes = std::set<std::string>() ;
   } ;
 
-  /*
-   * define type of motion
-   */
   $rule apply(componentMotionTypes)[Loci::NullOp],
     constraint(UNIVERSE),prelude {
     $componentMotionTypes->insert(string("rotation")) ;
     $componentMotionTypes->insert(string("servo")) ;
     $componentMotionTypes->insert(string("prescribed")) ;
-    $componentMotionTypes->insert(string("prescribed_external")) ;
     $componentMotionTypes->insert(string("stationary")) ;
   } ;
- 
-  /*
-   * define constraint flags for each type of motion
-   */
+    
+  
   $type componentRotation_X Constraint ;
   $type componentServo_X Constraint ;
   $type componentPrescribed_X Constraint ;
-  $type componentPrescribed_E Constraint ;
   $type componentStationary_X Constraint ;
   $type volumeTag(X) param<string> ;
   
-  /*
-   * set the constraint flag depending on type of motion
-   */
-  $rule constraint(componentServo_X,componentRotation_X,componentPrescribed_X, componentStationary_X,
-       componentPrescribed_E<-volumeTag(X),componentMotion,componentMotionTypes), parametric(volumeTag(X)) {
-        
+  $rule constraint(componentServo_X,componentRotation_X,componentPrescribed_X,componentStationary_X<-volumeTag(X),componentMotion,componentMotionTypes),
+    parametric(volumeTag(X)) {
     string tag = $volumeTag(X) ;
     $componentRotation_X = EMPTY ;
     $componentPrescribed_X = EMPTY ;
-    $componentPrescribed_E = EMPTY ;
+    $componentStationary_X = EMPTY ;
     $componentServo_X = EMPTY ;
     if($componentMotion.optionExists(tag)) {
       string name ;
@@ -131,8 +113,6 @@ namespace flowPsi {
         $componentServo_X = ~EMPTY ;
       } else if(name == "prescribed") {
         $componentPrescribed_X = ~EMPTY ;
-      } else if(name == "prescribed_external") {
-        $componentPrescribed_E = ~EMPTY ;
       } else if(name == "stationary") {
         $componentStationary_X = ~EMPTY ;
       }
@@ -211,9 +191,7 @@ namespace flowPsi {
   $type componentRotationAxis_X param<vect3d> ;
   $type componentRotationCenter_X param<vect3d> ;
   $type componentRotationSpeed_X param<real> ;
-/*
- * AJ note: set parameters for rotation
- */
+
   $rule singleton(componentRotationAxis_X,componentRotationCenter_X,
                   componentRotationSpeed_X<-componentMotion,componentName_X),
     constraint(componentRotation_X), parametric(volumeTag(X)) {
@@ -306,7 +284,6 @@ namespace flowPsi {
   }
   
   
-  $type componentNodes_X store<bool> ;
 
   $rule pointwise(face2node->componentNodes_X),constraint(cl->volumeTag(X)),parametric(volumeTag(X)) {} 
   $rule pointwise(face2node->right::componentNodes_X),constraint(cr->volumeTag(X)),parametric(volumeTag(X)) {} 
@@ -562,9 +539,7 @@ namespace flowPsi {
   }
 
   $type prescribedMotion_X blackbox<motionSplines> ;
-/*
- * read motion file for prescribed motion
- */
+  
   $rule blackbox(prescribedMotion_X<-volumeTag(X)),
     constraint(componentPrescribed_X),parametric(volumeTag(X)),
     prelude {
@@ -634,9 +609,7 @@ namespace flowPsi {
     $prescribedMotion_X.getMotion(cg,q,0.0) ;
     $prescribedCG_X = cg ;
   }
-/*
- * AJ note: set prescribedMotion_X 
- */
+
   $rule apply(componentMotionData<-prescribedMotion_X,prescribedCG_X,componentName_X,dtmax,stime)[Loci::NullOp],
     constraint(componentPrescribed_X),parametric(volumeTag(X)), prelude {
     real t = *$stime + real(*$dtmax) ;
@@ -650,10 +623,7 @@ namespace flowPsi {
     string name = *$componentName_X ;
     (*$componentMotionData)[name] = xform ;
   } ;
-/*
- * AJ note: this is transformation, prototype of applyXform is in ../include/gridComponent.h
- * it seems this is both rotation and translation of the mesh
- */
+
   $rule pointwise(pos{n,it}<-pos{n},pos,componentTransformsn_X{n,it}),
     constraint(componentNodes_X{n},componentMotion),
     parametric(volumeTag(X)) {
@@ -669,9 +639,7 @@ namespace flowPsi {
   }
   
   $type componentVectorRotation_X param<tens3d> ;
-/*
- * AJ note: this is rotation of the mesh
- */
+
   $rule singleton(componentVectorRotation_X<-componentTransformsn_X), parametric(volumeTag(X)) {
     int sz = $componentTransformsn_X.size() ;
     vect3d v = vect3d(1,0,0) ;
