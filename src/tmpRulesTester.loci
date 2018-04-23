@@ -69,7 +69,7 @@ namespace flowPsi {
         $componentMotion.getOption(tag,name,value_list) ;
 
         if($componentMotionTypes.find(name) == $componentMotionTypes.end()) {
-         cerr << "unknown component motion directive '" << name << "' for component '"
+         cerr << "unknown component motion directive - 1'" << name << "' for component '"
               << tag << "'" << endl ;
          Loci::Abort() ;
        }
@@ -92,26 +92,15 @@ namespace flowPsi {
 
 
 
-
-
-
-
-
-
-
-
-
-
- $rule singleton(OUTPUT<-global_visc_force,volumeTag(X),ext_interfaces),
-         parametric(volumeTag(X)), option(disable_threading){
-
-//     $rule singleton(OUTPUT,global_angles,global_displ,global_rot_center<-global_visc_force,volumeTag(X)),
+ $rule singleton(OUTPUT<-volumeTag(X),ext_interfaces),
+         parametric(volumeTag(X)), option(disable_threading){ 
+// $rule singleton(OUTPUT<-global_visc_force,volumeTag(X),ext_interfaces),
 //         parametric(volumeTag(X)), option(disable_threading){
 /*
  * get pointer on interfaces in facts 
  */
       string Vol_tag = $volumeTag(X) ;
-      std::cout << "-------------GOLBAL intrrrrrrrrrrrrrrr are  '" << $global_visc_force << "NAME " << Vol_tag <<  endl;
+//      std::cout << "-------------GOLBAL intrrrrrrrrrrrrrrr are  '" << $global_visc_force << "NAME " << Vol_tag <<  endl;
       std::cout << "-------------GOLBAL intrrrrrrrrrrrrrrr1111 are  '" << $ext_interfaces <<  endl;
 };
 

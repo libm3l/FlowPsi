@@ -68,11 +68,9 @@ namespace flowPsi {
   $type componentMotion param<options_list> ;
   $type componentServo_X Constraint ;
   $type do_communicate_nit1111 param<bool> ;
-
-//  $type commnow param<int> ;
     
-        $rule singleton(OUTPUT,global_angles,global_displ,global_rot_center<-global_visc_force),
-              option(disable_threading), conditional(do_communicate_nit)  {
+  $rule singleton(OUTPUT,global_angles,global_displ,global_rot_center<-global_visc_force),
+         option(disable_threading), conditional(do_communicate_nit)  {
             
 //        $rule singleton(OUTPUT,global_angles,global_displ,global_rot_center<-global_visc_force),
 //              option(disable_threading),constraint(movingMesh,area)  {
