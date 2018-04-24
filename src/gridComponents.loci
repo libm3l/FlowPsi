@@ -19,6 +19,18 @@
 //#
 //#############################################################################
 
+/*
+ *
+ * History:
+ * Version   Author:               Date       Patch number  CLA     Comment
+ * -------   -------               --------   --------      ---     -------
+ * 1-beta-6  Adam Jirasek         2018-04-24    0001                Add external maneuver rule
+ *
+ *
+ *
+ * 
+ */
+
 #include <Loci.h>
 #include <Tools/tools.h>
 #include "gridComponent.h"
@@ -187,7 +199,6 @@ namespace flowPsi {
   
 
   $type componentTransformMap blackbox<map<string,vector<componentXform> > > ;
-
 
   
   $type componentMotionData blackbox<map<string,componentXform> > ;
@@ -617,7 +628,7 @@ namespace flowPsi {
 /*
  * get motion center
  */ 
- //  $type prescribedCG_X param<vect3d> ;
+  $type prescribedCG_X param<vect3d> ;
   $rule singleton(prescribedCG_X<-prescribedMotion_X),
     parametric(volumeTag(X)) {
     vect3d cg ;
@@ -625,23 +636,18 @@ namespace flowPsi {
     $prescribedMotion_X.getMotion(cg,q,0.0) ;
     $prescribedCG_X = cg ;
   }
-
 /*
+ * External manuever rule (Patch 0001)
  * set values in componentMotionData when externally prescribed motion
- * see solvreExtrnalComm.loci for rules setting motion data
+ * the new values area stored in componentXform XmotionData
+ * which is set in solverExtrnalComm.loci
  */
-  $rule apply(componentMotionData<-prescribedCG_X,componentName_X)[Loci::NullOp],
+  $rule apply(componentMotionData<-XmotionData(X),componentName_X)[Loci::NullOp],
     constraint(componentExternal_X),parametric(volumeTag(X)), prelude{
-    vect3d cg_new ;
-    Quaternion q ;
-    componentXform xform ;
-    xform.cg =*$prescribedCG_X ;
-  //  xform.new_cg = cg_new ;
- //   xform.q = q ;
     string name = *$componentName_X ;
-    (*$componentMotionData)[name] = xform ;
+    (*$componentMotionData)[name] = *$XmotionData(X) ;
     printf("           EXTERNAL   DT \n" );
-    std::cout << "-------------  external name is   " << "  " << name << "   " << *$prescribedCG_X<< endl ;
+    std::cout << "-------------  external name is   " << "  " << name << "   " << (*$XmotionData(X)).cg << endl ;
   } ;
 
 /*

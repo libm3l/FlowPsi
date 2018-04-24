@@ -1,3 +1,44 @@
+##############################################################################
+#     Copyright (C) 2018  Adam Jirasek
+# 
+#     This file is part of the flowPsi computational fluid dynamics solver.
+#
+#     This program is free software: you can redistribute it and/or modify
+#     it under the terms of the GNU General Public License as published by
+#     the Free Software Foundation, either version 3 of the License, or
+#     (at your option) any later version.
+# 
+#     This program is distributed in the hope that it will be useful,
+#     but WITHOUT ANY WARRANTY; without even the implied warranty of
+#     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#     GNU General Public License for more details.
+# 
+#     You should have received a copy of the GNU General Public License
+#     along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#     
+#     contact: libm3l@gmail.com
+# 
+##############################################################################
+
+
+#
+#     Description: - This is a Makefile for src_bridges
+#
+#     Input parameters:
+# 
+#
+#     Return value:
+# 
+# History:
+# Version   Author:               Date       Patch number  CLA     Comment
+# -------   -------               --------   --------      ---     -------
+# 1-beta-6  Adam Jirasek         2018-03-21                        Initial Implementation
+#
+#
+#     Description
+# 
+#
+
 include ../flowpsi.conf
 
 #FILES = $(shell find ./ -name "*.c" | sed 's/.\///' )
@@ -7,8 +48,7 @@ HFILES = $(shell ls  *.h  |   sed '/lsipdx_header.h/d'  |   sed '/lsipdx.h/d' | 
 EMPTYL = $(shell find $(LIBM3LPATH) \( -name libm3l.so -o -iname libm3l.h -o -iname libm3l.so.1.0 \) | wc -l )
 EMPTYLS = $(shell find $(LSIPDXPATH) \( -name liblsipdx.so -o -iname lsipdx.h -o -iname liblsipdx.so.1.0 \) | wc -l )
 
-# OBJS=$(FILES:%.c=%.o)
-OBJS = $(shell ls *.c | sed 's/\.c/\.o/'  |   sed '/Server_Main.o/d' | sort -df)
+OBJS=$(FILES:%.c=%.o)
 
 CC = mpic++
 CFLAGS = -fbounds-check -fstack-check -g 
@@ -16,8 +56,6 @@ LFLAGS = -fbounds-check -fstack-check -g
 
 INCLUDES = -I$(LIBM3LPATH) -I$(LSIPDXPATH) -I$(LOCI_BASE)/include -I../include
 
-#CFLAGS =
-#LFLAGS =
 #
 #Autodependencies with GNU make
 #Scott McPeak, November 2001 
@@ -58,8 +96,7 @@ endif
 
 
 prog: $(OBJS)
-#	$(CC) -shared -Wl,-soname,libbridges.so.1.0 -o libbridges.so.1.0   $(OBJS)
-#	ln -sf libbridges.so.1.0 libbridges.so	
+
 	$(CC) -c $(OBJS)
 	ar  rcs libbridges.a  *.o    
 

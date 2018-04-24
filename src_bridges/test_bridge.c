@@ -55,7 +55,7 @@
  * History:
  * Version   Author:               Date       Patch number  CLA     Comment
  * -------   -------               --------   --------      ---     -------
- * 1.1       Adam Jirasek    2018-03-21                       Initial implementation
+ * 1-beta-6  Adam Jirasek         2018-03-21                        Initial Implementation
  *
  *
  *     Description
@@ -64,7 +64,6 @@
 
 #include "libm3l.h"
 #include "lsipdx.h"
-#include "src_bridges_types.h"
 #include "src_bridges.h"
 
 
@@ -359,33 +358,40 @@ lmint_t test_bridge(lmdouble_t ForceX, lmdouble_t ForceY, lmdouble_t ForceZ ,
 }
 
 
-lmint_t test_bridge1(comm_struct_t *pcomm_str){
 
-        lmdouble_t ForceX; lmdouble_t ForceY; lmdouble_t ForceZ ; 
-                    lmdouble_t Alpha; lmdouble_t Beta; lmdouble_t Gamma;
-                    lmdouble_t TransX; lmdouble_t TransY; lmdouble_t TransZ;
-                    lmdouble_t RotCX; lmdouble_t RotCY; lmdouble_t RotCZ;
+
+
+
+
+lmint_t test_bridge_gaternion(lmdouble_t time, 
+                    lmdouble_t ForceX, lmdouble_t ForceY, lmdouble_t ForceZ , 
+                    lmdouble_t Alpha, lmdouble_t Qx, lmdouble_t Qy, lmdouble_t Qz,
+                    lmdouble_t TransX, lmdouble_t TransY, lmdouble_t TransZ,
+                    lmdouble_t RotCX, lmdouble_t RotCY, lmdouble_t RotCZ){
+
 
 	node_t *Gnode=NULL, *TmpNode = NULL, *FoundNode = NULL;
 	lmsize_t dim[1], i, tot_dim;
 
-	lmint_t sockfd;
+//	lmchar_t hostname[80], channel_name[80];
+
+	lmint_t sockfd, portno;
+
+	lmchar_t *name ="CFD2SIM";
+	lmchar_t *name1="SIM2CFD";
+        lmchar_t *hostname ="localhost";
 
 	lmdouble_t *tmpfloat;
 	client_fce_struct_t InpPar, *PInpPar;
 	opts_t *Popts_1, opts, opts_1, *Popts;
 	find_t *SFounds;
-
-        ForceX = 0;
-        ForceY = 0;
-        ForceZ = 0;
 /*
  * Set parameters which are needed for opening the socket for sending data
  */
         PInpPar = &InpPar;
-	PInpPar->channel_name = pcomm_str->O_channel;   /* name of channel where to send data*/
+	PInpPar->channel_name = name;   /* name of channel where to send data*/
 	PInpPar->SR_MODE = 'S';         /* set R or S, because we will write outgoing data to this 
-                                              socket, set it to S */
+                                                   socket, set it to S */
 /*
  *  this parameter determines two modes.
  *  for this case it is set to D as direct, meaning we will open the socket and get the data only
@@ -414,6 +420,8 @@ lmint_t test_bridge1(comm_struct_t *pcomm_str){
 	m3l_set_Send_receive_tcpipsocket(&Popts_1);
 	m3l_set_Find(&Popts);
 
+        portno = 31000;
+
 //=======================================================================
 
 /*
@@ -440,20 +448,25 @@ lmint_t test_bridge1(comm_struct_t *pcomm_str){
 	dim[0] = 1;
 	if(  (TmpNode = m3l_Mklist("Time", "D", 1, dim, &Gnode, "/CFD_2_SIM", "./", (char *)NULL)) == 0)
 		Error("socket_FlowPsi2simulink: m3l_Mklist");
-	TmpNode->data.df[0] = 1.54;
+	TmpNode->data.df[0] = time;
+/*
+ * print data on screen
+ */
+ //       if(m3l_Cat(Gnode, "--all", "-P", "-L",  "*",   (char *)NULL) != 0)
+ //	  Error("CatData");
 /*
  * open socket
  */
 #pragma omp critical
 {
- 	if( (sockfd = open_connection_to_server(pcomm_str->IP, pcomm_str->portno, PInpPar, Popts_1)) < 1)
+	if( (sockfd = open_connection_to_server(hostname, portno, PInpPar, Popts_1)) < 1)
 		Error("socket_FlowPsi2simulink: Error when opening socket");
 }
 /*
  * send data 
  */
 	if ( client_sender(Gnode, sockfd, PInpPar, (opts_t *)NULL, (opts_t *)NULL) !=1 )
-		Error("socket_FlowPsi2simulink: client_sender()"); 
+		Error("socket_FlowPsi2simulink: client_sender()");
 /*
  * close socket
  */
@@ -471,9 +484,9 @@ lmint_t test_bridge1(comm_struct_t *pcomm_str){
  * receive data 
  */
 	PInpPar = &InpPar;
-	PInpPar->channel_name = pcomm_str->I_channel;    /* name of channel */
-	PInpPar->SR_MODE = 'R';                          /* set R or S, because we will read incoming  
-                                                            data from this socket, set it to R */
+	PInpPar->channel_name = name1;       /* name of channel */
+	PInpPar->SR_MODE = 'R';              /* set R or S, because we will read incoming data from this 
+                                                   socket, set it to R */
 /*
  *  this parameter determines two modes.
  *  for this case it is set to D as direct, meaning we will open the socket and get the data only
@@ -504,7 +517,7 @@ lmint_t test_bridge1(comm_struct_t *pcomm_str){
  */
 #pragma omp critical
 {
-	if( (sockfd = open_connection_to_server(pcomm_str->IP, pcomm_str->portno, PInpPar, Popts_1)) < 1)
+	if( (sockfd = open_connection_to_server(hostname, portno, PInpPar, Popts_1)) < 1)
 		Error("client_sender: Error when opening socket");
 }
 /*
@@ -523,12 +536,12 @@ lmint_t test_bridge1(comm_struct_t *pcomm_str){
 /*
  * print data on screen
  */
-//        if(m3l_Cat(Gnode, "--all", "-P", "-L",  "*",   (char *)NULL) != 0)
-// 	  Error("CatData");
+        if(m3l_Cat(Gnode, "--all", "-P", "-L",  "*",   (char *)NULL) != 0)
+ 	  Error("CatData");
 /*
  * find Angles - rotation matrix and copy the values to FlowPsi allocated memory
  */
-	if( (SFounds = m3l_Locate(Gnode, "/SIM_2_CFD/Angles", "/*/*",  (lmchar_t *)NULL)) != NULL){
+	if( (SFounds = m3l_Locate(Gnode, "/SIM_2_CFD/Quaternion", "/*/*",  (lmchar_t *)NULL)) != NULL){
 /*
  * check that only one data set called Angles is present
  */
@@ -551,11 +564,9 @@ lmint_t test_bridge1(comm_struct_t *pcomm_str){
 			Error("socket_FlowPsi2simulink: Did not find Angles data pointer");
 
                 Alpha = tmpfloat[0];
-                Beta  = tmpfloat[1];
-                Gamma = tmpfloat[2];
-
-		//for (i=0; i<tot_dim; i++)
-		//	Angles[i]  = tmpfloat[i];
+                Qx    = tmpfloat[1];
+                Qy    = tmpfloat[2];
+                Qz    = tmpfloat[3];
 /* 
  * free memory allocated in m3l_Locate
  */
