@@ -31,7 +31,7 @@
  * History:
  * Version   Author:               Date       Patch number  CLA     Comment
  * -------   -------               --------   --------      ---     -------
- * 1.1       Adam Jirasek         2018-03-21                        Initial implementation
+ * 1-beta-6  Adam Jirasek         2018-03-21                        Initial Implementation
  *
  *
  *
@@ -65,12 +65,11 @@ namespace flowPsi {
 
   $type volumeTag(X) param<string> ;
   $type do_communicate_nit1111 param<bool> ;
-  //componentXform XmotionData ;
   $type XmotionData blackbox<componentXform> ;
 /*
  * this is test rule which set some motion component parameters
  */
- $rule singleton(XmotionData<-dtmax,stime),constraint(componentExternal_X),parametric(volumeTag(X)), conditional(do_communicate_nit) {
+ $rule singleton(XmotionData<-dtmax,stime), constraint(componentExternal_X),parametric(volumeTag(X)), conditional(do_communicate_nit) {
             
     vect3d cg = vect3d (1.0,1.0,1.0) ;
     vect3d cg_new;
@@ -92,7 +91,7 @@ namespace flowPsi {
 /*
  * get new center of rotation
  */
-        cg     = vect3d(RotCX, RotCY, RotCZ);
+      //  cg     = vect3d(RotCX, RotCY, RotCZ);
         cg_new = vect3d(TransX, TransY, TransZ);
         cg_new = cg + cg_new;
 

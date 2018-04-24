@@ -19,6 +19,23 @@
 //#
 //#############################################################################
 
+/*
+ * 
+ * Description: calls functions acting as a bridge between FlowPsi and externally driven processes
+ *     For this purpose, it uses two external libraries, libm3l and lsipdx
+ *     for more details go to www.github.com/libm3l/libm3l and www.github.com/libm3l/lsipdx 
+ *     values of angles, rotation center and translation
+ *
+ * History:
+ * Version   Author:               Date       Patch number  CLA     Comment
+ * -------   -------               --------   --------      ---     -------
+ * 1-beta-6  Adam Jirasek         2018-04-24                        Add external maneuver rules
+ *
+ *
+ *
+ * 
+ */
+
 #include <Loci.h>
 #include <Tools/tools.h>
 #include "gridComponent.h"
@@ -625,7 +642,6 @@ namespace flowPsi {
     $prescribedMotion_X.getMotion(cg,q,0.0) ;
     $prescribedCG_X = cg ;
   }
-
 /*
  * set values in componentMotionData when externally prescribed motion
  * the new values area stored in componentXform XmotionData
