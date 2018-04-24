@@ -617,7 +617,7 @@ namespace flowPsi {
 /*
  * get motion center
  */ 
- //  $type prescribedCG_X param<vect3d> ;
+  $type prescribedCG_X param<vect3d> ;
   $rule singleton(prescribedCG_X<-prescribedMotion_X),
     parametric(volumeTag(X)) {
     vect3d cg ;
@@ -628,20 +628,15 @@ namespace flowPsi {
 
 /*
  * set values in componentMotionData when externally prescribed motion
- * see solvreExtrnalComm.loci for rules setting motion data
+ * the new values area stored in componentXform XmotionData
+ * which is set in solverExtrnalComm.loci
  */
-  $rule apply(componentMotionData<-prescribedCG_X,componentName_X)[Loci::NullOp],
+  $rule apply(componentMotionData<-XmotionData,componentName_X)[Loci::NullOp],
     constraint(componentExternal_X),parametric(volumeTag(X)), prelude{
-    vect3d cg_new ;
-    Quaternion q ;
-    componentXform xform ;
-    xform.cg =*$prescribedCG_X ;
-  //  xform.new_cg = cg_new ;
- //   xform.q = q ;
     string name = *$componentName_X ;
-    (*$componentMotionData)[name] = xform ;
+    (*$componentMotionData)[name] = *$XmotionData ;
     printf("           EXTERNAL   DT \n" );
-    std::cout << "-------------  external name is   " << "  " << name << "   " << *$prescribedCG_X<< endl ;
+    std::cout << "-------------  external name is   " << "  " << name << "   " << (*$XmotionData).cg << endl ;
   } ;
 
 /*
