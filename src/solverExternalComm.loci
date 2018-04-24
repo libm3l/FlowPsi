@@ -96,11 +96,11 @@ namespace flowPsi {
         cg_new = vect3d(TransX, TransY, TransZ);
         cg_new = cg + cg_new;
 
-        $XmotionData(X).cg =t * cg;
+        $XmotionData(X).cg = cg;
         $XmotionData(X).new_cg = cg_new ;
-        $XmotionData(X).q.x = 1 ;
-        $XmotionData(X).q.y = 2 ;
-        $XmotionData(X).q.z = 3 ;
+        $XmotionData(X).q.x = Qx ;
+        $XmotionData(X).q.y = Qy ;
+        $XmotionData(X).q.z = Qz ;
         $XmotionData(X).q.w = Alpha * 3.1415926/180.;
 
         std::cout << "-------------  Prescribed component is11111    " <<  $XmotionData(X).cg << endl ;
