@@ -54,8 +54,13 @@
 #endif
 #endif
 
-extern CPP_C  lmint_t test_bridge(lmdouble_t, lmdouble_t, lmdouble_t,
+extern CPP_C lmint_t test_bridge(lmdouble_t, lmdouble_t, lmdouble_t,
 				  lmdouble_t, lmdouble_t, lmdouble_t,
+				  lmdouble_t, lmdouble_t, lmdouble_t,
+				  lmdouble_t, lmdouble_t, lmdouble_t);
+
+extern CPP_C lmint_t test_bridge_quaternion(lmdouble_t, lmdouble_t, lmdouble_t, lmdouble_t,
+				  lmdouble_t, lmdouble_t, lmdouble_t, lmdouble_t,
 				  lmdouble_t, lmdouble_t, lmdouble_t,
 				  lmdouble_t, lmdouble_t, lmdouble_t);
 

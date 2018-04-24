@@ -65,11 +65,12 @@ namespace flowPsi {
 
   $type volumeTag(X) param<string> ;
   $type do_communicate_nit1111 param<bool> ;
-  $type XmotionData blackbox<componentXform> ;
+  $type XmotionData(X) blackbox<componentXform> ;
 /*
  * this is test rule which set some motion component parameters
  */
- $rule singleton(XmotionData<-dtmax,stime), constraint(componentExternal_X),parametric(volumeTag(X)), conditional(do_communicate_nit) {
+ $rule singleton(XmotionData(X)<-dtmax,stime), 
+   constraint(componentExternal_X),parametric(volumeTag(X)), conditional(do_communicate_nit) {
             
     vect3d cg = vect3d (1.0,1.0,1.0) ;
     vect3d cg_new;
@@ -77,32 +78,32 @@ namespace flowPsi {
 
     lmdouble_t RotCX, RotCY,  RotCZ;
     lmdouble_t TransX, TransY, TransZ;
-    lmdouble_t Alpha, Beta, Gamma;
+    lmdouble_t Alpha, Qx, Qy, Qz;
     lmdouble_t ForceX, ForceY, ForceZ;
 
     if(Loci::MPI_rank==0) {
 
-      printf(" TOTAL FORCES 11111       time %lf \n", t);
+      printf(" TOTAL FORCES 11111 time %lf \n", t);
 /*
  * communicate
  */
-//      test_bridge(ForceX, ForceY, ForceZ, Alpha, Beta, Gamma,
-//                    TransX, TransY, TransZ, RotCX, RotCY, RotCZ);
+      test_bridge_quaternion(t, ForceX, ForceY, ForceZ, Alpha, Qx, Qy, Qz,
+                  TransX, TransY, TransZ, RotCX, RotCY, RotCZ);
 /*
  * get new center of rotation
  */
-      //  cg     = vect3d(RotCX, RotCY, RotCZ);
+        cg     = vect3d(RotCX, RotCY, RotCZ);
         cg_new = vect3d(TransX, TransY, TransZ);
         cg_new = cg + cg_new;
 
-        ($XmotionData).cg =t * cg;
-        ($XmotionData).new_cg = cg_new ;
-        ($XmotionData).q.x = 1 ;
-        ($XmotionData).q.y = 2 ;
-        ($XmotionData).q.z = 3 ;
-        ($XmotionData).q.w = Alpha * 3.1415926/180.;
+        $XmotionData(X).cg =t * cg;
+        $XmotionData(X).new_cg = cg_new ;
+        $XmotionData(X).q.x = 1 ;
+        $XmotionData(X).q.y = 2 ;
+        $XmotionData(X).q.z = 3 ;
+        $XmotionData(X).q.w = Alpha * 3.1415926/180.;
 
-        std::cout << "-------------  Prescribed component is11111    " <<  ($XmotionData).cg << endl ;
+        std::cout << "-------------  Prescribed component is11111    " <<  $XmotionData(X).cg << endl ;
           
     }
   };

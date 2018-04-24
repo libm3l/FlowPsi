@@ -200,7 +200,6 @@ namespace flowPsi {
 
   $type componentTransformMap blackbox<map<string,vector<componentXform> > > ;
 
-
   
   $type componentMotionData blackbox<map<string,componentXform> > ;
 
@@ -643,12 +642,12 @@ namespace flowPsi {
  * the new values area stored in componentXform XmotionData
  * which is set in solverExtrnalComm.loci
  */
-  $rule apply(componentMotionData<-XmotionData,componentName_X)[Loci::NullOp],
+  $rule apply(componentMotionData<-XmotionData(X),componentName_X)[Loci::NullOp],
     constraint(componentExternal_X),parametric(volumeTag(X)), prelude{
     string name = *$componentName_X ;
-    (*$componentMotionData)[name] = *$XmotionData ;
+    (*$componentMotionData)[name] = *$XmotionData(X) ;
     printf("           EXTERNAL   DT \n" );
-    std::cout << "-------------  external name is   " << "  " << name << "   " << (*$XmotionData).cg << endl ;
+    std::cout << "-------------  external name is   " << "  " << name << "   " << (*$XmotionData(X)).cg << endl ;
   } ;
 
 /*
