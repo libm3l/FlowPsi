@@ -45,7 +45,6 @@
 
 #include <Loci.h>
 #include <libm3l.h>
-#include "src_bridges_types.h"
 
 #ifndef CPP_C
 #ifdef __cplusplus 
@@ -59,10 +58,6 @@ extern CPP_C  lmint_t test_bridge(lmdouble_t, lmdouble_t, lmdouble_t,
 				  lmdouble_t, lmdouble_t, lmdouble_t,
 				  lmdouble_t, lmdouble_t, lmdouble_t,
 				  lmdouble_t, lmdouble_t, lmdouble_t);
-
-extern CPP_C  lmint_t test_bridge1(comm_struct_t *);
-extern CPP_C int ompi_intf_bridges(fact_db &facts);
-extern CPP_C int intf_bridges(fact_db &facts);
 
 #endif
 
