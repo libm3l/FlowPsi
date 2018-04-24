@@ -80,6 +80,7 @@ namespace flowPsi {
     $componentMotionTypes->insert(string("rotation")) ;
     $componentMotionTypes->insert(string("servo")) ;
     $componentMotionTypes->insert(string("prescribed")) ;
+    $componentMotionTypes->insert(string("external")) ;
     $componentMotionTypes->insert(string("stationary")) ;
   } ;
     
@@ -87,14 +88,18 @@ namespace flowPsi {
   $type componentRotation_X Constraint ;
   $type componentServo_X Constraint ;
   $type componentPrescribed_X Constraint ;
+  $type componentExternal_X Constraint ;
   $type componentStationary_X Constraint ;
   $type volumeTag(X) param<string> ;
-  
-  $rule constraint(componentServo_X,componentRotation_X,componentPrescribed_X,componentStationary_X<-volumeTag(X),componentMotion,componentMotionTypes),
+/*
+ * set what type of motion
+ */
+  $rule constraint(componentServo_X,componentRotation_X,componentPrescribed_X,componentStationary_X,componentExternal_X<-volumeTag(X),componentMotion,componentMotionTypes),
     parametric(volumeTag(X)) {
     string tag = $volumeTag(X) ;
     $componentRotation_X = EMPTY ;
     $componentPrescribed_X = EMPTY ;
+    $componentExternal_X = EMPTY ;
     $componentStationary_X = EMPTY ;
     $componentServo_X = EMPTY ;
     if($componentMotion.optionExists(tag)) {
@@ -113,6 +118,8 @@ namespace flowPsi {
         $componentServo_X = ~EMPTY ;
       } else if(name == "prescribed") {
         $componentPrescribed_X = ~EMPTY ;
+      } else if(name == "external") {
+        $componentExternal_X = ~EMPTY ;
       } else if(name == "stationary") {
         $componentStationary_X = ~EMPTY ;
       }
@@ -121,7 +128,9 @@ namespace flowPsi {
       Loci::Abort() ;
     }
   }
-
+/*
+ * set componentName_X to volumeTag
+ */
   $type componentName_X blackbox<string> ;
   $rule blackbox(componentName_X<-volumeTag(X)),parametric(volumeTag(X)),
     prelude {
@@ -288,8 +297,9 @@ namespace flowPsi {
   $rule pointwise(face2node->componentNodes_X),constraint(cl->volumeTag(X)),parametric(volumeTag(X)) {} 
   $rule pointwise(face2node->right::componentNodes_X),constraint(cr->volumeTag(X)),parametric(volumeTag(X)) {} 
   
-
- 
+/*
+ * set componentMotionData for rotation
+ */
   $rule apply(componentMotionData<-componentRotationAxis_X,componentRotationCenter_X,componentRotationSpeed_X,componentName_X,dtmax,stime)[Loci::NullOp],
     constraint(componentRotation_X),parametric(volumeTag(X)), prelude {
     real t = *$stime + real(*$dtmax) ;
@@ -324,7 +334,9 @@ namespace flowPsi {
     map<string,real> tmp ;
     $ServoPositionInfo = tmp ;
   }
-
+/*
+ * set componentMotionData for servo
+ */
   $rule apply(componentMotionData<-componentServoAxis_X,componentServoCenter_X,componentServoName_X,componentName_X,ServoPositionInfo)[Loci::NullOp],
     constraint(componentServo_X),parametric(volumeTag(X)), prelude {
     
@@ -459,8 +471,6 @@ namespace flowPsi {
   
   // Prescribed motion starts here... First we implement a cubic spline
 
-  // Prescribed motion starts here... First we implement a cubic spline
-
   // Compute spline derivatives
   void splineD(vector<real> &xp, const vector<real> &x,
                const vector<real> &t) {
@@ -539,7 +549,10 @@ namespace flowPsi {
   }
 
   $type prescribedMotion_X blackbox<motionSplines> ;
-  
+/*
+ * read prescribed motion file 
+ * motion_volumeTag(X).dat 
+ */
   $rule blackbox(prescribedMotion_X<-volumeTag(X)),
     constraint(componentPrescribed_X),parametric(volumeTag(X)),
     prelude {
@@ -601,7 +614,10 @@ namespace flowPsi {
     }
   } ;
 
-  $type prescribedCG_X param<vect3d> ;
+/*
+ * get motion center
+ */ 
+ //  $type prescribedCG_X param<vect3d> ;
   $rule singleton(prescribedCG_X<-prescribedMotion_X),
     parametric(volumeTag(X)) {
     vect3d cg ;
@@ -610,12 +626,34 @@ namespace flowPsi {
     $prescribedCG_X = cg ;
   }
 
+/*
+ * set values in componentMotionData when externally prescribed motion
+ * see solvreExtrnalComm.loci for rules setting motion data
+ */
+  $rule apply(componentMotionData<-prescribedCG_X,componentName_X)[Loci::NullOp],
+    constraint(componentExternal_X),parametric(volumeTag(X)), prelude{
+    vect3d cg_new ;
+    Quaternion q ;
+    componentXform xform ;
+    xform.cg =*$prescribedCG_X ;
+  //  xform.new_cg = cg_new ;
+ //   xform.q = q ;
+    string name = *$componentName_X ;
+    (*$componentMotionData)[name] = xform ;
+    printf("           EXTERNAL   DT \n" );
+    std::cout << "-------------  external name is   " << "  " << name << "   " << *$prescribedCG_X<< endl ;
+  } ;
+
+/*
+ * set values in componentMotionData
+ */
   $rule apply(componentMotionData<-prescribedMotion_X,prescribedCG_X,componentName_X,dtmax,stime)[Loci::NullOp],
     constraint(componentPrescribed_X),parametric(volumeTag(X)), prelude {
     real t = *$stime + real(*$dtmax) ;
     vect3d cg_new ;
     Quaternion q ;
     $prescribedMotion_X->getMotion(cg_new,q,t) ;
+    printf("           PRESCRIBED     DT %lf  %lf  %lf \n", t,*$stime, real(*$dtmax) );
     componentXform xform ;
     xform.cg = *$prescribedCG_X ;
     xform.new_cg = cg_new ;
@@ -623,7 +661,9 @@ namespace flowPsi {
     string name = *$componentName_X ;
     (*$componentMotionData)[name] = xform ;
   } ;
-
+/*
+ * transform mesh
+ */
   $rule pointwise(pos{n,it}<-pos{n},pos,componentTransformsn_X{n,it}),
     constraint(componentNodes_X{n},componentMotion),
     parametric(volumeTag(X)) {
@@ -639,7 +679,9 @@ namespace flowPsi {
   }
   
   $type componentVectorRotation_X param<tens3d> ;
-
+/*
+ * set componentVectorRotation_X
+ */
   $rule singleton(componentVectorRotation_X<-componentTransformsn_X), parametric(volumeTag(X)) {
     int sz = $componentTransformsn_X.size() ;
     vect3d v = vect3d(1,0,0) ;

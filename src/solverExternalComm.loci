@@ -64,21 +64,36 @@ using std::cerr ;
 namespace flowPsi { 
 
   $type volumeTag(X) param<string> ;
-  $type componentMotionTypes blackbox<std::set<std::string> > ;
-  $type componentMotion param<options_list> ;
-  $type componentServo_X Constraint ;
   $type do_communicate_nit1111 param<bool> ;
+/*
+ * this is test rule which set some motion component parameters
+ */
+ $rule singleton(prescribedCG_X<-dtmax,stime),constraint(componentExternal_X),parametric(volumeTag(X)), conditional(do_communicate_nit) {
+            
+    vect3d cg = vect3d (1.0,1.0,1.0) ;
+    real t = $stime + $dtmax ;
+    $prescribedCG_X = t * cg;
 
-//  $type commnow param<int> ;
-    
-        $rule singleton(OUTPUT,global_angles,global_displ,global_rot_center<-global_visc_force),
-              option(disable_threading), conditional(do_communicate_nit)  {
+    if(Loci::MPI_rank==0) {
+
+      printf(" TOTAL FORCES 11111       time %lf \n", t);
+      std::cout << "-------------  Prescribed component is11111    " <<  $prescribedCG_X<< endl ;
+          
+    }
+  };
+
+/*
+ * this is test rule to communicate
+ */ 
+  $rule singleton(OUTPUT,global_angles,global_displ,global_rot_center<-dtmax,stime),
+         option(disable_threading), conditional(do_communicate_nit)  {
             
 //        $rule singleton(OUTPUT,global_angles,global_displ,global_rot_center<-global_visc_force),
 //              option(disable_threading),constraint(movingMesh,area)  {
 /*
  * communicate_n_it is a condition which desides when to communicate, it is defines in solverSetup.loci
  */
+
     if(Loci::MPI_rank==0) {
 /*
  * call function test_bridge
@@ -96,7 +111,10 @@ namespace flowPsi {
 //		    $global_displ[0], $global_displ[1], $global_displ[2],
 //		    $global_rot_center[0], $global_rot_center[1], $global_rot_center[2]);
 //
-//        printf(" TOTAL FORCES        ----------------------  LOOP  %f  %f   %f \n", $global_visc_force[0], $global_visc_force[1], $global_visc_force[2]);
+ //       printf(" TOTAL FORCES        ----------------------  LOOP  %f  %f   %f  time %lf \n", $global_visc_force[0], $global_visc_force[1], $global_visc_force[2], t);
+
+//printf(" TOTAL FORCES        time %lf \n", t);
+//std::cout << "-------------  Prescribed component is    " <<  $prescribedCG_X<< endl ;
 //        printf("ANGLES        ----------------------  LOOP  %f  %f   %f \n", $global_angles[0], $global_angles[1], $global_angles[2]);
 //        printf("transl        ----------------------  LOOP  %f  %f   %f \n", $global_displ[0], $global_displ[1], $global_displ[2]);
 //        printf("rotc        ----------------------  LOOP  %f  %f   %f \n", $global_rot_center[0], $global_rot_center[1], $global_rot_center[2]);
@@ -113,7 +131,7 @@ namespace flowPsi {
         //intf_bridges(facts);
           
     }
-  };
+ };
 
 
 
