@@ -180,24 +180,4 @@ namespace flowPsi {
            << " cflmin = " << $cfl{n,it}.second << endl ;
     }
   }
-
-
-  // provides the condition under which to communicate
-
-  $rule default(comm_freq) {
-    $comm_freq = 1 ;
-  }
-
-  $type do_communicate_nit param<bool> ;
-  $rule singleton(do_communicate_nit{n,it}<-ncycle{n},comm_freq,$it{n,it}) {
-    //the condition for when to communicate
-    if($comm_freq < 0){
-        $do_communicate_nit{n,it} = ($$it{n,it} % -$comm_freq) == 0;
-    }
-    else{
-        $do_communicate_nit{n,it} = ($ncycle{n} % $comm_freq) == 0 && ($$it{n,it} == 0) ;
-    }
-  } 
-
-  
 }

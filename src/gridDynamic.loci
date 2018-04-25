@@ -57,7 +57,7 @@ namespace flowPsi {
  */
   $rule apply(hasMeshMotion)[Loci::Maximum],constraint(movingMesh),prelude {
     join(*$hasMeshMotion,1) ;
-    printf(" ======================== Has motion \n");
+    printf("gridDynamic ======================== Has motion \n");
   } ;
     
   $rule pointwise(us_n),constraint(area) {

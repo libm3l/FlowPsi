@@ -66,11 +66,32 @@ namespace flowPsi {
   $type volumeTag(X) param<string> ;
   $type do_communicate_nit1111 param<bool> ;
   $type XmotionData(X) blackbox<componentXform> ;
+
+ // provides the condition under which to communicate
+
+  $rule default(comm_freq) {
+    $comm_freq = 1 ;
+  }
+
+  $type do_communicate_nit param<bool> ;
+  $rule singleton(do_communicate_nit{n,it}<-ncycle{n},comm_freq,$it{n,it}) {
+    //the condition for when to communicate
+    if($comm_freq < 0){
+        $do_communicate_nit{n,it} = ($$it{n,it} % -$comm_freq) == 0;
+    }
+    else{
+        $do_communicate_nit{n,it} = ($ncycle{n} % $comm_freq) == 0 && ($$it{n,it} == 0) ;
+    }
+  } 
+
 /*
  * this is test rule which set some motion component parameters
  */
+// $rule singleton(XmotionData(X)<-dtmax,stime), 
+//   constraint(componentExternal_X),parametric(volumeTag(X)), conditional(do_communicate_nit) {
+
  $rule singleton(XmotionData(X)<-dtmax,stime), 
-   constraint(componentExternal_X),parametric(volumeTag(X)), conditional(do_communicate_nit) {
+   constraint(componentExternal_X),parametric(volumeTag(X)){
             
     vect3d cg = vect3d (1.0,1.0,1.0) ;
     vect3d cg_new;
@@ -87,8 +108,8 @@ namespace flowPsi {
 /*
  * communicate
  */
-      test_bridge_quaternion(t, ForceX, ForceY, ForceZ, Alpha, Qx, Qy, Qz,
-                  TransX, TransY, TransZ, RotCX, RotCY, RotCZ);
+      test_bridge_quaternion(t, ForceX, ForceY, ForceZ, &Alpha, &Qx, &Qy, &Qz,
+                  &TransX, &TransY, &TransZ, &RotCX, &RotCY, &RotCZ);
 /*
  * get new center of rotation
  */
@@ -104,7 +125,10 @@ namespace flowPsi {
         $XmotionData(X).q.w = Alpha * 3.1415926/180.;
 
         std::cout << "-------------  Prescribed component is11111    " <<  $XmotionData(X).cg << endl ;
-          
+  //  std::cout << "-------------  Prescribed component is11111  " << "  " << $XmotionData(X).cg << endl ;
+  //  std::cout << "-------------  Prescribed component is11111  " << "  " << $XmotionData(X).new_cg << endl ;
+  //  std::cout << "-------------  Prescribed component is11111  " << "  " << $XmotionData(X).q.x << " "
+ //<< $XmotionData(X).q.y << " "<< $XmotionData(X).q.z << " "<< $XmotionData(X).q.w<< endl ;      
     }
   };
 }

@@ -363,11 +363,11 @@ lmint_t test_bridge(lmdouble_t ForceX, lmdouble_t ForceY, lmdouble_t ForceZ ,
 
 
 
-lmint_t test_bridge_gaternion(lmdouble_t time, 
+lmint_t test_bridge_quaternion(lmdouble_t time, 
                     lmdouble_t ForceX, lmdouble_t ForceY, lmdouble_t ForceZ , 
-                    lmdouble_t Alpha, lmdouble_t Qx, lmdouble_t Qy, lmdouble_t Qz,
-                    lmdouble_t TransX, lmdouble_t TransY, lmdouble_t TransZ,
-                    lmdouble_t RotCX, lmdouble_t RotCY, lmdouble_t RotCZ){
+                    lmdouble_t *Alpha, lmdouble_t *Qx, lmdouble_t *Qy, lmdouble_t *Qz,
+                    lmdouble_t *TransX, lmdouble_t *TransY, lmdouble_t *TransZ,
+                    lmdouble_t *RotCX, lmdouble_t *RotCY, lmdouble_t *RotCZ){
 
 
 	node_t *Gnode=NULL, *TmpNode = NULL, *FoundNode = NULL;
@@ -539,14 +539,14 @@ lmint_t test_bridge_gaternion(lmdouble_t time,
         if(m3l_Cat(Gnode, "--all", "-P", "-L",  "*",   (char *)NULL) != 0)
  	  Error("CatData");
 /*
- * find Angles - rotation matrix and copy the values to FlowPsi allocated memory
+ * find Quaternion - rotation vector and copy the values to FlowPsi allocated memory
  */
 	if( (SFounds = m3l_Locate(Gnode, "/SIM_2_CFD/Quaternion", "/*/*",  (lmchar_t *)NULL)) != NULL){
 /*
- * check that only one data set called Angles is present
+ * check that only one data set called Quaternion is present
  */
 		if( m3l_get_Found_number(SFounds) != 1)
-			Error("socket_FlowPsi2simulink: More then one Angles data set found");
+			Error("socket_FlowPsi2simulink: More then one Quaternion data set found");
 /* 
  * point to the first list of found nodes
  */
@@ -555,18 +555,18 @@ lmint_t test_bridge_gaternion(lmdouble_t time,
 /*
  * get array dimensions
  */
-		if( (tot_dim = m3l_get_List_totdim(FoundNode)) != 3)
-			Error("socket_FlowPsi2simulink: Wrong dimensions of Angles array");
+		if( (tot_dim = m3l_get_List_totdim(FoundNode)) != 4)
+			Error("socket_FlowPsi2simulink: Wrong dimensions of Quaternion array");
 /*
  * get pointer on actual, double array data
  */
 		if( (tmpfloat = (lmdouble_t *)m3l_get_data_pointer(FoundNode)) == NULL)
-			Error("socket_FlowPsi2simulink: Did not find Angles data pointer");
+			Error("socket_FlowPsi2simulink: Did not find Quaternion data pointer");
 
-                Alpha = tmpfloat[0];
-                Qx    = tmpfloat[1];
-                Qy    = tmpfloat[2];
-                Qz    = tmpfloat[3];
+                *Alpha = tmpfloat[0];
+                *Qx    = tmpfloat[1];
+                *Qy    = tmpfloat[2];
+                *Qz    = tmpfloat[3];
 /* 
  * free memory allocated in m3l_Locate
  */
@@ -574,10 +574,10 @@ lmint_t test_bridge_gaternion(lmdouble_t time,
 	}
 	else
 	{
-		Error("socket_FlowPsi2simulink: Angles not found\n");
+		Error("socket_FlowPsi2simulink: Quaternion not found\n");
 	}
 /*
- * find center of rotation, procedure identical as in case of Angles
+ * find center of rotation, procedure identical as in case of Quaternion
  */
 	if( (SFounds = m3l_Locate(Gnode, "/SIM_2_CFD/RotCenter", "/*/*",  (lmchar_t *)NULL)) != NULL){
 
@@ -593,9 +593,9 @@ lmint_t test_bridge_gaternion(lmdouble_t time,
 		if( (tmpfloat = (lmdouble_t *)m3l_get_data_pointer(FoundNode)) == NULL)
 			Error("socket_FlowPsi2simulink: Did not find RotCenter data pointer");
 
-                RotCX = tmpfloat[0];
-                RotCY = tmpfloat[1];
-                RotCZ = tmpfloat[2];
+                *RotCX = tmpfloat[0];
+                *RotCY = tmpfloat[1];
+                *RotCZ = tmpfloat[2];
 		//for (i=0; i<tot_dim; i++)
 		//	RotCenter[i]  = tmpfloat[i];
 /* 
@@ -608,7 +608,7 @@ lmint_t test_bridge_gaternion(lmdouble_t time,
 		Error("socket_FlowPsi2simulink: RotCenter not found\n");
 	}
 /*
- * find center of translation, procedure identical as in case of Angles
+ * find center of translation, procedure identical as in case of Quaternion
  */
 	if( (SFounds = m3l_Locate(Gnode, "/SIM_2_CFD/TransVec", "/*/*",  (lmchar_t *)NULL)) != NULL){
 
@@ -624,9 +624,9 @@ lmint_t test_bridge_gaternion(lmdouble_t time,
 		if( (tmpfloat = (lmdouble_t *)m3l_get_data_pointer(FoundNode)) == NULL)
 			Error("socket_FlowPsi2simulink: Did not find TransVec data pointer");
 
-                TransX = tmpfloat[0];
-                TransY = tmpfloat[1];
-                TransZ = tmpfloat[2];
+                *TransX = tmpfloat[0];
+                *TransY = tmpfloat[1];
+                *TransZ = tmpfloat[2];
 		//for (i=0; i<tot_dim; i++)
 		//	TransVec[i]  = tmpfloat[i];
 /* 

@@ -648,6 +648,9 @@ namespace flowPsi {
     (*$componentMotionData)[name] = *$XmotionData(X) ;
     printf("           EXTERNAL   DT \n" );
     std::cout << "-------------  external name is   " << "  " << name << "   " << (*$XmotionData(X)).cg << endl ;
+    std::cout << "-------------  external name is   " << "  " << name << "   " << (*$XmotionData(X)).new_cg << endl ;
+    std::cout << "-------------  external name is   " << "  " << name << "   " << (*$XmotionData(X)).q.x << " "
+ << (*$XmotionData(X)).q.y << " "<< (*$XmotionData(X)).q.z << " "<< (*$XmotionData(X)).q.w<< endl ;
   } ;
 
 /*
