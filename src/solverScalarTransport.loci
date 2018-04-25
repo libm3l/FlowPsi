@@ -262,7 +262,9 @@ namespace flowPsi {
     parametric(scalarTransportP(X,C)) {
     $X{n,plot} = $X{n} ;
   }
-
+/*
+ * end of Newton subiterations, shift to next time
+ */
   $rule pointwise(X{n+1}<-X_n{n,it},X{n}),
     conditional(newtonFinished{n,it}),
     constraint(geom_cells{n,it},timeStepAccurate{n,it},C),
@@ -287,7 +289,9 @@ namespace flowPsi {
       dXstar += 0.25*dXstar*dXstar ;
     $X_np1{n,it} = Xstar*(1. + dXstar) ;
   }
-
+/*
+ * JKA Note: updating scalar variables
+ */
   $rule pointwise(X_next<-urelax,X_dq,X),
     constraint(X,X_dq,C),
     parametric(scalarTransportP(X,C)) {
@@ -297,7 +301,9 @@ namespace flowPsi {
     $X_next = $X + tscale*$X_dq ;
     $X_next = max<real>($X_next,1e-15) ;
   }
-  
+/*
+ * JKA Note: shift to nex subiteration
+ */
   $rule pointwise(X_n{n,it+1}<-X_next{n,it},X_dq{n,it}),
     constraint(geom_cells{n,it},C{n,it}),
     parametric(scalarTransportP(X,C)) {

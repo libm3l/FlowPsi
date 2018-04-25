@@ -202,12 +202,12 @@ namespace flowPsi {
   $type rhonp1 store<real> ;
   $type un store<vect3d> ;
   
-  // Density at n timestep
+// Density at n timestep
   $rule pointwise(rhon{n,it}<-temperature{n},gagePressure{n},Rtilde{n,it},Pambient{n,it}) {
     $rhon{n,it} = ($gagePressure{n}+$Pambient{n,it})/
 		    ($Rtilde{n,it}*$temperature{n}) ;
   }
-  
+// Velocity at n timestep 
   $rule pointwise(un{n,it}<-u{n},Pambient{n,it}) {
     $un{n,it} = $u{n} ;
   }
