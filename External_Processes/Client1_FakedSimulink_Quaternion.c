@@ -20,7 +20,7 @@
 /*
  * 
  * Description: contains example of module receving forces/moments and sending back
- *       values of angles, rotation center and translation
+ *       values of quaternion, rotation center and translation
  *
  *       this function receives data from a separatelly run process. The data is contained in a head node
  *       CFD_2_SIM and consists of double array of 6 called ForcesMoments and single double value called Time
@@ -38,7 +38,7 @@
  *   -D                     RotCenter               1      3   
  *   -D                     TransVec                1      3   
  *
- *      which contains double array of 3 called Angles, double array of 3 called RotCenter and double array of 
+ *      which contains double array of 4 called Quaternion, double array of 3 called RotCenter and double array of 
  *      3 called TransVec
  *
  *      to create and manipulate with this type of data set, you need to link two libraries - libm3l and lsipdx 
@@ -239,7 +239,7 @@ int main(int argc, char *argv[])
 	if(  (Snode = m3l_Mklist("SIM_2_CFD", "DIR", 0, 0, (node_t **)NULL, (const char *)NULL, (const char *)NULL, (char *)NULL)) == 0)
 		Perror("m3l_Mklist");
 /*
- * add to it double array of 3 called Angles and store it in SIM_2_CFD
+ * add to it double array of 4 called Quaternion and store it in SIM_2_CFD
  */
 	dim[0] = 4;
 	if(  (TmpNode = m3l_Mklist("Quaternion", "D", 1, dim, &Snode, "/SIM_2_CFD", "./", (char *)NULL)) == 0)
@@ -249,12 +249,13 @@ int main(int argc, char *argv[])
  */
 	tmpfloat = (lmdouble_t *)m3l_get_data_pointer(TmpNode);
 /*
- * calculate angles
+ * calculate angle
  */
-	psi = -2.41*sin(*time*2*3.1415926*50.32);
+//	psi = -2.41*sin(*time*2*3.1415926*50.32);
+	psi = -2.41*sin(*time*2*3.1415926);
 	printf("Pitch angle is %lf", psi);
 /*
- * store values in Angles array
+ * store values in quaternion array
  */
 	tmpfloat[0] = psi;
 	tmpfloat[1] = 0;
@@ -263,6 +264,7 @@ int main(int argc, char *argv[])
 /*
  *  create double array of 3 called RotCenter containing point of rotation, store it in SIM_2_CFD and fill it with data
  */
+	dim[0] = 3;
 	if(  (TmpNode = m3l_Mklist("RotCenter", "D", 1, dim, &Snode, "/SIM_2_CFD", "./", (char *)NULL)) == 0)
 		Error("m3l_Mklist");
 	tmpfloat = (lmdouble_t *)m3l_get_data_pointer(TmpNode);
@@ -272,6 +274,7 @@ int main(int argc, char *argv[])
 /*
  *  create double array of 3 called TransVec containing translation vector, store it in SIM_2_CFD and fill it with data
  */
+	dim[0] = 3;
 	if(  (TmpNode = m3l_Mklist("TransVec", "D", 1, dim, &Snode, "/SIM_2_CFD", "./", (char *)NULL)) == 0)
 		Error("m3l_Mklist");
 	tmpfloat = (lmdouble_t *)m3l_get_data_pointer(TmpNode);
