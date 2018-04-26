@@ -67,7 +67,7 @@ namespace flowPsi {
 #ifdef LOCI_V5
 
   void read_grid(fact_db &facts, const rule_db &rdb, const char *filename,
-                 bool dryrun) {
+                 const char *mfilename, bool dryrun) {
     gKeySpaceP universe_space = gKeySpace::get_space("UniverseSpace", "");
     
     // Add grid_file_info and boundary condition info to fact database so
@@ -258,7 +258,7 @@ namespace flowPsi {
       return ;
 
     // Read in the grid file
-    string file = string(filename) + extension ;
+    string file = string(mfilename) + extension ;
     if(Loci::MPI_rank == 0)
       cout << "Grid File Input, reading file = " << file << endl ;
 
@@ -343,8 +343,8 @@ namespace flowPsi {
 
 #else
 
-  void read_grid(fact_db &facts, const rule_db &rdb, const char *filename,
-                 bool dryrun) {
+  void read_grid(fact_db &facts, const rule_db &rdb, const char *filename, 
+                 const char *mfilename, bool dryrun) {
     
     // Add grid_file_info and boundary condition info to fact database so
     // that they can be specified in the vars file
@@ -507,7 +507,7 @@ namespace flowPsi {
       return ;
 
     // Read in the grid file
-    string file = string(filename) + extension ;
+    string file = string(mfilename) + extension ;
     if(Loci::MPI_rank == 0)
       cout << "Grid File Input, reading file = " << file << endl ;
 
