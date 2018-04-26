@@ -517,7 +517,7 @@ int main(int ac, char *av[]) {
 // If an initial condition file is given on the command line or in vars file, add this
 // information to the fact_dabase
 
-  if(ac >= 3 || !restartdir.empty() ) {
+  if(ac >= 3 || !restartdir.empty() || !meshfile.empty() ) {
 /*
  * test that restart specified in vars file or on the command line, if both, stop
  */
