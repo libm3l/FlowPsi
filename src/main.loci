@@ -534,6 +534,10 @@ int main(int ac, char *av[]) {
  */
     string restartDir;
     if( !restartdir.empty() ){
+      if( !meshfile.empty()){
+        cerr << "Mesh file specified on the command line restart directory must be specified the command line too" << endl ;
+        cerr << "Exiting ...  " << endl ;
+      }
       restartDir = string(restartdir) ;
     }else{
       if( !meshfile.empty()){
