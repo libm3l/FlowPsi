@@ -11,22 +11,8 @@ INCLUDES = -I../include -I$(LIBM3LPATH) -I$(LSIPDXPATH) -I../src_bridges
 
 TARGET = flowpsi
 
-OBJS =  \
-	main.o gridTools.o gridSetup.o gridReader.o gridDynamic.o \
-	gridAxisymmetry.o gridCoriolis.o gridComponents.o gridMRF.o\
-	bcInputs.o bcTurboInterface.o bcTools.o bcInterface.o \
-	bcPrescribed.o bcImpermeable.o bcInflow.o bcOutflow.o \
-	bcIsentropic.o bcFixedMass.o bcFixedMassOutflow.o bcViscousWall.o \
-	solverTimestep.o solverNewton.o solverExternalComm.o solverEoS.o solverIC.o \
-	solverLinearSystem.o solverResidual.o solverRestart.o\
-	solverTurbulence.o solverScalarTransport.o solverPeriodic.o \
-	solverSetup.o solverGravity.o solverAveraging.o solverInterpolate.o \
-	solverICInterpolate.o solverForcesMoments.o\
-	IOplot.o IOintegrated.o IOgrid.o IOprobe.o IOClipSurfaces.o \
-	linearSolverSGS.o linearSolverFSGS.o linearSolverLSGS.o \
-	fluxInviscid.o fluxLowDiss.o fluxViscous.o intrfstuff.o \
-	addOutput.o
-
+FFILES= $(notdir $(wildcard *.loci))
+OBJS=$(FFILES:%.loci=%.o)
 
 
 LOCAL_LIBS = $(LIBXML2_LIBS) -L$(LOCI_BASE)/lib ../src_bridges/libbridges.a
