@@ -517,7 +517,7 @@ int main(int ac, char *av[]) {
 // If an initial condition file is given on the command line or in vars file, add this
 // information to the fact_dabase
 
-  if(ac >= 3 || !restartdir.empty() || !meshfile.empty() ) {
+  if(ac >= 3 || !restartdir.empty() ) {
 /*
  * test that restart specified in vars file or on the command line, if both, stop
  */
@@ -536,6 +536,10 @@ int main(int ac, char *av[]) {
     if( !restartdir.empty() ){
       restartDir = string(restartdir) ;
     }else{
+      if( !meshfile.empty()){
+        cerr << "Mesh file specified in vars file, restart directory must be specified in var file too" << endl ;
+        cerr << "Exiting ...  " << endl ;
+      }
       restartDir = string(av[2]) ;
     }
 
