@@ -173,8 +173,10 @@ echo "LIBM3LPATH = " ${LIBM3LPATH} >> flowpsi.conf
 echo "LSIPDXPATH = " ${LSIPDXPATH} >> flowpsi.conf
 if [ -z "$LIBM3LPATH" ]; then
 LIBSLM3LLSPDX =
+echo > include/extcomm_def.h
 else
 echo "LIBSLM3LLSPDX = -L\$(LIBM3LPATH) -lm3l -Wl,-rpath=\$(LIBM3LPATH) -lpthread -L\$(LSIPDXPATH) -llsipdx -Wl,-rpath=\$(LSIPDXPATH) " >> flowpsi.conf
+echo "#define LIBM3LSIPDX" > include/extcomm_def.h
 fi
 
 echo "# " >> flowpsi.conf

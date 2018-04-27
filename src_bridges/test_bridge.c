@@ -62,6 +62,13 @@
  * 
  */
 
+/*
+ * check that there is support for libm3l and lsipdx
+ */
+#include "extcomm_def.h"
+
+#ifdef LIBM3LSIPDX
+
 #include "libm3l.h"
 #include "lsipdx.h"
 #include "src_bridges.h"
@@ -650,3 +657,5 @@ lmint_t test_bridge_quaternion(lmdouble_t time,
         return 1;
 
 }
+
+#endif

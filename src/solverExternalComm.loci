@@ -41,13 +41,9 @@
 #include <Loci.h>
 #include <stdio.h>
 $include "flowPsi.lh"
-/*
- *  include header files for libm3l and lsipdx library and header file for bridges (located in ../src_bridges)
- */
-#include "libm3l.h"
-#include "lsipdx.h"
-#include "src_bridges.h"
+
 #include "gridComponent.h"
+#include "extcomm_def.h"
 
 #include <vector>
 #include <list>
@@ -56,6 +52,17 @@ using std::list ;
 using std::vector ;
 using std::endl ;
 using std::cerr ;
+
+#ifdef LIBM3LSIPDX
+/*
+ * compile with libm3l and lsipdx support
+ */
+/*
+ *  include header files for libm3l and lsipdx library and header file for bridges (located in ../src_bridges)
+ */
+#include "src_bridges.h"
+#include "libm3l.h"
+#include "lsipdx.h"
 
 /* 
  * check gridComponent.loci for other smilarities
@@ -144,6 +151,33 @@ namespace flowPsi {
    
   };
 }
+
+#else
+
+namespace flowPsi { 
+
+  $type volumeTag(X) param<string> ;
+  $type do_communicate_nit1111 param<bool> ;
+  $type XmotionData(X) blackbox<componentXform> ;
+
+  $rule default(comm_freq) {
+    $comm_freq = 1 ;
+  }
+
+ $rule singleton(XmotionData(X)<-dtmax,stime), 
+   constraint(componentExternal_X),parametric(volumeTag(X)){
+    if(Loci::MPI_rank==0) {
+      cerr << " " << endl ;
+      cerr << "ERROR: Current version of flowPsi not compiled with libm3l and lsidpx support" << endl ;
+      cerr << "componentMotion: external not supported" << endl ;
+      cerr << "Exiting ...  " << endl ;
+    }
+    exit(-1) ;
+};
+
+}
+
+#endif
 
 
 
