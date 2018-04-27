@@ -76,6 +76,7 @@ int main(int argc, char *argv[])
 	lmchar_t *name1="SIM2CFD";
 
 	lmdouble_t *P, dy, *tmpfloat, *x, *y, *z, *time, sign;
+        lmdouble_t yaw,pitch,roll,cy,sy,cr,sr,cp,sp,qw,qx,qy,qz;
 	lmdouble_t psi;
 	
 	find_t *SFounds;
@@ -252,15 +253,31 @@ int main(int argc, char *argv[])
  * calculate angle
  */
 //	psi = -2.41*sin(*time*2*3.1415926*50.32);
-	psi = -2.41*sin(*time*2*3.1415926);
-	printf("Pitch angle is %lf", psi);
+	pitch = -2.41*sin(*time*2*3.1415926);
+        roll = 0;
+        yaw = 0;
+	printf("Pitch angle is %lf", pitch);
+/*
+ * transofrm to quaternion
+ */
+	cy = cos(yaw * 0.5);
+	sy = sin(yaw * 0.5);
+	cr = cos(roll * 0.5);
+	sr = sin(roll * 0.5);
+	cp = cos(pitch * 0.5);
+	sp = sin(pitch * 0.5);
+
+	qw = cy * cr * cp + sy * sr * sp;
+	qx = cy * sr * cp - sy * cr * sp;
+	qy = cy * cr * sp + sy * sr * cp;
+	qz = sy * cr * cp - cy * sr * sp;
 /*
  * store values in quaternion array
  */
-	tmpfloat[0] = psi;
-	tmpfloat[1] = 0;
-	tmpfloat[2] = 1;
-	tmpfloat[3] = 0;
+	tmpfloat[0] = qw;
+	tmpfloat[1] = qx;
+	tmpfloat[2] = qy;
+	tmpfloat[3] = qz;
 /*
  *  create double array of 3 called RotCenter containing point of rotation, store it in SIM_2_CFD and fill it with data
  */

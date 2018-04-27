@@ -122,7 +122,7 @@ namespace flowPsi {
         $XmotionData(X).q.x = Qx ;
         $XmotionData(X).q.y = Qy ;
         $XmotionData(X).q.z = Qz ;
-        $XmotionData(X).q.w = Alpha * 3.1415926/180.;
+        $XmotionData(X).q.w = Alpha;
 
         std::cout << "-------------  Prescribed component is11111    " <<  $XmotionData(X).cg << endl ;
   //  std::cout << "-------------  Prescribed component is11111  " << "  " << $XmotionData(X).cg << endl ;

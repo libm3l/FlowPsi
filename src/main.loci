@@ -18,6 +18,20 @@
 //# along with the flowPsi solver.  If not, see <http://www.gnu.org/licenses>
 //#
 //#############################################################################
+/*
+ * 
+ * Description: calls functions acting as a bridge between FlowPsi and externally driven processes
+ *     For this purpose, it uses two external libraries, libm3l and lsipdx
+ *     for more details go to www.github.com/libm3l/libm3l and www.github.com/libm3l/lsipdx 
+ *     values of angles, rotation center and translation
+ *
+ * History:
+ * Version   Author:               Date       Patch number  CLA     Comment
+ * -------   -------               --------   --------      ---     -------
+ * 1-beta-10  Adam Jirasek         2018-03-26                       Add mesh file and restart 
+ *                                                                  directory to .vars file
+ * 
+ */
 
 #include <Loci.h>
 #include <Tools/fpe.h>
@@ -54,7 +68,7 @@ namespace flowPsi {
 
   double StartTime = 0 ;
   
-  const char *revision_name = "$Name: rel-1-beta-6 $" ;
+  const char *revision_name = "$Name: rel-1-beta-10 $" ;
 
   std::string version() {
     const char *p = revision_name;
@@ -178,6 +192,8 @@ int main(int ac, char *av[]) {
 #endif
   // default query 
   string query = "solution" ;
+  string meshfile = "" ;
+  string restartdir = "" ;
 
   bool input_desc = false ;
   bool dryrun = false ;
@@ -195,9 +211,17 @@ int main(int ac, char *av[]) {
       ac -= 2 ;
       av += 2 ;
     } else if(ac >= 2 && !strcmp(av[1],"-v")) {
-      cout << "flowPsi version:  " << flowPsi::version() << " Compiled On "
+      cout << " " << endl ;
+      cout << "=========================================================================================" << endl ;
+      cout << " " << endl ;
+      cout << "              flowPsi version:  " << flowPsi::version() << " Compiled On "
            << flowPsi::date() << endl ;
-      cout << "Loci version: " << Loci::version() << endl ;
+      cout << "              Loci version: " << Loci::version() << endl ;
+      cout << " " << endl ;
+      cout << "              User: " <<getenv("USER") << endl ;
+      cout << " " << endl ;
+      cout << "=========================================================================================" << endl ;
+      cout << " " << endl ;
       if(ac == 2) {
         Loci::Finalize() ;
         exit(0) ;
@@ -227,11 +251,11 @@ int main(int ac, char *av[]) {
     else {
       cerr << "argument " << av[1] << " is not understood." << endl ;
       ac-- ;
-      av++ ;
     }
   }
-
-  // if output directory doesn't exist, create one
+/*
+ * if output directory doesn't exist, create one
+ */
   struct stat statbuf ;
   int fid = open("output",O_RDONLY) ;
   if(fid < 0) {
@@ -248,23 +272,40 @@ int main(int ac, char *av[]) {
 
   if(!stat("stop",&statbuf))
     ::unlink("stop") ;
-  
-  // set up floating point exception handlers
+/*
+ * set up floating point exception handlers
+ */
   set_fpe_abort() ;
   
 
   if(ac <= 1 && !input_desc) {
-    cout << "flowPsi version:  " << flowPsi::version() << " Date: "
-         << flowPsi::date() << endl ;
-    cout << "Loci version: " << Loci::version() << endl ;
+      cout << " " << endl ;
+      cout << "=========================================================================================" << endl ;
+      cout << " " << endl ;
+      cout << "              flowPsi version:  " << flowPsi::version() << " Compiled On "
+           << flowPsi::date() << endl ;
+      cout << "              Loci version: " << Loci::version() << endl ;
+      cout << " " << endl ;
+      cout << "              User: " <<getenv("USER") << endl ;
+      cout << " " << endl ;
+      cout << "=========================================================================================" << endl ;
+      cout << " " << endl ;
     Loci::Finalize() ;
     exit(0) ;
   }
 
   if(Loci::MPI_rank == 0) {
-    cout << "flowPsi version:  " << flowPsi::version() << " Date: "
-         << flowPsi::date() << endl ;
-    cout << "Loci version: " << Loci::version() << endl ;
+      cout << " " << endl ;
+      cout << "=========================================================================================" << endl ;
+      cout << " " << endl ;
+      cout << "              flowPsi version:  " << flowPsi::version() << " Compiled On "
+           << flowPsi::date() << endl ;
+      cout << "              Loci version: " << Loci::version() << endl ;
+      cout << " " << endl ;
+      cout << "              User: " <<getenv("USER") << endl ;
+      cout << " " << endl ;
+      cout << "=========================================================================================" << endl ;
+      cout << " " << endl ;
   }
   
   Loci::debugout << "flowPsi version:  " << flowPsi::version() << " Date: "
@@ -282,13 +323,15 @@ int main(int ac, char *av[]) {
   rule_db rdb ;
   rdb.add_rules(global_rule_list) ;
 
-  // read grid, connectivity information, and user supplied information into
-  // the fact database
+// read grid, connectivity information, and user supplied information into
+// the fact database
   fact_db facts ;
 
   Loci::load_module("fvm",rdb) ;
-  
-  // Now look in vars file for directives to load in modules, or solid_heat
+/*
+ * Now look in vars file for directives to load in modules, solid_heat, or 
+ * name of IO files. This is in .vars file preamble
+ */
   if(ac > 1) {
     casename=string(av[1]);
 
@@ -300,7 +343,7 @@ int main(int ac, char *av[]) {
         Loci::Abort() ;
       }
       Loci::parse::kill_white_space(ifile) ;
-      while(ifile.peek() != '{' && ifile.peek() != EOF) {
+      while(ifile.peek() != '{' && ifile.peek() != EOF && (ifile.peek() != '\n' )) {
         if( Loci::parse::is_name(ifile) ) {
           string name = Loci::parse::get_name(ifile) ;
           Loci::parse::kill_white_space(ifile) ;
@@ -323,6 +366,10 @@ int main(int ac, char *av[]) {
           }
           if(name == "loadModule") {
             modulesToLoad.push_back(argument) ;
+          } else if(name == "loadMesh") {
+            meshfile = argument ;
+          } else if(name == "loadRestartDir") {
+            restartdir = argument ;
           } else if(name == "query") {
             query = argument ;
           } else {
@@ -346,7 +393,9 @@ int main(int ac, char *av[]) {
       Loci::Abort() ;
     }
   }
-    
+/*
+ * load specified modules
+ */    
   if(modulesToLoad.size() > 0) {
     for(size_t i=0;i<modulesToLoad.size();++i) {
       Loci::exprP ep = Loci::expression::create(modulesToLoad[i]) ;
@@ -410,11 +459,24 @@ int main(int ac, char *av[]) {
     exit(0) ;
   }
 
-  read_grid(facts,rdb,av[1],dryrun) ;
+/*
+ * read mesh, if file specified in .vars file, use this name 
+ * otherwise use name of vars file from  line
+ */
+  if(meshfile.empty()){
+    std::cout << "Reading mesh file: " << av[1] <<".vog" << endl ;
+    read_grid(facts,rdb,av[1],av[1],dryrun) ;
+  }else{
+    std::cout << "Reading mesh file: " << meshfile <<".vog" << endl ;
+    read_grid(facts,rdb,av[1],meshfile.c_str(),dryrun) ;
+  }
 
-  param<options_list> ext_interfaces;
-
+/*
+ * get info on external interfaces to other solvers
+ * flowPsi will interact with
+ */
   get_interface_info(facts);
+
 
   if(command_vars.size() > 0) {
     for(size_t i=0;i<command_vars.size();++i) {
@@ -452,11 +514,41 @@ int main(int ac, char *av[]) {
     }
   }
   
-  // If an initial condition file is given on the command line, add this
-  // information to the fact_dabase
-  if(ac >= 3) {
+// If an initial condition file is given on the command line or in vars file, add this
+// information to the fact_dabase
 
-    string restartDir = string(av[2]) ;
+  if(ac >= 3 || !restartdir.empty() ) {
+/*
+ * test that restart specified in vars file or on the command line, if both, stop
+ */
+   if(ac >= 3 && !restartdir.empty() ){
+     cerr << "Restart directory specified both on the command line and in vars file" << endl ;
+     cerr << "Restart directory from the command line is: " << av[2] << endl ;
+     cerr << "Restart directory from the .vars file is: " << restartdir << endl ;
+     cerr << "Exiting ...  " << endl ;
+     exit(-1) ;
+   }
+/*
+ * if retart directory specified in .vars file, use this 
+ * otherwise use name from command line
+ */
+    string restartDir;
+    if( !restartdir.empty() ){
+      if( meshfile.empty()){
+        cerr << "Restart directory specified in the vars file, the mesh file must be specified in the vars file too" << endl ;
+        cerr << "Exiting ...  " << endl ;
+        exit(-1) ;
+      }
+      restartDir = string(restartdir) ;
+    }else{
+      if( !meshfile.empty()){
+        cerr << "Mesh file specified in the vars file, restart directory must be specified in the vars file too" << endl ;
+        cerr << "Exiting ...  " << endl ;
+        exit(-1) ;
+      }
+      restartDir = string(av[2]) ;
+    }
+
     string firstTest = string("restart/") + restartDir ;
     if(stat(firstTest.c_str(),&statbuf)) {
       if(stat(restartDir.c_str(),&statbuf)) {

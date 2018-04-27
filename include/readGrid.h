@@ -6,7 +6,7 @@
 
 namespace flowPsi {
   void read_grid(fact_db &facts, const rule_db &rdb, const char *filename,
-                 bool dryrun);
+                 const char *mfilename, bool dryrun);
 
   void find_mind_noslip(fact_db &facts) ;
   void find_mind_surf(fact_db &facts) ;
