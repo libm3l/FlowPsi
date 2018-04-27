@@ -110,9 +110,21 @@ namespace flowPsi {
  */
       test_bridge_quaternion(t, ForceX, ForceY, ForceZ, &Alpha, &Qx, &Qy, &Qz,
                   &TransX, &TransY, &TransZ, &RotCX, &RotCY, &RotCZ);
+    }
 /*
- * get new center of rotation
+ * broadcast and save in structure
  */
+        MPI_Bcast(&TransX,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
+        MPI_Bcast(&TransY,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
+        MPI_Bcast(&TransZ,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
+        MPI_Bcast(&RotCX,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
+        MPI_Bcast(&RotCY,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
+        MPI_Bcast(&RotCZ,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
+        MPI_Bcast(&Alpha,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
+        MPI_Bcast(&Qx,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
+        MPI_Bcast(&Qy,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
+        MPI_Bcast(&Qz,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
+
         cg     = vect3d(RotCX, RotCY, RotCZ);
         cg_new = vect3d(TransX, TransY, TransZ);
         cg_new = cg + cg_new;
@@ -124,12 +136,12 @@ namespace flowPsi {
         $XmotionData(X).q.z = Qz ;
         $XmotionData(X).q.w = Alpha;
 
-        std::cout << "-------------  Prescribed component is11111    " <<  $XmotionData(X).cg << endl ;
-  //  std::cout << "-------------  Prescribed component is11111  " << "  " << $XmotionData(X).cg << endl ;
-  //  std::cout << "-------------  Prescribed component is11111  " << "  " << $XmotionData(X).new_cg << endl ;
-  //  std::cout << "-------------  Prescribed component is11111  " << "  " << $XmotionData(X).q.x << " "
- //<< $XmotionData(X).q.y << " "<< $XmotionData(X).q.z << " "<< $XmotionData(X).q.w<< endl ;      
-    }
+ //   std::cout << "-------------  Prescribed component is11111    " <<  $XmotionData(X).cg << endl ;
+ //   std::cout << "-------------  Prescribed component is11111  " << "  " << $XmotionData(X).cg << endl ;
+ //   std::cout << "-------------  Prescribed component is11111  " << "  " << $XmotionData(X).new_cg << endl ;
+ //   std::cout << "-------------  Prescribed component is11111  " << "  " << $XmotionData(X).q.x << " "
+ //            << $XmotionData(X).q.y << " "<< $XmotionData(X).q.z << " "<< $XmotionData(X).q.w<< endl ;     
+   
   };
 }
 
