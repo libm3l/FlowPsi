@@ -112,7 +112,7 @@ namespace flowPsi {
                   &TransX, &TransY, &TransZ, &RotCX, &RotCY, &RotCZ);
     }
 /*
- * broadcast and save in structure
+ * broadcast and save in XmotionData structure
  */
         MPI_Bcast(&TransX,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
         MPI_Bcast(&TransY,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
