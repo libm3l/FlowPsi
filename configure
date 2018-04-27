@@ -36,6 +36,10 @@ ARCH=`uname -s`
 PREFIX=/usr/local
 LOCI_BASE=notset
 PREFIX_SET=0
+LIBM3LPATH=""
+LSIPDXPATH=""
+LIBOPENMPI=""
+
 while [ $# -ne 0 ]; do 
     case "$1" in
 	--prefix)
@@ -163,14 +167,19 @@ echo "# " >> flowpsi.conf
 echo "# Location of FloPsi binaries" >> flowpsi.conf
 echo "FLOWPSI_INSTALL_PATH = " ${PREFIX} >> flowpsi.conf
 echo "# " >> flowpsi.conf
+
 echo "# Location of libm3l and lsipd libraries" >> flowpsi.conf
 echo "LIBM3LPATH = " ${LIBM3LPATH} >> flowpsi.conf
 echo "LSIPDXPATH = " ${LSIPDXPATH} >> flowpsi.conf
+if [ -z "$LIBM3LPATH" ]; then
+LIBSLM3LLSPDX =
+else
 echo "LIBSLM3LLSPDX = -L\$(LIBM3LPATH) -lm3l -Wl,-rpath=\$(LIBM3LPATH) -lpthread -L\$(LSIPDXPATH) -llsipdx -Wl,-rpath=\$(LSIPDXPATH) " >> flowpsi.conf
+fi
 
 echo "# " >> flowpsi.conf
 echo "# openmpi library" >> flowpsi.conf
-echo "LIBOPENMPI = "${LIBOPENMPI} >> flowpsi.conf
+echo "LIBOPENMPI = "-${LIBOPENMPI} >> flowpsi.conf
 
 if [ $PREFIX_SET -eq 0 ]; then
     echo "*******************************************************************************"

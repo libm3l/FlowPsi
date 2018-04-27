@@ -41,14 +41,6 @@
 #include <Loci.h>
 #include <stdio.h>
 $include "flowPsi.lh"
-/*
- *  include header files for libm3l and lsipdx library and header file for bridges (located in ../src_bridges)
- */
-#include "libm3l.h"
-#include "lsipdx.h"
-#include "src_bridges.h"
-#include "solverExternalComm.h"
-
 #include <vector>
 #include <list>
 

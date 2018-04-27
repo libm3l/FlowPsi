@@ -436,10 +436,14 @@ int main(int ac, char *av[]) {
  * otherwise use name of vars file from  line
  */
   if(meshfile.empty()){
-    std::cout << "Reading mesh file: " << av[1] <<".vog" << endl ;
+    if(Loci::MPI_rank == 0){
+      std::cout << "Reading mesh file: " << av[1] <<".vog" << endl ;
+    }
     read_grid(facts,rdb,av[1],av[1],dryrun) ;
   }else{
-    std::cout << "Reading mesh file: " << meshfile <<".vog" << endl ;
+    if(Loci::MPI_rank == 0){
+      std::cout << "Reading mesh file: " << meshfile <<".vog" << endl ;
+    }
     read_grid(facts,rdb,av[1],meshfile.c_str(),dryrun) ;
   }
 
@@ -500,14 +504,16 @@ int main(int ac, char *av[]) {
     string restartDir;
     if( !restartdir.empty() ){
       if( meshfile.empty()){
-        cerr << "Restart directory specified in the vars file, the mesh file  must be specified the the vars file too" << endl ;
+        cerr << " " << endl ;
+        cerr << "ERROR: Restart directory specified in the vars file, the mesh file  must be specified the the vars file too" << endl ;
         cerr << "Exiting ...  " << endl ;
         exit(-1) ;
       }
       restartDir = string(restartdir) ;
     }else{
       if( !meshfile.empty()){
-        cerr << "Mesh file specified in vars file, restart directory must be specified in var file too" << endl ;
+        cerr << " " << endl ;
+        cerr << "RROR: Mesh file specified in vars file, restart directory must be specified in var file too" << endl ;
         cerr << "Exiting ...  " << endl ;
         exit(-1) ;
       }
