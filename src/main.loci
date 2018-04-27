@@ -500,7 +500,7 @@ int main(int ac, char *av[]) {
     string restartDir;
     if( !restartdir.empty() ){
       if( meshfile.empty()){
-        cerr << "Mesh file specified on the command line restart directory must be specified the command line too" << endl ;
+        cerr << "Restart directory specified in the vars file, the mesh file  must be specified the the vars file too" << endl ;
         cerr << "Exiting ...  " << endl ;
         exit(-1) ;
       }
