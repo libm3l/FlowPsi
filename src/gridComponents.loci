@@ -58,6 +58,8 @@ using std::set ;
 $include "FVM.lh"
 $include "flowPsi.lh"
 
+#include "extcomm_def.h"
+
 namespace flowPsi {
 
   $rule optional(componentMotion),
@@ -645,14 +647,25 @@ namespace flowPsi {
   $rule apply(componentMotionData<-XmotionData(X),componentName_X)[Loci::NullOp],
     constraint(componentExternal_X),parametric(volumeTag(X)), prelude{
     string name = *$componentName_X ;
+
+#ifdef LIBM3LSIPDX
     (*$componentMotionData)[name] = *$XmotionData(X) ;
     printf("           EXTERNAL   DT \n" );
     std::cout << "-------------  external name is   " << "  " << name << "   " << (*$XmotionData(X)).cg << endl ;
     std::cout << "-------------  external name is   " << "  " << name << "   " << (*$XmotionData(X)).new_cg << endl ;
     std::cout << "-------------  external name is   " << "  " << name << "   " << (*$XmotionData(X)).q.x << " "
  << (*$XmotionData(X)).q.y << " "<< (*$XmotionData(X)).q.z << " "<< (*$XmotionData(X)).q.w<< endl ;
+#else
+    if(Loci::MPI_rank==0) {
+      cerr << " " << endl ;
+      cerr << "ERROR: in rule: componentMotionData<-XmotionData(X),componentName_X" << endl ;
+      cerr << "Current version of flowPsi not compiled with libm3l and lsidpx support" << endl ;
+      cerr << "componentMotion: external not supported" << endl ;
+      cerr << "Exiting ...  " << endl ;
+    }
+    exit(-1) ;
+#endif
   } ;
-
 /*
  * set values in componentMotionData
  */

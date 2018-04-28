@@ -43,8 +43,12 @@
 #ifndef __SRC_BRIDGES_H__
 #define __SRC_BRIDGES_H__
 
+#include "extcomm_def.h"
+
 #include <Loci.h>
+#ifdef LIBM3LSIPDX
 #include <libm3l.h>
+#endif
 
 #ifndef CPP_C
 #ifdef __cplusplus 

@@ -84,6 +84,7 @@ namespace flowPsi {
   
 /*
  * JKA note: Update pressure, temperature and velocity in Newton subiter
+ * this seems to be the backward Euler scheme.
  */
   $rule pointwise(temperature_i{n,it+1},gagePressure_i{n,it+1},u_i{n,it+1}<- 
 		  temperature{n,it},gagePressure{n,it},u{n,it},dfluid{n,it},
@@ -117,11 +118,10 @@ namespace flowPsi {
 /*
  * update
  */
-    $temperature_i{n,it+1} = $temperature{n,it} + alpha*dT;
+    $temperature_i{n,it+1}  = $temperature{n,it} + alpha*dT;
     $gagePressure_i{n,it+1} = $gagePressure{n,it} + alpha*dp ;
     $u_i{n,it+1} = $u{n,it} + alpha*du ;
   }
-
 /*
  * JKA note: Update pressure, temperature and velocity in time step
  */
@@ -175,8 +175,9 @@ namespace flowPsi {
   $rule singleton(lastNewton{n,it}<-newtonFinalIter{n,it},$it{n,it}) {
     $lastNewton{n,it}=($$it{n,it}+1 == $newtonFinalIter{n,it}) ;
   }
-
-  
+/*
+ * check when newton subiteration is finished
+ */
   $type newtonFinished param<bool> ;
   $rule singleton(newtonFinished{n,it}<-$it{n,it},newtonFinalIter) {
     $newtonFinished{n,it} = ($$it{n,it} >= $newtonFinalIter) ;

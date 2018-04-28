@@ -4,3 +4,4 @@
 bin/
 flowpsi-Linux-x86_64-rel-1-beta-5/
 *.cc
+examples/

@@ -41,13 +41,9 @@
 #include <Loci.h>
 #include <stdio.h>
 $include "flowPsi.lh"
-/*
- *  include header files for libm3l and lsipdx library and header file for bridges (located in ../src_bridges)
- */
-#include "libm3l.h"
-#include "lsipdx.h"
-#include "src_bridges.h"
+
 #include "gridComponent.h"
+#include "extcomm_def.h"
 
 #include <vector>
 #include <list>
@@ -56,6 +52,17 @@ using std::list ;
 using std::vector ;
 using std::endl ;
 using std::cerr ;
+
+#ifdef LIBM3LSIPDX
+/*
+ * compile with libm3l and lsipdx support
+ */
+/*
+ *  include header files for libm3l and lsipdx library and header file for bridges (located in ../src_bridges)
+ */
+#include "src_bridges.h"
+#include "libm3l.h"
+#include "lsipdx.h"
 
 /* 
  * check gridComponent.loci for other smilarities
@@ -110,9 +117,21 @@ namespace flowPsi {
  */
       test_bridge_quaternion(t, ForceX, ForceY, ForceZ, &Alpha, &Qx, &Qy, &Qz,
                   &TransX, &TransY, &TransZ, &RotCX, &RotCY, &RotCZ);
+    }
 /*
- * get new center of rotation
+ * broadcast and save in XmotionData structure
  */
+        MPI_Bcast(&TransX,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
+        MPI_Bcast(&TransY,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
+        MPI_Bcast(&TransZ,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
+        MPI_Bcast(&RotCX,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
+        MPI_Bcast(&RotCY,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
+        MPI_Bcast(&RotCZ,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
+        MPI_Bcast(&Alpha,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
+        MPI_Bcast(&Qx,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
+        MPI_Bcast(&Qy,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
+        MPI_Bcast(&Qz,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
+
         cg     = vect3d(RotCX, RotCY, RotCZ);
         cg_new = vect3d(TransX, TransY, TransZ);
         cg_new = cg + cg_new;
@@ -124,14 +143,41 @@ namespace flowPsi {
         $XmotionData(X).q.z = Qz ;
         $XmotionData(X).q.w = Alpha;
 
-        std::cout << "-------------  Prescribed component is11111    " <<  $XmotionData(X).cg << endl ;
-  //  std::cout << "-------------  Prescribed component is11111  " << "  " << $XmotionData(X).cg << endl ;
-  //  std::cout << "-------------  Prescribed component is11111  " << "  " << $XmotionData(X).new_cg << endl ;
-  //  std::cout << "-------------  Prescribed component is11111  " << "  " << $XmotionData(X).q.x << " "
- //<< $XmotionData(X).q.y << " "<< $XmotionData(X).q.z << " "<< $XmotionData(X).q.w<< endl ;      
-    }
+ //   std::cout << "-------------  Prescribed component is11111    " <<  $XmotionData(X).cg << endl ;
+ //   std::cout << "-------------  Prescribed component is11111  " << "  " << $XmotionData(X).cg << endl ;
+ //   std::cout << "-------------  Prescribed component is11111  " << "  " << $XmotionData(X).new_cg << endl ;
+ //   std::cout << "-------------  Prescribed component is11111  " << "  " << $XmotionData(X).q.x << " "
+ //            << $XmotionData(X).q.y << " "<< $XmotionData(X).q.z << " "<< $XmotionData(X).q.w<< endl ;     
+   
   };
 }
+
+#else
+
+namespace flowPsi { 
+
+  $type volumeTag(X) param<string> ;
+  $type do_communicate_nit1111 param<bool> ;
+  $type XmotionData(X) blackbox<componentXform> ;
+
+  $rule default(comm_freq) {
+    $comm_freq = 1 ;
+  }
+
+ $rule singleton(XmotionData(X)<-dtmax,stime), 
+   constraint(componentExternal_X),parametric(volumeTag(X)){
+    if(Loci::MPI_rank==0) {
+      cerr << " " << endl ;
+      cerr << "ERROR: Current version of flowPsi not compiled with libm3l and lsidpx support" << endl ;
+      cerr << "componentMotion: external not supported" << endl ;
+      cerr << "Exiting ...  " << endl ;
+    }
+    exit(-1) ;
+};
+
+}
+
+#endif
 
 
 
