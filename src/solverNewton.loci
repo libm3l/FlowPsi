@@ -51,6 +51,9 @@ namespace flowPsi {
   	inplace(gagePressure{n,it}|gagePressure_i{n,it}),prelude {} ;
   $rule pointwise(u{n,it}<-u_i{n,it}),inplace(u{n,it}|u_i{n,it}),prelude {} ;
 
+  /*
+   * this is for steady state mode
+   */
   $type dfluid storeVec<real> ;
   $rule pointwise(temperature_i{n,it+1},gagePressure_i{n,it+1},u_i{n,it+1}<- 
 		  temperature{n,it},gagePressure{n,it},u{n,it},dfluid{n,it},
@@ -84,7 +87,7 @@ namespace flowPsi {
   
 /*
  * JKA note: Update pressure, temperature and velocity in Newton subiter
- * this seems to be the backward Euler scheme.
+ * this is the Crank-Nicholson type od scheme - unsteady mode
  */
   $rule pointwise(temperature_i{n,it+1},gagePressure_i{n,it+1},u_i{n,it+1}<- 
 		  temperature{n,it},gagePressure{n,it},u{n,it},dfluid{n,it},
@@ -231,6 +234,5 @@ namespace flowPsi {
   $rule pointwise(dfluid<-petscBlockedSSolve(fluid)), 
     constraint(geom_cells,fluidLinearSolverPETSC),
     inplace(dfluid|petscBlockedSSolve(fluid)){} 
-
 
 }
