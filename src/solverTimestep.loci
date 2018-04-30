@@ -238,14 +238,19 @@ namespace flowPsi {
   // timestep value, the time derivative would appear to be zero regardless
   $rule pointwise(rhs{n,it}<-src{n,it}),
     inplace(rhs{n,it}|src{n,it}),constraint(geom_cells,timeStepSteadyState) ,prelude {} ;
-
-  
+/*
+ * set timePressureBiasControl, changes how pressure is interpolated in the unsteady mode
+ * see uer guide
+ */
   $type timePressureBiasControl param<real> ;
   $rule default(timePressureBiasControl) {
     $timePressureBiasControl = 0.0 ;
   }
-
-  // Compute local pressure bias using cfl
+/*
+ * Compute local pressure bias using cfl
+ * pressure biasing in the pressure averaging is used to 
+ * provide the scheme with acoustic damping
+ */
   $rule pointwise(localPBias<-cflpdt,dtmax,timePressureBiasControl),
     constraint(geom_cells,timeStepAccurate) {
     real cfl = $cflpdt*real($dtmax) ;
@@ -266,9 +271,10 @@ namespace flowPsi {
   // Compute rhs of Newton step
   // Time accurate second order scheme using centered variation of
   // Crank-Nicholson
-  $rule pointwise(rhs{n,it}<-src{n,it},gagePressure{n},gagePressure{n,it},temperature{n},temperature{n,it},u{n},u{n,it},dtmax{n,it},dtau{n,it},
+  $rule pointwise(rhs{n,it}<-src{n,it},gagePressure{n},gagePressure{n,it},temperature{n},
+                  temperature{n,it},u{n},u{n,it},dtmax{n,it},dtau{n,it},
                   vol{n,it},localPBias{n,it},Pambient,Rtilde,gamma),
-    inplace(rhs{n,it}|src{n,it}),constraint(geom_cells,timeStepAccurate) {
+                  inplace(rhs{n,it}|src{n,it}),constraint(geom_cells,timeStepAccurate) {
     const real Tstar = $temperature{n,it} ;
     const real Tn = $temperature{n} ;
     // Use harmonic mean of temperature to define Tstar
