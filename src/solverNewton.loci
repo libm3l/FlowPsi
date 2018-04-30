@@ -30,7 +30,9 @@ namespace flowPsi {
   $type temperature_i store<real> ;
   $type gagePressure_i store<real> ;
   $type u_i store<vect3d> ;
-  
+  /*
+   * fill iblanked by preious time step at the beginning of Newton loop
+   */
   $rule pointwise(temperature_i{n,it=0}<-temperature{n}),
     constraint(geom_cells) {
     $temperature_i{n,it=0}= $temperature{n} ;
@@ -105,7 +107,6 @@ namespace flowPsi {
     real relax = 0.8 ;
     const real Tstar = $temperature{n,it} ;
     const real Tn = $temperature{n} ;
-
 
     real dTlim = (relax*(2*Tn-Tstar))/2.0 ;
     
