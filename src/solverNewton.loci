@@ -31,7 +31,7 @@ namespace flowPsi {
   $type gagePressure_i store<real> ;
   $type u_i store<vect3d> ;
   /*
-   * fill iblanked by preious time step at the beginning of Newton loop
+   * fill iblanked by previous time step at the beginning of Newton loop
    */
   $rule pointwise(temperature_i{n,it=0}<-temperature{n}),
     constraint(geom_cells) {
