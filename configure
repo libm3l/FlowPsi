@@ -181,7 +181,11 @@ fi
 
 echo "# " >> flowpsi.conf
 echo "# openmpi library" >> flowpsi.conf
+if [ -z "$LIBOPENMPI" ]; then
+echo "LIBOPENMPI =" >> flowpsi.conf
+else
 echo "LIBOPENMPI = "-${LIBOPENMPI} >> flowpsi.conf
+fi
 
 if [ $PREFIX_SET -eq 0 ]; then
     echo "*******************************************************************************"
