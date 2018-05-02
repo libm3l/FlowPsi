@@ -71,6 +71,7 @@
 
 #include "libm3l.h"
 #include "lsipdx.h"
+#include "src_bridges_types.h"
 #include "src_bridges.h"
 
 
@@ -374,7 +375,7 @@ lmint_t test_bridge_quaternion(lmdouble_t time,
                     lmdouble_t ForceX, lmdouble_t ForceY, lmdouble_t ForceZ , 
                     lmdouble_t *Alpha, lmdouble_t *Qx, lmdouble_t *Qy, lmdouble_t *Qz,
                     lmdouble_t *TransX, lmdouble_t *TransY, lmdouble_t *TransZ,
-                    lmdouble_t *RotCX, lmdouble_t *RotCY, lmdouble_t *RotCZ){
+                    lmdouble_t *RotCX, lmdouble_t *RotCY, lmdouble_t *RotCZ, comm_struct_t *comm_str){
 
 
 	node_t *Gnode=NULL, *TmpNode = NULL, *FoundNode = NULL;
@@ -382,21 +383,28 @@ lmint_t test_bridge_quaternion(lmdouble_t time,
 
 //	lmchar_t hostname[80], channel_name[80];
 
-	lmint_t sockfd, portno;
+	lmint_t sockfd;
 
-	lmchar_t *name ="CFD2SIM";
-	lmchar_t *name1="SIM2CFD";
-        lmchar_t *hostname ="localhost";
+//, portno;
+
+//	lmchar_t *name ="CFD2SIM";
+//	lmchar_t *name1="SIM2CFD";
+//        lmchar_t *hostname ="localhost";
 
 	lmdouble_t *tmpfloat;
 	client_fce_struct_t InpPar, *PInpPar;
 	opts_t *Popts_1, opts, opts_1, *Popts;
 	find_t *SFounds;
+
+        printf(" OPening ------------------  %s\n", comm_str->O_channel);
+        printf(" OPening ------------------  %s\n", comm_str->IP);
+        printf(" OPening ------------------  %ld\n", comm_str->portno);
+
 /*
  * Set parameters which are needed for opening the socket for sending data
  */
         PInpPar = &InpPar;
-	PInpPar->channel_name = name;   /* name of channel where to send data*/
+	PInpPar->channel_name = comm_str->O_channel;   /* name of channel where to send data*/
 	PInpPar->SR_MODE = 'S';         /* set R or S, because we will write outgoing data to this 
                                                    socket, set it to S */
 /*
@@ -427,7 +435,7 @@ lmint_t test_bridge_quaternion(lmdouble_t time,
 	m3l_set_Send_receive_tcpipsocket(&Popts_1);
 	m3l_set_Find(&Popts);
 
-        portno = 31000;
+      //  portno = 31000;
 
 //=======================================================================
 
@@ -466,7 +474,7 @@ lmint_t test_bridge_quaternion(lmdouble_t time,
  */
 #pragma omp critical
 {
-	if( (sockfd = open_connection_to_server(hostname, portno, PInpPar, Popts_1)) < 1)
+	if( (sockfd = open_connection_to_server(comm_str->IP, comm_str->portno, PInpPar, Popts_1)) < 1)
 		Error("socket_FlowPsi2simulink: Error when opening socket");
 }
 /*
@@ -491,7 +499,7 @@ lmint_t test_bridge_quaternion(lmdouble_t time,
  * receive data 
  */
 	PInpPar = &InpPar;
-	PInpPar->channel_name = name1;       /* name of channel */
+	PInpPar->channel_name = comm_str->I_channel;       /* name of channel */
 	PInpPar->SR_MODE = 'R';              /* set R or S, because we will read incoming data from this 
                                                    socket, set it to R */
 /*
@@ -524,7 +532,7 @@ lmint_t test_bridge_quaternion(lmdouble_t time,
  */
 #pragma omp critical
 {
-	if( (sockfd = open_connection_to_server(hostname, portno, PInpPar, Popts_1)) < 1)
+	if( (sockfd = open_connection_to_server(comm_str->IP, comm_str->portno, PInpPar, Popts_1)) < 1)
 		Error("client_sender: Error when opening socket");
 }
 /*

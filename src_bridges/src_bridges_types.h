@@ -33,40 +33,30 @@
  * History:
  * Version   Author:               Date       Patch number  CLA     Comment
  * -------   -------               --------   --------      ---     -------
- * 1-beta-6  Adam Jirasek         2018-03-21                        Initial Implementation
+ * 1.1       Adam Jirasek    2018-03-21                       Initial implementation
  *
  *
  *     Description
  * 
  */
 
-#ifndef __SRC_BRIDGES_H__
-#define __SRC_BRIDGES_H__
+#include <libm3l.h> 
 
-#include "extcomm_def.h"
+#ifndef __SRC_BRIDGES_TYPES_H__
+#define __SRC_BRIDGES_TYPES_H__
 
-#include <Loci.h>
-#ifdef LIBM3LSIPDX
-#include <libm3l.h>
-#endif
-
-#ifndef CPP_C
-#ifdef __cplusplus 
-#define CPP_C "C"
-#else
-#define CPP_C
-#endif
-#endif
-
-extern CPP_C lmint_t test_bridge(lmdouble_t, lmdouble_t, lmdouble_t,
-				  lmdouble_t, lmdouble_t, lmdouble_t,
-				  lmdouble_t, lmdouble_t, lmdouble_t,
-				  lmdouble_t, lmdouble_t, lmdouble_t);
-
-extern CPP_C lmint_t test_bridge_quaternion(lmdouble_t, lmdouble_t, lmdouble_t, lmdouble_t,
-				  lmdouble_t *, lmdouble_t *, lmdouble_t *, lmdouble_t *,
-				  lmdouble_t *, lmdouble_t *, lmdouble_t *,
-				  lmdouble_t *, lmdouble_t *, lmdouble_t *, comm_struct_t *);
+typedef struct comm_struct {
+    const lmchar_t *type;
+    const lmchar_t *tag;
+    const lmchar_t *I_channel;
+    const lmchar_t *O_channel;
+    const lmchar_t *IP;    
+    const lmchar_t *intf_name;
+    
+    lmint_t portno;
+    lmint_t comm_freq;
+    
+}comm_struct_t;
 
 #endif
 
