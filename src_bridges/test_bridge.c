@@ -381,24 +381,12 @@ lmint_t test_bridge_quaternion(lmdouble_t time,
 	node_t *Gnode=NULL, *TmpNode = NULL, *FoundNode = NULL;
 	lmsize_t dim[1], i, tot_dim;
 
-//	lmchar_t hostname[80], channel_name[80];
-
 	lmint_t sockfd;
-
-//, portno;
-
-//	lmchar_t *name ="CFD2SIM";
-//	lmchar_t *name1="SIM2CFD";
-//        lmchar_t *hostname ="localhost";
 
 	lmdouble_t *tmpfloat;
 	client_fce_struct_t InpPar, *PInpPar;
 	opts_t *Popts_1, opts, opts_1, *Popts;
 	find_t *SFounds;
-
-        printf(" OPening ------------------  %s\n", comm_str->O_channel);
-        printf(" OPening ------------------  %s\n", comm_str->IP);
-        printf(" OPening ------------------  %ld\n", comm_str->portno);
 
 /*
  * Set parameters which are needed for opening the socket for sending data
