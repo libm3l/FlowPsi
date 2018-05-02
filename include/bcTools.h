@@ -2,6 +2,9 @@
 #include "flowTypes.h"
 
 namespace flowPsi {
+/*
+ * subsonic inflow boundary
+ */
   inline void cv_inflow(real &pgb, real &Tb, vect3d &ub,
 			real pgi, real Ti, vect3d ui,
 			real pg0, real T0, vect3d u0,
@@ -10,7 +13,10 @@ namespace flowPsi {
 			real Beta) {
     const real uit = dot(ui,n)-us_n ; //dot(uin-us,n) ;
     const real u0t = dot(u0,n)-us_n ; //dot(uref-us,n) ;
-
+/*
+ *  pgb, Tb, ub  - pressure, temperature and velocity on the boundary
+ *  pgi, Ti, ui  - pressure, temperature and velocity in the domain
+ */
     const real a02 = gamma*Rtilde*T0 ;
     const real a0 = sqrt(a02) ;
     const real r0 = (pg0+Pambient)/(Rtilde*T0) ;
@@ -30,6 +36,9 @@ namespace flowPsi {
 
     Tb = (pgb+Pambient)/(Rtilde*rhob) ;
   }
+/*
+ * subsonic outflow boundary
+ */
   inline void cv_outflow(real &pgb, real &Tb, vect3d &ub,
 			 real pgi, real Ti, vect3d ui,
 			 real pg0, real T0, vect3d u0,
@@ -38,7 +47,10 @@ namespace flowPsi {
 			 real Beta) {
     const real uit = dot(ui,n)-us_n ; //dot(uin-us,n) ;
     const real u0t = dot(u0,n)-us_n ; //dot(uref-us,n) ;
-
+/*
+ *  pgb, Tb, ub  - pressure, temperature and velocity on the boundary
+ *  pgi, Ti, ui  - pressure, temperature and velocity in the domain
+ */
     const real a02 = gamma*Rtilde*T0 ;
     const real a0 = sqrt(a02) ;
     const real r0 = (pg0+Pambient)/(Rtilde*T0) ;
@@ -58,5 +70,9 @@ namespace flowPsi {
       (Beta*a0*a0*(sigma+uit*BetaM)) ;
 
     Tb = (pgb+Pambient)/(Rtilde*rhob) ;
+
+    pgb = pg0;
+    Tb = Ti;
+    ub = ui;
   }      
 }
