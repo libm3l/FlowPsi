@@ -650,11 +650,11 @@ namespace flowPsi {
 
 #ifdef LIBM3LSIPDX
     (*$componentMotionData)[name] = *$XmotionData(X) ;
-    printf("           EXTERNAL   DT \n" );
-    std::cout << "-------------  external name is   " << "  " << name << "   " << (*$XmotionData(X)).cg << endl ;
-    std::cout << "-------------  external name is   " << "  " << name << "   " << (*$XmotionData(X)).new_cg << endl ;
-    std::cout << "-------------  external name is   " << "  " << name << "   " << (*$XmotionData(X)).q.x << " "
- << (*$XmotionData(X)).q.y << " "<< (*$XmotionData(X)).q.z << " "<< (*$XmotionData(X)).q.w<< endl ;
+ //   printf("           EXTERNAL   DT \n" );
+ //   std::cout << "-------------  external name is   " << "  " << name << "   " << (*$XmotionData(X)).cg << endl ;
+ //   std::cout << "-------------  external name is   " << "  " << name << "   " << (*$XmotionData(X)).new_cg << endl ;
+ //   std::cout << "-------------  external name is   " << "  " << name << "   " << (*$XmotionData(X)).q.x << " "
+ // << (*$XmotionData(X)).q.y << " "<< (*$XmotionData(X)).q.z << " "<< (*$XmotionData(X)).q.w<< endl ;
 #else
     if(Loci::MPI_rank==0) {
       cerr << " " << endl ;
@@ -675,7 +675,6 @@ namespace flowPsi {
     vect3d cg_new ;
     Quaternion q ;
     $prescribedMotion_X->getMotion(cg_new,q,t) ;
-    printf("           PRESCRIBED     DT %lf  %lf  %lf \n", t,*$stime, real(*$dtmax) );
     componentXform xform ;
     xform.cg = *$prescribedCG_X ;
     xform.new_cg = cg_new ;
