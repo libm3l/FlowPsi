@@ -93,6 +93,7 @@ namespace flowPsi {
 /*
  * this is test rule which set some motion component parameters
  */
+
  $rule singleton(XmotionData(X)<-dtmax,stime,ext_interfaces), 
    constraint(componentExternal_X),parametric(volumeTag(X)){
       
@@ -102,6 +103,7 @@ namespace flowPsi {
     vect3d cg_new;
     real t = $stime + $dtmax ;
     string Vol_tag = "Main"; //$volumeTag(X);
+    string commtype;
 
     lmdouble_t RotCX, RotCY,  RotCZ;
     lmdouble_t TransX, TransY, TransZ;
@@ -117,19 +119,29 @@ namespace flowPsi {
 
     if(Loci::MPI_rank==0) {
 
-      printf(" TOTAL FORCES 11111 time %lf \n", t);
+      printf(" Comm time %lf \n", t);
 /*
  * communicate
  */
-      printf(" Identifying  -------------\n ");
       if( ident_intf(Vol_tag, $ext_interfaces, pcomm_str)){
         communicate = 1;
-        printf(" Communication ------------- BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB\n");
         printf(" channel ------------------  %s\n", pcomm_str->O_channel);
         printf(" channel ------------------  %ld\n", pcomm_str->portno);
-        test_bridge_quaternion(t, ForceX, ForceY, ForceZ, &Alpha, &Qx, &Qy, &Qz,
+
+        commtype = pcomm_str->type;
+        if(commtype.compare("test") != 0){
+
+      //  if(Vol_tag.compare("All") != 0){
+
+
+
+           test_bridge_quaternion(t, ForceX, ForceY, ForceZ, &Alpha, &Qx, &Qy, &Qz,
                   &TransX, &TransY, &TransZ, &RotCX, &RotCY, &RotCZ, pcomm_str);
+        }else{
+            std::cerr << "ERROR: did not find communication type, check .vars file" << std::endl ;
+            exit(-1) ;
         }
+      }
     }
 /*
  * broadcast and save in XmotionData structure
