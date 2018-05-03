@@ -93,16 +93,21 @@ namespace flowPsi {
 /*
  * this is test rule which set some motion component parameters
  */
-
- $rule singleton(XmotionData(X)<-dtmax,stime,ext_interfaces), 
-   constraint(componentExternal_X),parametric(volumeTag(X)){
+ $type componentName_X blackbox<string> ;
+/*
+ * vales of componentName_X
+ */
+ $rule singleton(XmotionData(X)<-dtmax,stime,ext_interfaces,componentName_X), 
+   constraint(componentExternal(X)),parametric(volumeTag(X)){
+//   parametric(volumeTag(X)){
       
     printf(" +++++++++++++++++++++++++++++++++++++++++++++++++++++++++ \n");
 
     vect3d cg = vect3d (1.0,1.0,1.0) ;
     vect3d cg_new;
     real t = $stime + $dtmax ;
-    string Vol_tag = "Main"; //$volumeTag(X);
+  //  string Vol_tag = "Main"; //$volumeTag(X);
+    string Vol_tag = $componentName_X;
     string commtype;
 
     lmdouble_t RotCX, RotCY,  RotCZ;
