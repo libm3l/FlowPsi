@@ -24,6 +24,7 @@
  * 
  * Description: This function calculates forces/moments
  *    It uses some of the functions and types from IOintegrated.loci
+ *    and some data structures from IOintegrated.loci
  *    It is executed conditionally based on comm_freq
  *
  *
@@ -52,7 +53,9 @@ $include "flowPsi.lh"
 
 
 namespace flowPsi {
-
+/*
+ * declare variables storing fluxes
+ */
  struct conservativeFlux {
     real mass_flux ;
     vect3d momentum_flux ;
@@ -87,7 +90,8 @@ namespace flowPsi {
   } ;
 
 /*
- * calculate global viscous forces and store them in global_visc_force
+ * rule to sum up viscous and inviscid force from boundaries AllViscousBCs group 
+ * and store it in global_visc_force
  */
  class store_viscous_forces : public singleton_rule {
     const_param<conservativeFlux> in1 ;
@@ -106,10 +110,15 @@ namespace flowPsi {
       }
     }
   };
- 
+/*
+ * add new rule to global register
+ */
   register_rule<store_viscous_forces> register_store_viscous_forces ;
 
-
+/*
+ * rule to sum up viscous and inviscid force from boundaries AllSlipBCs group 
+ * and store it in global_visc_force
+ */
 class store_inviscid_forces : public singleton_rule {
     const_param<conservativeFlux> in1 ;
     param<vect3d>global_invisc_force;
@@ -127,14 +136,19 @@ class store_inviscid_forces : public singleton_rule {
       }
     }
   };
- 
+/*
+ * add new rule to global register
+ */
   register_rule<store_inviscid_forces> register_store_inviscid_forces ;
-  
 }
 
-
+/*
+ * Tell Loci how to deal newly declared dta structures
+ */
 namespace Loci {
-
+/*
+ * Tell Loci how to deal with the momentFlux data structure
+ */
   template <> struct data_schema_traits<flowPsi::momentFlux> {
     typedef IDENTITY_CONVERTER Schema_Converter ;
     static DatatypeP get_type() {
@@ -146,8 +160,9 @@ namespace Loci {
       return DatatypeP(ct) ;
     }
   } ;
-    
-  // Tell Loci how to deal with the conservativeFlux data structure
+/*
+ * Tell Loci how to deal with the conservativeFlux data structure
+ */
   template <> struct data_schema_traits<flowPsi::conservativeFlux> {
     typedef IDENTITY_CONVERTER Schema_Converter ;
     static DatatypeP get_type() {
