@@ -95,18 +95,16 @@ namespace flowPsi {
  */
  $type componentName_X blackbox<string> ;
 /*
- * vales of componentName_X
+ * vales of componentName_X which is the same as volumeTag
+ * and componentExternal_X which indicates the tag communicates 
+ * externally are set in gridComponent.loci
  */
  $rule singleton(XmotionData(X)<-dtmax,stime,ext_interfaces,componentName_X), 
-   constraint(componentExternal(X)),parametric(volumeTag(X)){
-//   parametric(volumeTag(X)){
-      
-    printf(" +++++++++++++++++++++++++++++++++++++++++++++++++++++++++ \n");
+   constraint(componentExternal_X),parametric(volumeTag(X)){
 
     vect3d cg = vect3d (1.0,1.0,1.0) ;
     vect3d cg_new;
     real t = $stime + $dtmax ;
-  //  string Vol_tag = "Main"; //$volumeTag(X);
     string Vol_tag = $componentName_X;
     string commtype;
 
@@ -123,22 +121,16 @@ namespace flowPsi {
     communicate = 0;
 
     if(Loci::MPI_rank==0) {
-
-      printf(" Comm time %lf \n", t);
 /*
  * communicate
  */
       if( ident_intf(Vol_tag, $ext_interfaces, pcomm_str)){
         communicate = 1;
-        printf(" channel ------------------  %s\n", pcomm_str->O_channel);
-        printf(" channel ------------------  %ld\n", pcomm_str->portno);
-
         commtype = pcomm_str->type;
+/*
+ * depending on what type of interface we call different routines
+ */
         if(commtype.compare("test") != 0){
-
-      //  if(Vol_tag.compare("All") != 0){
-
-
 
            test_bridge_quaternion(t, ForceX, ForceY, ForceZ, &Alpha, &Qx, &Qy, &Qz,
                   &TransX, &TransY, &TransZ, &RotCX, &RotCY, &RotCZ, pcomm_str);
@@ -176,14 +168,7 @@ namespace flowPsi {
       $XmotionData(X).q.y = Qy ;
       $XmotionData(X).q.z = Qz ;
       $XmotionData(X).q.w = Alpha;
-    }
-
- //   std::cout << "-------------  Prescribed component is11111    " <<  $XmotionData(X).cg << endl ;
- //   std::cout << "-------------  Prescribed component is11111  " << "  " << $XmotionData(X).cg << endl ;
- //   std::cout << "-------------  Prescribed component is11111  " << "  " << $XmotionData(X).new_cg << endl ;
- //   std::cout << "-------------  Prescribed component is11111  " << "  " << $XmotionData(X).q.x << " "
- //            << $XmotionData(X).q.y << " "<< $XmotionData(X).q.z << " "<< $XmotionData(X).q.w<< endl ;     
-   
+    }   
   };
 
 /*

@@ -102,18 +102,18 @@ namespace flowPsi {
   $type componentRotation_X Constraint ;
   $type componentServo_X Constraint ;
   $type componentPrescribed_X Constraint ;
-  $type componentExternal(X) Constraint ;
+  $type componentExternal_X Constraint ;
   $type componentStationary_X Constraint ;
   $type volumeTag(X) param<string> ;
 /*
  * set what type of motion
  */
-  $rule constraint(componentServo_X,componentRotation_X,componentPrescribed_X,componentStationary_X,componentExternal(X)<-volumeTag(X),componentMotion,componentMotionTypes),
+  $rule constraint(componentServo_X,componentRotation_X,componentPrescribed_X,componentStationary_X,componentExternal_X<-volumeTag(X),componentMotion,componentMotionTypes),
     parametric(volumeTag(X)) {
     string tag = $volumeTag(X) ;
     $componentRotation_X = EMPTY ;
     $componentPrescribed_X = EMPTY ;
-    $componentExternal(X) = EMPTY ;
+    $componentExternal_X = EMPTY ;
     $componentStationary_X = EMPTY ;
     $componentServo_X = EMPTY ;
     if($componentMotion.optionExists(tag)) {
@@ -133,7 +133,7 @@ namespace flowPsi {
       } else if(name == "prescribed") {
         $componentPrescribed_X = ~EMPTY ;
       } else if(name == "external") {
-        $componentExternal(X) = ~EMPTY ;
+        $componentExternal_X = ~EMPTY ;
       } else if(name == "stationary") {
         $componentStationary_X = ~EMPTY ;
       }
@@ -646,13 +646,13 @@ namespace flowPsi {
  *
  */
   $rule apply(componentMotionData<-XmotionData(X),componentName_X)[Loci::NullOp],
-    constraint(componentExternal(X)),parametric(volumeTag(X)), prelude{
+    constraint(componentExternal_X),parametric(volumeTag(X)), prelude{
 
     string name = *$componentName_X ;
 
 #ifdef LIBM3LSIPDX
     (*$componentMotionData)[name] = *$XmotionData(X) ;
-    printf("           EXTERNAL   DT \n" );
+ //   printf("           EXTERNAL   DT \n" );
  //   std::cout << "-------------  external name is   " << "  " << name << "   " << (*$XmotionData(X)).cg << endl ;
  //   std::cout << "-------------  external name is   " << "  " << name << "   " << (*$XmotionData(X)).new_cg << endl ;
  //   std::cout << "-------------  external name is   " << "  " << name << "   " << (*$XmotionData(X)).q.x << " "
