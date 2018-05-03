@@ -19,7 +19,7 @@
 //#
 //#############################################################################
 
-/* History:
+/* CHANGELOG:
  * Version   Author:         Date       Patch number  CLA     Comment
  * -------   -------        ----------   --------      ---     -------
  * 1-eta-6   Adam Jirasek   2018-05-02                         bug fix in supersonic inflow condition

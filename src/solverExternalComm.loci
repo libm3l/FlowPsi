@@ -28,7 +28,7 @@
  *     for more details go to www.github.com/libm3l/libm3l and www.github.com/libm3l/lsipdx 
  *     values of angles, rotation center and translation
  *
- * History:
+ * CHANGELOG:
  * Version   Author:               Date       Patch number  CLA     Comment
  * -------   -------               --------   --------      ---     -------
  * 1-beta-6  Adam Jirasek         2018-03-21                        Initial Implementation

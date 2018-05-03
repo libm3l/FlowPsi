@@ -28,7 +28,7 @@
  *    It is executed conditionally based on comm_freq
  *
  *
- * History:
+ * CHANGELOG:
  * Version   Author:               Date       Patch number  CLA     Comment
  * -------   -------               --------   --------      ---     -------
  * 1.1       Adam Jirasek    2018-03-21                         Initial implementation
