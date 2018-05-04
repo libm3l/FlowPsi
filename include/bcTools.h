@@ -73,8 +73,8 @@ namespace flowPsi {
 /*
  * JKA: this is s temporary hack
  */
-    pgb = pg0;
-    Tb = Ti;
-    ub = ui;
+ //   pgb = pg0;
+ //   Tb = Ti;
+ //   ub = ui;
   }      
 }

@@ -95,7 +95,7 @@ namespace flowPsi {
 		  temperature{n,it},gagePressure{n,it},u{n,it},
                   dfluid{n,it},
                   localPBias{n,it},iblank{n,it},
-		  temperature{n},gagePressure{n},u{n},
+		  temperature{n},gagePressure{n},
 		  Pambient),
     inplace(temperature_i{n,it+1}|temperature{n,it}),
     inplace(gagePressure_i{n,it+1}|gagePressure{n,it}),
@@ -123,13 +123,9 @@ namespace flowPsi {
 /*
  * update
  */
-    $temperature_i{n,it+1}  = $temperature{n} + alpha*dT;
-    $gagePressure_i{n,it+1} = $gagePressure{n} + alpha*dp ;
-    $u_i{n,it+1} = $u{n} + alpha*du ;
-
-//    $temperature_i{n,it+1}  = $temperature{n,it} + alpha*dT;
-//    $gagePressure_i{n,it+1} = $gagePressure{n,it} + alpha*dp ;
-//    $u_i{n,it+1} = $u{n,it} + alpha*du ;
+    $temperature_i{n,it+1}  = $temperature{n,it} + alpha*dT;
+    $gagePressure_i{n,it+1} = $gagePressure{n,it} + alpha*dp ;
+    $u_i{n,it+1} = $u{n,it} + alpha*du ;
   }
 /*
  * JKA note: Update pressure, temperature and velocity in time step

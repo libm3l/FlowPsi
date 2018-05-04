@@ -252,7 +252,7 @@ int main(int argc, char *argv[])
 /*
  * calculate angle
  */
-	pitch = -2.41*sin(*time*2*3.1415926*50.32);
+	pitch = 2.41*sin(*time*2*3.1415926*50.32);
 //	pitch = 15*sin(*time*2*3.1415926*5);
         roll = 0;
         yaw = 0;
