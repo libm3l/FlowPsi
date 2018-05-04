@@ -70,11 +70,5 @@ namespace flowPsi {
       (Beta*a0*a0*(sigma+uit*BetaM)) ;
 
     Tb = (pgb+Pambient)/(Rtilde*rhob) ;
-/*
- * JKA: this is s temporary hack
- */
- //   pgb = pg0;
- //   Tb = Ti;
- //   ub = ui;
   }      
 }
