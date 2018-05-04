@@ -1,0 +1,7 @@
+awk '{print $1, log($2)}' output/resid.dat > REZ; xmgrace REZ 
+
+awk 'NR>300 {print -2.41*sin(2*3.1415926*50.32*$1*2E-4), $6}' output/flux_BC_2.dat > FZ; xmgrace FZ 
+
+
+/home/jiraseka/Flowpsi/LoCi/LoCi/OBJ/bin/extract -en NACAViscous 0; paraview --state=STATE.pvsm
+
