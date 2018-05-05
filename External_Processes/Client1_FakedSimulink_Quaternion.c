@@ -250,13 +250,14 @@ int main(int argc, char *argv[])
  */
 	tmpfloat = (lmdouble_t *)m3l_get_data_pointer(TmpNode);
 /*
- * calculate angle
+ * calculate angle, NACA 0012 oscillating case CT5
+ * cord lentgh is 1 m
  */
-//	psi = -2.41*sin(*time*2*3.1415926*50.32);
-	pitch = -2.41*sin(*time*2*3.1415926);
+	pitch = 0.016+2.51*sin(*time*2*3.1415926*6.6565344171);
         roll = 0;
         yaw = 0;
-	printf("Pitch angle is %lf", pitch);
+	printf("Pitch angle is %lf\n", pitch);
+        pitch = pitch *3.1415926/180.;
 /*
  * transofrm to quaternion
  */

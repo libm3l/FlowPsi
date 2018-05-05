@@ -31,6 +31,11 @@
 \author{ Edward A. Luke, Xiaoling Tong, and Rex Chamberlain}
 
 \maketitle
+
+\section*{Document revisions}
+- Adam Jirasek: Added External Solver Communication
+
+\newpage
 \section{Introduction}
 
 {\em FlowPsi } is an open source CFD solver that is developed
@@ -38,6 +43,8 @@ utilizing the Loci framework\cite{Luke.2005,Zhang.2009} which provides
 for automatic parallelization and logical consistency checks
 simplifying the design of highly parallel numerical solvers for
 partial differential equations.
+\newpage
+
 
 \section{Units}
 
@@ -49,6 +56,7 @@ in all {\em FlowPsi} input and output files.  Note that {\em FlowPsi}
 provides unit conversions on most inputs such that a user can input
 the units that are most comfortable.  Output files are always in MKS
 units, however.
+\newpage
 
 \section{Problem Input}
 
@@ -72,6 +80,8 @@ Each variable is listed at the beginning of a line followed by a colon
 and then its definition.  An example of an input file
 named {\tt input.vars} is as follows:
 \begin{verbatim}
+loadMesh: MeshFile
+loadRestartDir: restart
 {
 boundary_conditions: <
                  body=viscousWall(adiabatic),
@@ -111,6 +121,17 @@ These variables are also defined as follows:
 
 
 \begin{enumerate}
+
+\item {\tt loadMesh}
+
+This item is preamble of the .vars file. It is an optional parameter and specifies the name of the 
+mesh file. If it is not specified, the mesh file name will be determined by the name of .vars file.
+
+\item {\tt loadRestartDir}
+
+This item is preamble of the .vars file. It is an optional parameter and specifies the name of the
+directory with restart files. If \emph{loadMesh} is fiven in the .vars file, 
+then this parameter must be specified int .vars file too, otherwise it must be specified on the command line.
  
 \item {\tt boundary\_conditions}
 
@@ -1100,6 +1121,7 @@ and yaw to the right when viewed from the pilot's perspective).
 %%     BC_1=viscousWall(adiabatic,momentCenter=[0,0,0])
 %% \end{verbatim}
 
+\newpage
 \section{Relative Motion Problems using {\em FlowPsi}}
 
 {\em FlowPsi} can be used to simulate moving bodies using an unstructured
@@ -1165,6 +1187,11 @@ of mass.  Interpolation between the given data is accomplished using a cubic
 spline.  In order to specify derivative discontinuities in the data,
 repeat a data entry twice.
 
+\item {\tt external}
+
+This option is used to specify that the component motion is
+given by a an external solver. For more detail see section External Solver Communication
+
 \end{enumerate}
 
 \subsection{Specifying motion in a relative frame}
@@ -1209,7 +1236,73 @@ when the interface surface overlaps geometry from another grid, the
 grids will be cut along the surface of equal distance between the two
 component surfaces.
 
+\newpage
+\section{Communication with External Solvers}
+the flowPsi is now able to communicate with externally run processes. It can send and receive data
+through cosimulation engine. The cosimulation engine is a lsipdx utility\cite{Jirasek_2014}
+which is available from github at \begin{verbatim}https://github.com/libm3l/lsipdx\end{verbatim}
+This utility is a co-simulation engine taking care of data transer and process synchronization. 
+It uses its own TPC/IP protocoll which needs to be installed along with lsipdx utility. 
+The TCP/IP protocall is called libm3l and is available on github at
+\begin{verbatim}https://github.com/libm3l/libm3l\end{verbatim}
+Both utilities, once installed, produce shared libraries which must be specified as 
+input parameter during flowPsi configuration process. The two additional parameters in configuration process are 
+\emph{\texttt{-{}-}libm3l-dir} and \emph{\texttt{-{}-}lsipdx-dir}. 
+If the two are not specifies, the flowPsi is compiled without the ability for communication with external solvers.
 
+Once flowPsi needs to communicate, it looks for subset specified in .vars file called \emph{ext\_interfaces} which
+may look like example below:
+ 
+\begin{verbatim}
+ext_interfaces: <
+  Interface_1=intrf_global(tag=Main, type=quaternion_bridge, comm_freq=1,
+                 IP="localhost",portno=31000, I_channel=SIM2CFD, O_channel=CFD2SIM)
+ > 
+\end{verbatim}
+
+It contains one interface, ie. flowPsi will communicate with one external solver. The type of interface is global, 
+which means the solver will share global data such as global forces/moments. The name of interface from example above
+is \emph{Interface\_1}. The parameters of interface are:
+\begin{enumerate}
+
+\item {\tt tag}
+
+Name of the volume tag. If \emph{All} is specified, the interface acts for all volume tags
+
+\item {\tt type}
+
+This parameter specifies the type of the solver flowPsi will be communicating with. This is solver specific as it 
+determines what/if flowPsi will send data out and what/if flowPsi will recevie data. 
+
+\item {\tt comm\_freq}
+
+This parameter specifies how often flowPsi communicates. If the number is positive, it specifies frequency of time step
+which where flowPsi communicates, if the number is negative it specifies frequency of 
+Newton subiterations where flowPsi will communicate.
+
+\item {\tt IP}
+
+This parameter specifies IP address of \emph{lsipdx} co-simulation engine.
+
+\item {\tt portno}
+
+This parameter specifies port number of \emph{lsipdx} co-simulation engine.
+
+\item {\tt I\_channel}
+
+This parameter name of channel through which flowPsi receives data
+
+\item {\tt O\_channel}
+
+This parameter name of channel through which flowPsi sends data
+
+
+\end{enumerate}
+
+
+
+
+\newpage
 \section{{\em FlowPsi} Pre- and Post-processing Utilities}
 
 \subsection{{\em FlowPsi} Pre-processing Utilities}
@@ -1596,6 +1689,9 @@ Favre averaged while
   \end{center}
 \end{table}
 \input{gridMotion}
+
+
+
 \clearpage
 \appendix
 \def\V{\mathcal{V}}
@@ -1641,8 +1737,6 @@ Favre averaged while
 %%\input{jacobian.tex}
 
 %%\input{scalar_transport.tex}
-
-
 
 \bibliography{guide}
 \bibliographystyle{unsrt}

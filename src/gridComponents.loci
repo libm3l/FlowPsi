@@ -21,10 +21,11 @@
 
 /*
  *
- * History:
+ * CHANGELOG:
  * Version   Author:               Date       Patch number  CLA     Comment
  * -------   -------               --------   --------      ---     -------
- * 1-beta-6  Adam Jirasek         2018-04-24    0001                Add external maneuver rule
+ * 1-beta-6  Adam Jirasek         2018-04-24    0001             Add external maneuver rule
+ *                                                               end required flags
  *
  *
  *
@@ -102,18 +103,27 @@ namespace flowPsi {
   $type componentRotation_X Constraint ;
   $type componentServo_X Constraint ;
   $type componentPrescribed_X Constraint ;
-  $type componentExternal_X Constraint ;
   $type componentStationary_X Constraint ;
   $type volumeTag(X) param<string> ;
 /*
+ * componentExternal is set always when itnerface calls for external communication
+ * componentExternalMotion is set when component motion is set to external
+ * some of the external communication does not necessarily need mesh motion
+ */
+  $type componentExternal_X Constraint ;
+  $type componentExternalMotion_X Constraint ;
+
+/*
  * set what type of motion
  */
-  $rule constraint(componentServo_X,componentRotation_X,componentPrescribed_X,componentStationary_X,componentExternal_X<-volumeTag(X),componentMotion,componentMotionTypes),
+  $rule constraint(componentServo_X,componentRotation_X,componentPrescribed_X,
+       componentStationary_X,componentExternal_X,componentExternalMotion_X<-volumeTag(X),componentMotion,componentMotionTypes),
     parametric(volumeTag(X)) {
     string tag = $volumeTag(X) ;
     $componentRotation_X = EMPTY ;
     $componentPrescribed_X = EMPTY ;
     $componentExternal_X = EMPTY ;
+    $componentExternalMotion_X = EMPTY ;
     $componentStationary_X = EMPTY ;
     $componentServo_X = EMPTY ;
     if($componentMotion.optionExists(tag)) {
@@ -133,7 +143,14 @@ namespace flowPsi {
       } else if(name == "prescribed") {
         $componentPrescribed_X = ~EMPTY ;
       } else if(name == "external") {
+/*
+ * if componentMotion specified as external 
+ * set mesh motion to external and set flag that there is 
+ * external sovler communication (flag componentExternal).
+ * This flag is used in solverExternalComm.loci
+ */
         $componentExternal_X = ~EMPTY ;
+        $componentExternalMotion_X= ~EMPTY ;
       } else if(name == "stationary") {
         $componentStationary_X = ~EMPTY ;
       }
@@ -643,18 +660,20 @@ namespace flowPsi {
  * set values in componentMotionData when externally prescribed motion
  * the new values area stored in componentXform XmotionData
  * which is set in solverExtrnalComm.loci
+ *
  */
   $rule apply(componentMotionData<-XmotionData(X),componentName_X)[Loci::NullOp],
-    constraint(componentExternal_X),parametric(volumeTag(X)), prelude{
+    constraint(componentExternalMotion_X),parametric(volumeTag(X)), prelude{
+
     string name = *$componentName_X ;
 
 #ifdef LIBM3LSIPDX
     (*$componentMotionData)[name] = *$XmotionData(X) ;
-    printf("           EXTERNAL   DT \n" );
-    std::cout << "-------------  external name is   " << "  " << name << "   " << (*$XmotionData(X)).cg << endl ;
-    std::cout << "-------------  external name is   " << "  " << name << "   " << (*$XmotionData(X)).new_cg << endl ;
-    std::cout << "-------------  external name is   " << "  " << name << "   " << (*$XmotionData(X)).q.x << " "
- << (*$XmotionData(X)).q.y << " "<< (*$XmotionData(X)).q.z << " "<< (*$XmotionData(X)).q.w<< endl ;
+ //   printf("           EXTERNAL   DT \n" );
+ //   std::cout << "-------------  external name is   " << "  " << name << "   " << (*$XmotionData(X)).cg << endl ;
+ //   std::cout << "-------------  external name is   " << "  " << name << "   " << (*$XmotionData(X)).new_cg << endl ;
+ //   std::cout << "-------------  external name is   " << "  " << name << "   " << (*$XmotionData(X)).q.x << " "
+ // << (*$XmotionData(X)).q.y << " "<< (*$XmotionData(X)).q.z << " "<< (*$XmotionData(X)).q.w<< endl ;
 #else
     if(Loci::MPI_rank==0) {
       cerr << " " << endl ;
@@ -675,7 +694,6 @@ namespace flowPsi {
     vect3d cg_new ;
     Quaternion q ;
     $prescribedMotion_X->getMotion(cg_new,q,t) ;
-    printf("           PRESCRIBED     DT %lf  %lf  %lf \n", t,*$stime, real(*$dtmax) );
     componentXform xform ;
     xform.cg = *$prescribedCG_X ;
     xform.new_cg = cg_new ;

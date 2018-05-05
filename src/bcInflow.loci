@@ -19,6 +19,12 @@
 //#
 //#############################################################################
 
+/* CHANGELOG:
+ * Version   Author:         Date       Patch number  CLA     Comment
+ * -------   -------        ----------   --------      ---     -------
+ * 1-eta-6   Adam Jirasek   2018-05-02                         bug fix in supersonic inflow condition
+ */
+
 #include <Loci.h>
 #include "flowTypes.h"
 #include <string>
@@ -322,7 +328,7 @@ namespace flowPsi {
 	$gagePressure_f = $ci->$gagePressure ;
 	$temperature_f = $ci->$temperature ;
 	$u_f = $ci->$u ;
-      } else {
+      } else {       // subsonic outflow
 	cv_outflow($gagePressure_f,$temperature_f,$u_f,
 		   $ci->$gagePressure,$ci->$temperature,$ci->$u,
 		   $gagePressureRef,$temperatureRef,$uRef,
@@ -330,11 +336,11 @@ namespace flowPsi {
 		   $Eta_pf) ;
       }
     } else {
-      if(-uit >a0) { // Supersonic inflow
+      if(-uit > a0) { // Supersonic inflow
 	$gagePressure_f = $gagePressureRef ;
 	$temperature_f = $temperatureRef ;
 	$u_f = $uRef ;
-      } else {
+      } else {       // Subsonic inflow
 	cv_inflow($gagePressure_f,$temperature_f,$u_f,
 		  $ci->$gagePressure,$ci->$temperature,$ci->$u,
 		  $gagePressureRef,$temperatureRef,$uRef,
