@@ -192,6 +192,8 @@ int main(int ac, char *av[]) {
   string query = "solution" ;
   string meshfile = "" ;
   string restartdir = "" ;
+  string model_name = "" ;
+
 
   bool input_desc = false ;
   bool dryrun = false ;
@@ -344,6 +346,8 @@ int main(int ac, char *av[]) {
             meshfile = argument ;
           } else if(name == "loadRestartDir") {
             restartdir = argument ;
+          } else if(name == "loadModelName") {
+            model_name = argument ;
           } else if(name == "query") {
             query = argument ;
           } else {
@@ -432,15 +436,24 @@ int main(int ac, char *av[]) {
   }
 
 /*
+ * set model name, if not specified, set it to av[1]
+ */
+  if(model_name.empty()){
+    std::cout << "Model name is: " << av[1]  << endl ;
+    model_name = av[1];
+  }else{
+    std::cout << "Model name is: " << model_name << endl ;
+  }
+/*
  * read mesh, if file specified in .vars file, use this name 
  * otherwise use name of vars file from  line
  */
   if(meshfile.empty()){
     std::cout << "Reading mesh file: " << av[1] <<".vog" << endl ;
-    read_grid(facts,rdb,av[1],av[1],dryrun) ;
+    read_grid(facts,rdb,av[1],av[1],model_name.c_str(),dryrun) ;
   }else{
     std::cout << "Reading mesh file: " << meshfile <<".vog" << endl ;
-    read_grid(facts,rdb,av[1],meshfile.c_str(),dryrun) ;
+    read_grid(facts,rdb,av[1],meshfile.c_str(),model_name.c_str(),dryrun) ;
   }
 
   if(command_vars.size() > 0) {
