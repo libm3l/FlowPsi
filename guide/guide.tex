@@ -33,7 +33,7 @@
 \maketitle
 
 \section*{Document revisions}
-- Adam Jirasek: Added External Solver Communication
+- Added External Solver Communication (added by Adam Jirasek)
 
 \newpage
 \section{Introduction}
@@ -82,6 +82,7 @@ named {\tt input.vars} is as follows:
 \begin{verbatim}
 loadMesh: MeshFile
 loadRestartDir: restart
+loadModelName: model_name
 {
 boundary_conditions: <
                  body=viscousWall(adiabatic),
@@ -132,6 +133,11 @@ mesh file. If it is not specified, the mesh file name will be determined by the 
 This item is preamble of the .vars file. It is an optional parameter and specifies the name of the
 directory with restart files. If \emph{loadMesh} is fiven in the .vars file, 
 then this parameter must be specified int .vars file too, otherwise it must be specified on the command line.
+
+\item {\tt loadModelName}
+
+This item is preamble of the .vars file. It is an optional parameter and specifies the name of the
+model. If \emph{loadModelName} is not specified, it is set to the nameof .vars file
  
 \item {\tt boundary\_conditions}
 

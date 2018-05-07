@@ -67,7 +67,7 @@ namespace flowPsi {
 #ifdef LOCI_V5
 
   void read_grid(fact_db &facts, const rule_db &rdb, const char *filename,
-                 const char *mfilename, bool dryrun) {
+                 const char *mfilename, const char *modname, bool dryrun) {
     gKeySpaceP universe_space = gKeySpace::get_space("UniverseSpace", "");
     
     // Add grid_file_info and boundary condition info to fact database so
@@ -76,7 +76,10 @@ namespace flowPsi {
     facts.create_gfact("grid_file_info",grid_file_info,universe_space) ;
 
     gParam<std::string> modelName ;
-    *modelName = string(filename) ;
+/*
+ * set model name
+ */
+    *modelName = string(modname) ;
     facts.create_gfact("modelName",modelName,universe_space) ;
 
     try {
@@ -344,7 +347,7 @@ namespace flowPsi {
 #else
 
   void read_grid(fact_db &facts, const rule_db &rdb, const char *filename, 
-                 const char *mfilename, bool dryrun) {
+                 const char *mfilename, const char *modname, bool dryrun) {
     
     // Add grid_file_info and boundary condition info to fact database so
     // that they can be specified in the vars file
@@ -352,7 +355,10 @@ namespace flowPsi {
     facts.create_fact("grid_file_info",grid_file_info) ;
 
     param<std::string> modelName ;
-    *modelName = string(filename) ;
+/*
+ * set model name
+ */
+    *modelName = string(modname) ;
     facts.create_fact("modelName",modelName) ;
 
     try {

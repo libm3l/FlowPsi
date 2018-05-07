@@ -19,10 +19,17 @@
 //#
 //#############################################################################
 
-/* CHANGELOG:
- * Version   Author:         Date       Patch number  CLA     Comment
- * -------   -------        ----------   --------      ---     -------
- * 1-eta-6   Adam Jirasek   2018-05-02                         bug fix in supersonic inflow condition
+/*
+ * 
+ * CHANGELOG:
+ *
+ * History:
+ * Version   Author:               Date       Patch number  CLA     Comment
+ * -------   -------                        --------   --------                 ---        -------
+ * 1-beta-6  Adam Jirasek      2018-03-26                       Fix sign in subsonci inflow BC
+ *                                                                                       Consulted with Edl Luke 
+ *                                                                                       Bud actually did not have that much effect
+ * 
  */
 
 #include <Loci.h>
