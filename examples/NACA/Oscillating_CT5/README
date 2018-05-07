@@ -1,4 +1,8 @@
 This is an oscillating NACA 0012 case which illustrates external communication
+FlowPsi sends actual time of simulation to the external sovler which then 
+calculates alpha, beta and gamma euler angles, converts them to quaternion
+and sends back to flowPsi. FlowPsi then turns the mesh and makes additional time step. 
+The communication occurs every time step.
 
 1. run stady case using NACAViscous_STD.vars
 
@@ -7,9 +11,12 @@ This is an oscillating NACA 0012 case which illustrates external communication
 3. execute unsteady analysis
 
   3a. start lsipdx co-sumulation engine using Definition_File in this directory
-  3b. start separate solver in ExternalProcesses as
+      example: lsipdx_server.out --port 31000 --input_file Definition_File --show
+
+  3b. start separate solver in ExternalProcesses (from External_Processes directory)
      Client1_FakedSimulink_Quaternion.out localhost 31000
-  3c execute FlowPsi with NACAViscous.vars input file
+
+  3c execute FlowPsi with NACAViscousi_USTD.vars input file
 
 
 Once the process is finished, kill lsipdx co-sumulation engine
@@ -18,5 +25,5 @@ Once the process is finished, kill lsipdx co-sumulation engine
    use 
    awk 'NR>300 {print 0.016+2.51*sin(2*3.1415926*6.6565344171*$1*2E-4), $6/1030.032519344/0.1}' output/flux_BC_2.dat > FZ
 
-   to get normal forces vs. angle of attack
+   to get normal force vs. angle of attack
 
