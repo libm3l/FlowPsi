@@ -27,6 +27,8 @@
  * Version   Author:               Date       Patch number  CLA     Comment
  * -------   -------                        --------   --------                 ---        -------
  * 1-beta-6  Adam Jirasek      2018-03-26                       Fix sign in subsonci inflow BC
+ *                                                                                       Consulted with Edl Luke 
+ *                                                                                       Bud actually did not have that much effect
  * 
  */
 
