@@ -1245,7 +1245,7 @@ component surfaces.
 \newpage
 \section{Communication with External Solvers}
 the flowPsi is now able to communicate with externally run processes. It can send and receive data
-through cosimulation engine. The cosimulation engine is a lsipdx utility\cite{Jirasek_2014}
+through a cosimulation engine. The cosimulation engine is a lsipdx utility\cite{Jirasek_2014}
 which is available from github at \begin{verbatim}https://github.com/libm3l/lsipdx\end{verbatim}
 This utility is a co-simulation engine taking care of data transer and process synchronization. 
 It uses its own TPC/IP protocoll which needs to be installed along with lsipdx utility. 
@@ -1254,7 +1254,7 @@ The TCP/IP protocall is called libm3l and is available on github at
 Both utilities, once installed, produce shared libraries which must be specified as 
 input parameter during flowPsi configuration process. The two additional parameters in configuration process are 
 \emph{\texttt{-{}-}libm3l-dir} and \emph{\texttt{-{}-}lsipdx-dir}. 
-If the two are not specifies, the flowPsi is compiled without the ability for communication with external solvers.
+If the two are not specified, the flowPsi is compiled without the ability for communication with external solvers.
 
 Once flowPsi needs to communicate, it looks for subset specified in .vars file called \emph{ext\_interfaces} which
 may look like example below:
@@ -1305,8 +1305,56 @@ This parameter name of channel through which flowPsi sends data
 
 \end{enumerate}
 
-
-
+\subsection{Execute flowPsi communicating with External Solvers}
+There are several steps need to be done to execute flowPsi coupled simlulations.
+The forst step is to execute \emph{lsipdx\_server.out} which is in the lsipdx distribution.
+For that the user needs a lsipdx inptu file which specifies which channels should be opened and 
+how many processes is accessing them. For the example of \emph{ext\_interface} above, the lsipdx input file looks:
+\begin{verbatim}
+COMM_DEF  DIR 2
+        Process_Specifications DIR 1
+                Name_of_Case  C 1 9 
+                        `Test Case`
+        Channels  DIR 2
+                Channel  DIR 4
+                        Name_of_Channel C 1 7
+                                `CFD2SIM`
+                        Sending_Process I 1 1
+                                1
+                        Receiving_Processes ST 1 1
+                                1
+                        CONNECTION DIR 2
+                                ATDT_Mode C 1 1
+                                `D`
+                                KEEP_CONN_ALIVE_Mode C 1 1
+                                `N`
+                Channel  DIR 4
+                        Name_of_Channel C 1 7
+                                `SIM2CFD`
+                        Sending_Process I 1 1
+                                1
+                        Receiving_Processes ST 1 1
+                                1
+                        CONNECTION DIR 2
+                                ATDT_Mode C 1 1
+                                `D`
+                                KEEP_CONN_ALIVE_Mode C 1 1
+                                `N`
+-EOMF-
+\end{verbatim}
+This files specify, that the lsipdx server opens two channels, one called \emph{CFD2SIM} and second called \emph{SIM2CFD}.
+Each channel will have one sending and one receiving process. For now we can keep \emph{CONNECTION\_DIR} as it is, 
+for more details on parameters in this structure see\cite{Jirasek_2014}.
+The \emph{lsipdx\_server.out}  is then executed as
+\begin{verbatim}
+lsipdx_server.out --port 31000 --input_file lsipdx_input_file --show
+\end{verbatim}
+which opens the two channels and binds port 31000. The port number and the names of channels from lsipdx input file
+must be the same as the port number in \emph{ext\_interface} structure.
+Once this is done, flowPsi and other communicating processes can be executed and it does not matter in which order.
+flowPsi and other solvers then communicatte with lsipdx server which resends data to processes associated with 
+different channels. Since the communication is blocking TCP/IP communication, the data flow 
+ensures process synchronization. Once the entire coupled analysis is finihed, the \emph{lsipdx\_server} must be terminated manually. 
 
 \newpage
 \section{{\em FlowPsi} Pre- and Post-processing Utilities}
