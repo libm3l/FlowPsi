@@ -52,7 +52,9 @@ namespace flowPsi {
 
   $rule apply(hasMeshMotion)[Loci::Maximum],constraint(pos), prelude {
   } ;
-
+/*
+ * set flag that meshes are moving if at least one moving
+ */
   $rule apply(hasMeshMotion)[Loci::Maximum],constraint(movingMesh),prelude {
     join(*$hasMeshMotion,1) ;
   } ;
@@ -68,7 +70,9 @@ namespace flowPsi {
     vect3d us($xgvel,0.0,0.0) ;
     $us_n = dot(us,$area.n) ;
   }
-
+/*
+ * get grid velocities for moving mesh 
+ */
   $rule pointwise(moving::us_n{n,it}<-dtmax,face2node->(pos{n},pos{n,it}),area{n,it}),
     constraint(movingMesh,area) {
     int fsz = $face2node.size() ;
@@ -123,7 +127,9 @@ namespace flowPsi {
     // Get grid velocity at face by dividing by face area
     $us_n{n,it} = .25*us_n_int/(3.*max<real>($area{n,it}.sada,1e-30)*real($dtmax)) ;
   }
-
+/*
+ * get grid velocities for moving mesh in axisymmetric mode
+ */
   $rule pointwise(axi::moving::us_n{n,it}<-dtmax,face2node->(pos{n},pos{n,it}),area{n,it}),
     constraint(movingMesh,area,axisymmetricCoordinateModel) {
     int fsz = $face2node.size() ;
@@ -266,16 +272,16 @@ namespace flowPsi {
   class restart_pos : public pointwise_rule {
     const_store<vect3d> pos ;
     const_param<string> icfile ;
-    const_param<string> modelName ;
+    const_param<string> InputModelName ;
     store<vect3d> pos_ic ;
   public:
     restart_pos() {
       name_store("pos",pos) ;
       name_store("restart::pos_ic",pos_ic) ;
       name_store("icfile",icfile) ;
-      name_store("modelName",modelName) ;
+      name_store("InputModelName",InputModelName) ;
       input("pos,icfile") ;
-      input("modelName") ;
+      input("InputModelName") ;
       output("restart::pos_ic") ;
       disable_threading() ;
     }
@@ -283,7 +289,7 @@ namespace flowPsi {
       if(Loci::GLOBAL_AND(seq==EMPTY))
         return ;
 
-      string filename = *icfile + string("posRestart_") + *modelName ;
+      string filename = *icfile + string("posRestart_") + *InputModelName ;
 
       int file_exists = 1 ;
       if(Loci::MPI_rank) {

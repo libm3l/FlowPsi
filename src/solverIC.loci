@@ -559,10 +559,10 @@ namespace flowPsi {
   }
   
   $rule pointwise(icfile::temperature_ic,icfile::gagePressure_ic,
-		  icfile::u_ic<-icfile,modelName,Pambient),
+		  icfile::u_ic<-icfile,InputModelName,Pambient),
     constraint(geom_cells,icfile),  option(disable_threading),  prelude {
     
-    string filename = *$icfile+"flowVars_"+*$modelName ;
+    string filename = *$icfile+"flowVars_"+*$InputModelName ;
     if(Loci::MPI_rank == 0)
       cout << "restarting flow variables from '" << filename << "'"<<endl ;
     struct stat buf ;

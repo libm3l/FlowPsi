@@ -1,3 +1,36 @@
+//#############################################################################
+//#
+//# Copyright 2015, Mississippi State University
+//#
+//# This file is part of the flowPsi computational fluid dynamics solver.
+//#
+//# The flowPsi solver is free software: you can redistribute it and/or modify
+//# it under the terms of the GNU General Public License as published by
+//# the Free Software Foundation, either version 3 of the License, or
+//# (at your option) any later version.
+//#
+//# The flowPsi solver is distributed in the hope that it will be useful,
+//# but WITHOUT ANY WARRANTY; without even the implied warranty of
+//# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//# GNU General Public License for more details.
+//#
+//# You should have received a copy of the GNU General Public License
+//# along with the flowPsi solver.  If not, see <http://www.gnu.org/licenses>
+//#
+//#############################################################################
+
+/*
+ *
+ * History:
+ * Version   Author:               Date       Patch number  CLA     Comment
+ * -------   -------               --------   --------      ---     -------
+ * 1-beta-6  Adam Jirasek         2018-04-24    0001                Add external interfaces variables
+ *
+ *
+ *
+ * 
+ */
+
 #include <Loci>
 #include <flowTypes.h>
 
@@ -7,6 +40,8 @@ $type plot_output param<flowPsi::list_input> ;
 $type plot_output_exclusive param<flowPsi::list_input> ;
 
 $type modelName param<std::string> ;
+$type InputModelName param<std::string> ;
+
 // Transform for periodic bc's (should this be in FVM.lh?)
 $type periodicTransform store<Loci::rigid_transform> ;
 
@@ -268,6 +303,29 @@ $type vect3dFavreCoVarBase_f(X) store<flowPsi::vect3d> ;
 $type scalarTransportP(X,C) store<flowPsi::real> ;
 $type scalarTransport(X,C) store<flowPsi::real> ;
 
+
+/*
+ * global data  (need to check if there is no duplicity to above declared variables)
+ * - forces, moments
+ * - euler angles
+ */
+$type global_visc_force param<flowPsi::vect3d> ;
+$type global_invisc_force param<flowPsi::vect3d> ;
+$type global_angles     param<flowPsi::vect3d> ;
+$type global_displ      param<flowPsi::vect3d> ;
+$type global_rot_center param<flowPsi::vect3d> ;
+
+/*
+ * external interfaces data sets
+ */
+$type ext_interfaces param<Loci::options_list> ;
+$type comm_freq   param<int> ;
+//$type XmotionData blackbox<componentXform> ;
+$type XmotionData(X) blackbox<componentXform> ;
+
+
+
+
 $type timeStepSteadyState Constraint ;
 $type timeStepAccurate Constraint ;
 
@@ -343,8 +401,4 @@ $type movingMesh store<bool> ;
 $type coriolis param<coriolis_options> ;
 $type gauss_seidel_iter param<int> ;
   
-
-
-
-
 
