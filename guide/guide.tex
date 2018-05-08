@@ -83,6 +83,7 @@ named {\tt input.vars} is as follows:
 loadMesh: MeshFile
 loadRestartDir: restart
 loadModelName: model_name
+loadInputModelName: imodel_name
 {
 boundary_conditions: <
                  body=viscousWall(adiabatic),
@@ -138,6 +139,11 @@ then this parameter must be specified int .vars file too, otherwise it must be s
 
 This item is preamble of the .vars file. It is an optional parameter and specifies the name of the
 model. If \emph{loadModelName} is not specified, it is set to the nameof .vars file
+
+\item {\tt loadInputModelName}
+
+This item is preamble of the .vars file. It is an optional parameter and specifies the name of the
+input model used for restart. If \emph{loadInputModelName} is not specified, it is set to the nameof .vars file
  
 \item {\tt boundary\_conditions}
 
