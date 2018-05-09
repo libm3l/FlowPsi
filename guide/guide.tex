@@ -26,14 +26,26 @@
 \begin{document}
 
 
-\title{{\em FlowPsi}: An ideal gas flow solver -- The User Guide.}
+\title{{\em\textbf{ FlowPsi}} \\ \vspace{0.5cm} An ideal gas flow solver \\ \emph{The User Guide}}
 
 \author{ Edward A. Luke, Xiaoling Tong, and Rex Chamberlain}
 
 \maketitle
 
+\vspace{3cm}
+
+\begin{figure}[htb]
+\begin{center}
+\includegraphics[width=0.8\textwidth]{FIG.jpg}
+%\caption{Geometry of flux stencil formation}
+\label{fig:stencil}
+\end{center}
+\end{figure}
+
+\newpage
 \section*{Document revisions}
-- Added External Solver Communication (added by Adam Jirasek)
+- May-2018: Added External Solver Communication (added by Adam Jirasek)\\
+- May-2018: Added additional parameters to preamble of vars file (added by Adam Jirasek)
 
 \newpage
 \section{Introduction}
@@ -43,6 +55,12 @@ utilizing the Loci framework\cite{Luke.2005,Zhang.2009} which provides
 for automatic parallelization and logical consistency checks
 simplifying the design of highly parallel numerical solvers for
 partial differential equations.
+
+It uses finite volume approximation of the Euler and Navier Stokes equation with 
+upwind, second and fourth order scheme and Crank-Nicholson time stepping scheme. 
+It enables to sovler problem on stationary, moving rigid and deforming meshes with 
+overset mesh capabilites.
+
 \newpage
 
 
@@ -80,9 +98,26 @@ Each variable is listed at the beginning of a line followed by a colon
 and then its definition.  An example of an input file
 named {\tt input.vars} is as follows:
 \begin{verbatim}
+//
+// specify mesh file name without .vog suffix, if not specified it will 
+// be set to .vars file name
+//
 loadMesh: MeshFile
+//
+// if restart, specify name of restart directory. If not specified, it can 
+// be specified on command line
+//
 loadRestartDir: restart
+//
+//  specify model name, if not specified it will be set to .vars file name
+//  both restart directory and model name must be specified here 
+//  or from the command line
+//
 loadModelName: model_name
+//
+//  specify name of input model which is located in restart directory
+//  if not specified, it will be set to .vars file name
+//
 loadInputModelName: imodel_name
 {
 boundary_conditions: <
@@ -297,13 +332,6 @@ plane (away from the normal) are included in this geometry.
   default upwind scheme.  The ``kec'' is a second order low
   dissipation flux, and ``ssf'' is based on a fourth order skew
   symmetric scheme.  Select the ``ssf'' for LES style simulations.
-
-\item {\tt flowRegime }
-
-This sets the type of flow model we will be using.  This will be set
-to either {\tt inviscid}, {\tt laminar}, or {\tt turbulent}.  If the
-setting is {\tt turbulent} then a turbulence model will need to be
-loaded using a {\tt loadModule} directive at the top of the vars file.  
 
 \item {\tt timeStepMode }
 
@@ -714,6 +742,28 @@ cylinder(p1=[1,0,0],p2=[2,0,0],radius=.5)
   reference.  The input syntax is the same as for {\tt
     componentMotion}.
 
+\subsection{Flow Parameters Specification}
+
+\item {\tt flowRegime }
+
+This sets the type of flow model we will be using.  This will be set
+to either {\tt inviscid}, {\tt laminar}, or {\tt turbulent}.  If the
+setting is {\tt turbulent} then a turbulence model will need to be
+loaded using a {\tt loadModule} directive at the top of the vars file.  
+
+\item {\tt molecularMass}
+
+  Specifies perfect gas mean molecular mass, used to calculate gass universal constant 
+  $R = \frac{R_h}{molecularMass}$ where $R_h$ is universal gas constant and its 
+  values is $R_h=8314.4621$. The default value is $molecularMass = 28.96$
+
+
+\item {\tt gamma}
+  
+  Specifies $\gamma$ constant. The default values is $\gamma=1.4$
+
+
+
 \end{enumerate}
 
 \subsection{Boundary Condition Specifications}
@@ -757,8 +807,10 @@ The boundary conditions may be assigned as:
     user provides the total pressure and total temperature for the
     associated ``plenum'' conditions, and the inflow values that
     preserve the total properties are computed.  A typical input is
-    {\tt isentropicInflow(p0=1atm, T0=300K)}.  {\bf Note: this
-      boundary condition is only applicable to subsonic inflow
+
+    {\tt isentropicInflow(p0=1atm, T0=300K)}.  
+
+    {\bf Note: this boundary condition is only applicable to subsonic inflow
       conditions.}
 
   \item {\tt fixedMass}
@@ -766,8 +818,11 @@ The boundary conditions may be assigned as:
     This inflow boundary condition specifies the mass flow or flux
     and total temperature.  The user provides the
     {\tt mdot} ($kg/s$) or {\tt massFlux} ($kg/m^2-s$) and
-    a total temperature.  A typical input is {\tt
-    fixedMass(mdot=0.02 kg/sec, T0=1000 K)}.  This boundary condition
+    a total temperature.  A typical input is 
+
+    {\tt fixedMass(mdot=0.02 kg/sec, T0=1000 K)}.  
+
+    This boundary condition
     uses the specified 3D mass rate value for axisymmetric flows in which a 2D grid
     is translated in the $z$ direction (see the {\tt gridCoordinates} input option).  {\bf Note:
     this boundary condition is only applicable to subsonic inflow conditions.}
@@ -776,8 +831,11 @@ The boundary conditions may be assigned as:
 
     This boundary condition specifies the mass flow or flux
     at an outflow boundary.  The user provides the
-    {\tt mdot} ($kg/s$) or {\tt massFlux} ($kg/m^2-s$) value only.  A typical input is {\tt
-    fixedMassOuflow(mdot=0.02 kg/sec)}.  This boundary condition
+    {\tt mdot} ($kg/s$) or {\tt massFlux} ($kg/m^2-s$) value only.  A typical input is 
+
+    {\tt fixedMassOuflow(mdot=0.02 kg/sec)}.  
+
+    This boundary condition
     uses the specified 3D mass rate value for axisymmetric flows in which a 2D grid
     is translated in the $z$ direction (see the {\tt gridCoordinates} input option).  {\bf Note:
     this boundary condition 1) limits the outflow conditions to physically allowable values if the flow
@@ -1799,7 +1857,7 @@ Favre averaged while
 %%\input{scalar_transport.tex}
 
 \bibliography{guide}
-\bibliographystyle{unsrt}
+\bibliographystyle{aiaa}
 
 \end{document}
 
