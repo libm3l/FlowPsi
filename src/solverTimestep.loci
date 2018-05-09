@@ -118,7 +118,7 @@ namespace flowPsi {
   } ;
 
   class ic_time_from_file : public singleton_rule {
-    const_param<std::string> icfile,modelName ;
+    const_param<std::string> icfile,InputModelName ;
     param<real> stime ; //computing time ;
     param<int> ncycle ; //starting cycle number ;
   public:
@@ -128,10 +128,10 @@ namespace flowPsi {
 
   ic_time_from_file::ic_time_from_file() {
     name_store("icfile",icfile) ;
-    name_store("modelName",modelName) ;
+    name_store("InputModelName",InputModelName) ;
     name_store("icf_stime",stime) ;
     name_store("icf_ncycle",ncycle) ;
-    input("icfile,modelName") ;
+    input("icfile,InputModelName") ;
     output("icf_stime,icf_ncycle") ;
     disable_threading() ;
   }
@@ -140,7 +140,7 @@ namespace flowPsi {
     if(Loci::GLOBAL_AND(seq==EMPTY))
       return ;
 
-    string filename = *icfile + "flowVars_" + *modelName ;
+    string filename = *icfile + "flowVars_" + *InputModelName ;
 
     hid_t file_id = Loci::hdf5OpenFile((filename).c_str(),
                                        H5F_ACC_RDONLY, H5P_DEFAULT);

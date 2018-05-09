@@ -442,10 +442,14 @@ int main(int ac, char *av[]) {
  * set model name, if not specified, set it to av[1]
  */
   if(model_name.empty()){
-    std::cout << "Model name is: " << av[1]  << endl ;
+    if(Loci::MPI_rank == 0){
+      std::cout << "Model name is: " << av[1]  << endl ;
+    }
     model_name = av[1];
   }else{
-    std::cout << "Model name is: " << model_name << endl ;
+    if(Loci::MPI_rank == 0){
+      std::cout << "Model name is: " << model_name << endl ;
+    }
   }
 
 /*
