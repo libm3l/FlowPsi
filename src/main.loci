@@ -193,6 +193,7 @@ int main(int ac, char *av[]) {
   string meshfile = "" ;
   string restartdir = "" ;
   string model_name = "" ;
+  string input_model_name = "" ;
 
 
   bool input_desc = false ;
@@ -348,6 +349,8 @@ int main(int ac, char *av[]) {
             restartdir = argument ;
           } else if(name == "loadModelName") {
             model_name = argument ;
+          } else if(name == "loadInputModelName") {
+            input_model_name = argument ;
           } else if(name == "query") {
             query = argument ;
           } else {
@@ -444,6 +447,16 @@ int main(int ac, char *av[]) {
   }else{
     std::cout << "Model name is: " << model_name << endl ;
   }
+
+/*
+ * set input model name, if not specified, set it to av[1]
+ */
+  if(input_model_name.empty()){
+    input_model_name = av[1];
+  }
+  if(Loci::MPI_rank == 0){
+    std::cout << "Input model name is: " << input_model_name << endl ;
+  }
 /*
  * read mesh, if file specified in .vars file, use this name 
  * otherwise use name of vars file from  line
@@ -452,12 +465,12 @@ int main(int ac, char *av[]) {
     if(Loci::MPI_rank == 0){
       std::cout << "Reading mesh file: " << av[1] <<".vog" << endl ;
     }
-    read_grid(facts,rdb,av[1],av[1],model_name.c_str(),dryrun) ;
+    read_grid(facts,rdb,av[1],av[1],model_name.c_str(),input_model_name.c_str(),dryrun) ;
   }else{
     if(Loci::MPI_rank == 0){
       std::cout << "Reading mesh file: " << meshfile <<".vog" << endl ;
     }
-    read_grid(facts,rdb,av[1],meshfile.c_str(),model_name.c_str(),dryrun) ;
+    read_grid(facts,rdb,av[1],meshfile.c_str(),model_name.c_str(),input_model_name.c_str(),dryrun) ;
   }
 
   if(command_vars.size() > 0) {

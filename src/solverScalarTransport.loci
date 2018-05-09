@@ -157,7 +157,7 @@ namespace flowPsi {
 
   //*************************************************************************
   class X_ic_from_fileP : public pointwise_rule {
-    const_param<std::string> icfile,modelName,scalarTransportName_X ;
+    const_param<std::string> icfile,InputModelName,scalarTransportName_X ;
     store<real> X_ic ;
   public:
     X_ic_from_fileP() ;
@@ -166,11 +166,11 @@ namespace flowPsi {
 
   X_ic_from_fileP::X_ic_from_fileP() {
     name_store("icfile",icfile) ;
-    name_store("modelName",modelName) ;
+    name_store("InputModelName",InputModelName) ;
     name_store("scalarTransportName_X",scalarTransportName_X) ;
     name_store("priority::ic_file::X_ic",X_ic) ;
     input("icfile,scalarTransportName_X") ;
-    input("modelName") ;
+    input("InputModelName") ;
     constraint("geom_cells,icfile,C") ;
     output("priority::ic_file::X_ic") ;
     set_parametric_variable("scalarTransportP(X,C)") ;
@@ -181,7 +181,7 @@ namespace flowPsi {
     if(Loci::GLOBAL_AND(seq==EMPTY))
       return ;
 
-    string filename = *icfile+ *scalarTransportName_X+ string("_") + *modelName ;
+    string filename = *icfile+ *scalarTransportName_X+ string("_") + *InputModelName ;
 
     if(Loci::MPI_rank == 0)
       cout << "reading " << *scalarTransportName_X 
@@ -679,7 +679,7 @@ namespace flowPsi {
 
   //*************************************************************************
   class X_ic_from_file : public pointwise_rule {
-    const_param<std::string> icfile,modelName,scalarTransportName_X ;
+    const_param<std::string> icfile,InputModelName,scalarTransportName_X ;
     store<real> X_ic ;
   public:
     X_ic_from_file() ;
@@ -688,11 +688,11 @@ namespace flowPsi {
 
   X_ic_from_file::X_ic_from_file() {
     name_store("icfile",icfile) ;
-    name_store("modelName",modelName) ;
+    name_store("InputModelName",InputModelName) ;
     name_store("scalarTransportName_X",scalarTransportName_X) ;
     name_store("priority::ic_file::X_ic",X_ic) ;
     input("icfile,scalarTransportName_X") ;
-    input("modelName") ;
+    input("InputModelName") ;
     constraint("geom_cells,icfile,C") ;
     output("priority::ic_file::X_ic") ;
     set_parametric_variable("scalarTransport(X,C)") ;
@@ -703,7 +703,7 @@ namespace flowPsi {
     if(Loci::GLOBAL_AND(seq==EMPTY))
       return ;
 
-    string filename = *icfile+ *scalarTransportName_X+ string("_") + *modelName ;
+    string filename = *icfile+ *scalarTransportName_X+ string("_") + *InputModelName ;
 
     if(Loci::MPI_rank == 0)
       cout << "reading " << *scalarTransportName_X 

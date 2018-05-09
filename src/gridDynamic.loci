@@ -272,16 +272,16 @@ namespace flowPsi {
   class restart_pos : public pointwise_rule {
     const_store<vect3d> pos ;
     const_param<string> icfile ;
-    const_param<string> modelName ;
+    const_param<string> InputModelName ;
     store<vect3d> pos_ic ;
   public:
     restart_pos() {
       name_store("pos",pos) ;
       name_store("restart::pos_ic",pos_ic) ;
       name_store("icfile",icfile) ;
-      name_store("modelName",modelName) ;
+      name_store("InputModelName",InputModelName) ;
       input("pos,icfile") ;
-      input("modelName") ;
+      input("InputModelName") ;
       output("restart::pos_ic") ;
       disable_threading() ;
     }
@@ -289,7 +289,7 @@ namespace flowPsi {
       if(Loci::GLOBAL_AND(seq==EMPTY))
         return ;
 
-      string filename = *icfile + string("posRestart_") + *modelName ;
+      string filename = *icfile + string("posRestart_") + *InputModelName ;
 
       int file_exists = 1 ;
       if(Loci::MPI_rank) {
