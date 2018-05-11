@@ -7,10 +7,11 @@ grid velocities in the computational domain are space and time dependent.
 The model which is currently implemented in \emph{flowPsi} is \emph{1-cos} gust
 
 \subsubsection{1-cosine Gust}
-The \emph{1-cos} gust is defined by euqation
+The \emph{1-cos} gust is a discreet gust which assumes the gust velocities have \emph{1-cosine} profile\cite{USDT}.
+The equation of  \emph{1-cosine} gust is 
 \begin{equation}
-u_g = U_{V}\Bigg(1-cos\Big(\frac{\pi S}{L}\Big)\Bigg)
+u_g = \frac{U_{ds}}{2}\Bigg(1-cos\Big(\frac{\pi S}{L}\Big)\Bigg)
 \end{equation}
-where $U_{V}$ is the maximum vertical gust velocity, $L$ is the gust gradient length 
-and $S$ is a penetration distance into the gust. 
+where $U_{ds}$ is the maximum velocity for the gust , $L$ is the gust gradient length 
+and $S$ is a gust penetration distance.
 
