@@ -96,7 +96,9 @@ $type u_f               store<flowPsi::vect3d> ;
 $type bc_total_area store<flowPsi::real> ;
 $type bc_total_force store<flowPsi::real> ;
 $type bc_average_pressure store<flowPsi::real> ;
-
+/*
+ * free stream parameters
+ */
 $type flow_direction store<flowPsi::vect3d> ;
 $type rigid_u store<flowPsi::vect3d> ;
 $type p0Ref store<flowPsi::real> ;
