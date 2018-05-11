@@ -57,9 +57,9 @@ namespace flowPsi {
     join(*$hasMeshMotion,1) ;
   } ;
     
-  $rule pointwise(us_n),constraint(area) {
-    $us_n = 0 ;
-  }
+ // $rule pointwise(us_n),constraint(area) {
+ //   $us_n = 0 ;
+ // }
 
   $type xgvel param<real> ;
   $rule optional(xgvel) { $xgvel = 0 ;  }
