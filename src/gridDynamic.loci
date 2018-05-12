@@ -56,11 +56,19 @@ namespace flowPsi {
   $rule apply(hasMeshMotion)[Loci::Maximum],constraint(movingMesh),prelude {
     join(*$hasMeshMotion,1) ;
   } ;
-    
- // $rule pointwise(us_n),constraint(area) {
- //   $us_n = 0 ;
- // }
-
+/*
+ * previously all es_n were rule pointwise
+ * since gust was added, all rules are apply because gust adds 
+ * gust velocity to us_n
+ */
+//   $rule pointwise(us_n),constraint(area) {
+//     $us_n = 0 ;
+//   }
+  
+  $rule unit(us_n),constraint(area) {
+      $us_n= 0 ;
+  }
+  
   $type xgvel param<real> ;
   $rule optional(xgvel) { $xgvel = 0 ;  }
 
