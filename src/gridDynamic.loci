@@ -32,7 +32,7 @@
  *                                 allocation of us_ntmp is required due to condition that 
  *                                 only pointwise rules can use priority annotation
  *                                 [var=moving::us_n{n,it} and similar for specified:: 
- *                                 and axi::moving::us_n{n,it}]. Possibly update
+ *                                 and axi::moving::us_n{n,it}]. Possibly later update
  *                                 to more memory efficient approach.
  * 
  */
@@ -81,16 +81,17 @@ namespace flowPsi {
  * since gust was added, all rules are apply because gust adds 
  * gust velocity to us_n
  */
+  $rule unit(us_n),constraint(area) {
+     $us_n= 0 ;
+  }
 //   $rule pointwise(us_n),constraint(area) {
 //     $us_n = 0 ;
 //   }
-
+/*
+ * nullify temporary face normal velocity
+ */
   $rule pointwise(us_ntmp),constraint(area) {
     $us_ntmp = 0 ;
-  }
-  
-  $rule unit(us_n),constraint(area) {
-     $us_n= 0 ;
   }
 /*
  * add us_ntmp to us_n
