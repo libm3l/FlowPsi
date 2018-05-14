@@ -87,8 +87,11 @@ namespace flowPsi {
  *    direction normal to gust plane
  *    direction of gust disturbance 
  */
-    real length = 61.24727674;
-    real velfree = 102.078794566 ;
+ //  real length = 61.24727674;
+ //   real velfree = 102.078794566 ;
+    real length =  102.078794566;
+    real velfree = 170.131324276 ;
+
 
     vect3d tm1 = vect3d(1.0, 0.0, 0.0);
     vect3d tm2 = vect3d(0.0, 1.0, 0.0);
@@ -116,7 +119,7 @@ namespace flowPsi {
                         (tmn1.z * ($facecenter.z-gust_orig.z));
 
     if(  (xtmp > xmin ) && (xtmp < xmax)){
-       real gvel  = 3 * (1 - cos(twopil * (xmax - xtmp) ))/2.;
+       real gvel  = 5 * (1 - cos(twopil * (xmax - xtmp) ))/2.;
        usv.x = tm3.x * gvel;
        usv.y = tm3.y * gvel;
        usv.z = tm3.z * gvel;
