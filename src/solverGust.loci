@@ -1,6 +1,6 @@
 //#############################################################################
 //#
-//# Copyright 2015, Adam Jirasek
+//# Copyright 2018, Adam Jirasek
 //#
 //# This file is part of the flowPsi computational fluid dynamics solver.
 //#
@@ -29,7 +29,8 @@
  * CHANGELOG:
  * Version   Author:               Date       Patch number  CLA     Comment
  * -------   -------               --------   --------      ---     -------
- * 1-beta-6  Adam Jirasek         2018-03-21                        Initial Implementation
+ * 1-beta-6  Adam Jirasek         2018-03-21                     Initial Implementation
+ *                                                              of 1-cos and pulse gust
  *
  *
  *
@@ -223,6 +224,61 @@ namespace flowPsi {
 
     if(  (xtmp > xmin ) && (xtmp < xmax)){
        real gvel  = $Usg * (1 - cos(twopil * (xmax - xtmp) ))/2.;
+       usv.x = $tm3.x * gvel;
+       usv.y = $tm3.y * gvel;
+       usv.z = $tm3.z * gvel;
+    }else{
+       usv = vect3d(0.0, 0.0, 0.0);
+    }
+
+    $us_n = -dot(usv,$area.n);
+  };
+
+/*
+ * get parameters for pulse gust
+ */
+  $rule singleton(Ogust,Usg,gnorm,gvel<-gustSpecification),constraint(GustTypes_pulse){
+    string type;
+    real  rpar;
+    vect3d vpar;
+
+    Loci::options_list int_info ;
+    int_info  = $gustSpecification;
+/*
+ * get 1-cos gust parameters 
+ */
+    int_info.getOptionUnits("Usg","m/s",rpar) ;
+    $Usg = rpar;
+    int_info.getOptionUnits("gnorm"," ", vpar,1); 
+    $gnorm = vpar;
+    int_info.getOptionUnits("gvel","m/s",vpar,1); 
+    $gvel = vpar;
+    int_info.getOptionUnits("Ogust","m/s",vpar,1); 
+    $Ogust = vpar;
+  };
+/*
+ * add artificial velocity due to pulse gust to face velocity
+ */
+  $rule apply(us_n<-dtmax,stime,area,facecenter,tm3,tmn1,Gvel,Usg,Ogust)[Loci::Summation],
+    constraint(area,GustTypes_pulse){
+
+    real time = $dtmax + $stime;
+    real velfree = $Gvel;
+
+    vect3d usv;
+
+    vect3d gust_orig = $Ogust;
+/*
+ * interpolate
+ */
+    real xfront    = velfree * time;
+
+    real xtmp = ($tmn1.x * ($facecenter.x-gust_orig.x)) +
+                ($tmn1.y * ($facecenter.y-gust_orig.y)) +
+                ($tmn1.z * ($facecenter.z-gust_orig.z));
+
+    if(  xtmp < xfront ){
+       real gvel  = $Usg;
        usv.x = $tm3.x * gvel;
        usv.y = $tm3.y * gvel;
        usv.z = $tm3.z * gvel;
