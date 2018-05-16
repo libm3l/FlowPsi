@@ -916,6 +916,49 @@ regions near viscous walls.
 
 \end{itemize}
 
+\subsection{Gust specification}
+The gust is specified through the input parameters in vars file. 
+So far, the only gust implemented in \emph{flowPsi} are \emph{1-cos} 
+and \emph{step} gust.
+The parameters of this gust are specified through a gustSpecification 
+data set in vars file which looks
+
+\begin{itemize}
+\item \textbf{1-cos} gust
+
+\begin{verbatim}
+gustSpecification: < type=oneMcos, Lgrad=61.24727674 m, Usg=3 m/s, 
+                     gvel=[102.078794566 m/s, 0, 0], 
+                     gnorm=[0., 1., 0.], Ogust=[-1., 0., 0.] >
+\end{verbatim}
+The parameters in this set are
+\begin{itemize}
+ \item type specifies type of gust. For \emph{1-cos} the type is \textbf{oneMcos}
+ \item Lgrad specifies gradient length of \emph{1-cos} gust
+ \item Usg specifies maximum vertical gust velocity
+ \item gnorm specifies vector normal to gust plane (if gust in is x-z plane, specify [0,1,0])
+ \item Ogust origin of gust 
+\end{itemize}
+
+\item \textbf{pulse} gust
+
+\begin{verbatim}
+gustSpecification: < type=pulse, Usg=3 m/s, 
+                     gvel=[102.078794566 m/s, 0, 0], 
+                     gnorm=[0., 1., 0.], Ogust=[-1., 0., 0.] >
+\end{verbatim}
+The parameters in this set are
+\begin{itemize}
+ \item type specifies type of gust. For \emph{pulse} the type is \textbf{pulse}
+ \item Usg specifies maximum vertical gust velocity
+ \item gnorm specifies vector normal to gust plane (if gust in is x-z plane, specify [0,1,0])
+ \item Ogust origin of gust 
+\end{itemize}
+
+
+\end{itemize}
+
+
 \end{list}
 
 \subsubsection{ Notes on Vector Value Inputs }
