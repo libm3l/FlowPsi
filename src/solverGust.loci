@@ -37,6 +37,7 @@
  */
 
 #include <Loci.h>
+$include "flowPsi.lh"
 #include <Tools/tools.h>
 #include <iostream>
 #include <fstream>
@@ -64,19 +65,75 @@ $include "flowPsi.lh"
 
 namespace flowPsi {
 
-  $type Gust store<bool> ;  
-  
-//  $rule default(Gust){
-//    $Gust = false ;      
-//  }
-  
-//  $rule pointwise(Gust),constraint(componentGust) {
-//    $Gust = true ;
-//  }
+  $rule optional(gustSpecification) {}
+
+  $type Gust store<bool> ;
+/*
+ * set gust types
+ */
+  $type GustTypes blackbox<std::set<std::string> > ;
+
+  $rule unit(GustTypes<-gustSpecification),prelude {
+    *$GustTypes = std::set<std::string>() ;
+  } ;
+
+  $rule apply(GustTypes)[Loci::NullOp],
+    constraint(UNIVERSE),prelude {
+    $GustTypes->insert(string("oneMcos")) ;
+    $GustTypes->insert(string("step")) ;
+    $GustTypes->insert(string("pulse")) ;
+    $GustTypes->insert(string("prescribed")) ;
+  } ;
+/*
+ * specify constraints for each type of gust
+ * gust is specified in entire domain, not per
+ * volumeTag
+ */ 
+  $type GustTypes_oneMcos Constraint ;
+  $type GustTypes_step Constraint ;
+  $type GustTypes_pulse Constraint ;
+  $type GustTypes_prescribed Constraint ;
+/*
+ * set the proper gust type
+ */
+  $rule constraint(GustTypes_oneMcos,GustTypes_step,GustTypes_pulse,GustTypes_prescribed<-gustSpecification,GustTypes){
+
+    $GustTypes_oneMcos    = EMPTY ;
+    $GustTypes_step       = EMPTY ;
+    $GustTypes_pulse      = EMPTY ;
+    $GustTypes_prescribed = EMPTY ;
+
+    string type;
+
+    Loci::options_list int_info ;
+    int_info  = $gustSpecification;
+    int_info.getOption("type",type) ;
+        
+    if(type == "oneMcos") {
+      $GustTypes_oneMcos = ~EMPTY ;
+    } else if(type == "step") {
+      $GustTypes_step = ~EMPTY ;
+    } else if(type == "pulse") {
+      $GustTypes_pulse = ~EMPTY ;
+    } else if(type == "prescribed") {
+      $GustTypes_prescribed = ~EMPTY ;
+    } else {
+      cerr << "Unknown gust type '" << type << "'" << endl ;
+      Loci::Abort() ;
+    }
+  };
+
+/*
+ * if required, set that gust will be computed
+ */  
+  $rule pointwise(Gust),constraint(gustSpecification) {
+    $Gust = true ;
+  }
+
 /*
  * add artificial velocity due to 1-cos gust to face velocity
  */
-  $rule apply(us_n<-dtmax,stime,area,facecenter)[Loci::Summation],constraint(area){
+  $rule apply(us_n<-dtmax,stime,area,facecenter)[Loci::Summation],constraint(area,GustTypes_oneMcos){
 
     real time = $dtmax + $stime;
     
@@ -87,11 +144,13 @@ namespace flowPsi {
  *    direction normal to gust plane
  *    direction of gust disturbance 
  */
- //  real length = 61.24727674;
- //   real velfree = 102.078794566 ;
-    real length =  102.078794566;
-    real velfree = 170.131324276 ;
+   real length = 61.24727674;
+   real velfree = 102.078794566 ;
+ //   real length =  102.078794566;
+ //   real velfree = 170.131324276 ;
 
+ //   real length =  20.415758913;
+ //   real velfree = 34.026264855;
 
     vect3d tm1 = vect3d(1.0, 0.0, 0.0);
     vect3d tm2 = vect3d(0.0, 1.0, 0.0);
@@ -119,7 +178,7 @@ namespace flowPsi {
                         (tmn1.z * ($facecenter.z-gust_orig.z));
 
     if(  (xtmp > xmin ) && (xtmp < xmax)){
-       real gvel  = 5 * (1 - cos(twopil * (xmax - xtmp) ))/2.;
+       real gvel  = 3 * (1 - cos(twopil * (xmax - xtmp) ))/2.;
        usv.x = tm3.x * gvel;
        usv.y = tm3.y * gvel;
        usv.z = tm3.z * gvel;
