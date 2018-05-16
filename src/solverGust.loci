@@ -67,7 +67,63 @@ namespace flowPsi {
 
   $rule optional(gustSpecification) {}
 
-  $type Gust store<bool> ;
+  $type Gust param<bool>;
+  $type tmn1 param<vect3d>;
+  $type tm3  param<vect3d>;
+
+  $type Usg    param<real>;
+  $type gnorm  param<vect3d>;
+  $type gvel   param<vect3d>;
+  $type Lgrad  param<real>;
+  $type Gvel   param<real>;
+  $type Ogust  param<vect3d>;
+/*
+ * if required, set that gust will be computed
+ */  
+  $rule singleton(Gust),constraint(gustSpecification) {
+    $Gust = true ;
+  }
+
+  $rule singleton(tm3<-gvel,gnorm), constraint(Gust) {
+/*
+ *  transformation matrix 
+ *    direction of gust propagation
+ *    direction normal to gust plane
+ *    direction of gust disturbance 
+ */
+    vect3d tm1 = $gvel;   //vect3d(1.0, 0.0, 0.0);
+    vect3d tm2 = $gnorm;  //vect3d(0.0, 1.0, 0.0); 
+    real n1,n2,n3,nl;
+
+    nl = sqrt(tm1.x*tm1.x + tm1.y*tm1.y + tm1.z*tm1.z);
+    tm1.x = tm1.x/nl;
+    tm1.z = tm1.y/nl;
+    tm1.y = tm1.z/nl;
+
+    n1 = tm1.y*tm2.z-tm1.z*tm2.y;
+    n2 =-tm1.x*tm2.z+tm1.z*tm2.x;
+    n3 = tm1.x*tm2.y-tm1.y*tm2.x;
+
+    $tm3 = vect3d(n1, n2, n3);
+   }
+
+   $rule singleton(tmn1<-tm3), constraint(Gust) {
+/*
+ *  transformation matrix 
+ *    direction of gust propagation
+ *    direction normal to gust plane
+ *    direction of gust disturbance 
+ */
+    vect3d tm1 = vect3d(1.0, 0.0, 0.0);
+    vect3d tm2 = vect3d(0.0, 1.0, 0.0); 
+    $tmn1 = vect3d(tm1.x, tm2.x, $tm3.x);
+   }
+/*
+ * gust propagation velocity
+ */
+   $rule singleton(Gvel<-gvel), constraint(Gust) {
+     $Gvel = sqrt($gvel.x*$gvel.x + $gvel.y*$gvel.y + $gvel.z*$gvel.z);
+   }
 /*
  * set gust types
  */
@@ -81,7 +137,6 @@ namespace flowPsi {
     constraint(UNIVERSE),prelude {
     $GustTypes->insert(string("oneMcos")) ;
     $GustTypes->insert(string("step")) ;
-    $GustTypes->insert(string("pulse")) ;
     $GustTypes->insert(string("prescribed")) ;
   } ;
 /*
@@ -90,19 +145,16 @@ namespace flowPsi {
  * volumeTag
  */ 
   $type GustTypes_oneMcos Constraint ;
-  $type GustTypes_step Constraint ;
-  $type GustTypes_pulse Constraint ;
+  $type GustTypes_step    Constraint ;
   $type GustTypes_prescribed Constraint ;
 /*
  * set the proper gust type
  */
-  $rule constraint(GustTypes_oneMcos,GustTypes_step,GustTypes_pulse,GustTypes_prescribed<-gustSpecification,GustTypes){
+  $rule constraint(GustTypes_oneMcos,GustTypes_step,GustTypes_prescribed<-gustSpecification,GustTypes){
 
     $GustTypes_oneMcos    = EMPTY ;
     $GustTypes_step       = EMPTY ;
-    $GustTypes_pulse      = EMPTY ;
     $GustTypes_prescribed = EMPTY ;
-
     string type;
 
     Loci::options_list int_info ;
@@ -113,8 +165,6 @@ namespace flowPsi {
       $GustTypes_oneMcos = ~EMPTY ;
     } else if(type == "step") {
       $GustTypes_step = ~EMPTY ;
-    } else if(type == "pulse") {
-      $GustTypes_pulse = ~EMPTY ;
     } else if(type == "prescribed") {
       $GustTypes_prescribed = ~EMPTY ;
     } else {
@@ -122,50 +172,44 @@ namespace flowPsi {
       Loci::Abort() ;
     }
   };
-
 /*
- * if required, set that gust will be computed
- */  
-  $rule pointwise(Gust),constraint(gustSpecification) {
-    $Gust = true ;
-  }
+ * get parameters for 1-cos gust
+ */
+  $rule singleton(Ogust,Usg,gnorm,gvel,Lgrad<-gustSpecification),constraint(GustTypes_oneMcos){
+    string type;
+    real  rpar;
+    vect3d vpar;
+
+    Loci::options_list int_info ;
+    int_info  = $gustSpecification;
+/*
+ * get 1-cos gust parameters 
+ */
+    int_info.getOptionUnits("Lgrad","m", rpar) ;
+    $Lgrad = rpar;
+    int_info.getOptionUnits("Usg","m/s",rpar) ;
+    $Usg = rpar;
+    int_info.getOptionUnits("gnorm"," ", vpar,1); 
+    $gnorm = vpar;
+    int_info.getOptionUnits("gvel","m/s",vpar,1); 
+    $gvel = vpar;
+    int_info.getOptionUnits("Ogust","m/s",vpar,1); 
+    $Ogust = vpar;
+  };
 
 /*
  * add artificial velocity due to 1-cos gust to face velocity
  */
-  $rule apply(us_n<-dtmax,stime,area,facecenter)[Loci::Summation],constraint(area,GustTypes_oneMcos){
+  $rule apply(us_n<-dtmax,stime,area,facecenter,tm3,tmn1,Lgrad,Gvel,Usg,Ogust)[Loci::Summation],
+    constraint(area,GustTypes_oneMcos){
 
     real time = $dtmax + $stime;
-    
-   // std::cout << "UREF is     0000000000000000000000000       " << $uRef << endl ;
-/*
- *  transformation matrix 
- *    direction of gust propagation
- *    direction normal to gust plane
- *    direction of gust disturbance 
- */
-   real length = 61.24727674;
-   real velfree = 102.078794566 ;
- //   real length =  102.078794566;
- //   real velfree = 170.131324276 ;
-
- //   real length =  20.415758913;
- //   real velfree = 34.026264855;
-
-    vect3d tm1 = vect3d(1.0, 0.0, 0.0);
-    vect3d tm2 = vect3d(0.0, 1.0, 0.0);
-
-    real n1,n2,n3;
-    n1 = tm1.y*tm2.z-tm1.z*tm2.y;
-    n2 =-tm1.x*tm2.z+tm1.z*tm2.x;
-    n3 = tm1.x*tm2.y-tm1.y*tm2.x;
-    vect3d tm3 = vect3d(n1, n2, n3);
-
-    vect3d tmn1 = vect3d(tm1.x, tm2.x, tm3.x);
+    real length = $Lgrad;
+    real velfree = $Gvel;
 
     vect3d usv;
 
-    vect3d gust_orig = vect3d(-1.0, 0.0, 0.0);
+    vect3d gust_orig = $Ogust;
     real twopil = 3.1415926 / length ;  // length is so called gradient length
 /*
  * interpolate
@@ -173,15 +217,15 @@ namespace flowPsi {
     real xmin    = velfree * time - 2*length;
     real xmax    = velfree * time;
 
-    real xtmp = (tmn1.x * ($facecenter.x-gust_orig.x)) +
-                        (tmn1.y * ($facecenter.y-gust_orig.y)) +
-                        (tmn1.z * ($facecenter.z-gust_orig.z));
+    real xtmp = ($tmn1.x * ($facecenter.x-gust_orig.x)) +
+                        ($tmn1.y * ($facecenter.y-gust_orig.y)) +
+                        ($tmn1.z * ($facecenter.z-gust_orig.z));
 
     if(  (xtmp > xmin ) && (xtmp < xmax)){
-       real gvel  = 3 * (1 - cos(twopil * (xmax - xtmp) ))/2.;
-       usv.x = tm3.x * gvel;
-       usv.y = tm3.y * gvel;
-       usv.z = tm3.z * gvel;
+       real gvel  = $Usg * (1 - cos(twopil * (xmax - xtmp) ))/2.;
+       usv.x = $tm3.x * gvel;
+       usv.y = $tm3.y * gvel;
+       usv.z = $tm3.z * gvel;
     }else{
        usv = vect3d(0.0, 0.0, 0.0);
     }
