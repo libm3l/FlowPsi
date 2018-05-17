@@ -44,21 +44,25 @@
 \newpage
 \section*{Document revisions}
 - May-2018: Added External Solver Communication (added by Adam Jirasek)\\
-- May-2018: Added additional parameters to preamble of vars file (added by Adam Jirasek)
+- May-2018: Added additional parameters to preamble of vars file (added by Adam Jirasek)\\
+- May-2018: Added gust modeling  (added by Adam Jirasek)
+
 
 \newpage
 \section{Introduction}
 
-{\em \emph{flowPsi} } is an open source CFD solver that is developed
-utilizing the Loci framework\cite{Luke.2005,Zhang.2009} which provides
-for automatic parallelization and logical consistency checks
-simplifying the design of highly parallel numerical solvers for
-partial differential equations.
+{\em \emph{flowPsi} }  is an open source developed at the Mississippi University.
+It is an open source, finite volume, unstructured Computational Fluid Dynamics, CFD,
+solver available under OSS General Public License, GPL, license.
+It uses finite volume numerical scheme with inviscid fluxes calculated using 
+an HLLC inviscid flux scheme by Torro\cite{Torro.1994}. A low dissipation upwind scheme is also available. 
+The time integration uses Newton implicit, second order in time Crank-Nicholson scheme. 
+The solver enables solving problems requiring the moving, deforming and the overset meshes. 
 
-It uses finite volume approximation of the Euler and Navier Stokes equation with 
-upwind, second and fourth order scheme and Crank-Nicholson time stepping scheme. 
-It enables to sovler problem on stationary, moving rigid and deforming meshes with 
-overset mesh capabilites.
+The solver uses a rule based programming framework called LoCi\cite{Luke.99b,LukeReport.03,Luke.01,Luke.2005}.
+It uses a set of rules which are then scheduled in LoCi framework during execution along with full palatalization
+in MPI. This approach simplifies the design of high performance parallel codes. It uses LoCi specific language 
+which is upon compilation transformed into the C++ language. 
 
 \newpage
 
@@ -1353,12 +1357,12 @@ component surfaces.
 \newpage
 \section{Communication with External Solvers}
 the \emph{flowPsi} is now able to communicate with externally run processes. It can send and receive data
-through a cosimulation engine. The cosimulation engine is the \emph{lsipdx} utility\cite{Jirasek_2014}
-which is available from github at \begin{verbatim}https://github.com/libm3l/lsipdx\end{verbatim}
+through a cosimulation engine. The cosimulation engine is the \emph{lsipdx} utility\cite{Jirasek_2014,Jirasek_2015}
+which is available from github at {\tt https://github.com/libm3l/lsipdx}. 
 This utility is a co-simulation engine taking care of data transfer and process synchronization. 
 It uses its own TPC/IP protocol which needs to be installed along with \emph{lsipdx} utility. 
 The TCP/IP protocol is called \emph{libm3l} and is available on github at
-\begin{verbatim}https://github.com/libm3l/libm3l\end{verbatim}
+{\tt https://github.com/libm3l/libm3l}.
 Both utilities, once installed, produce shared libraries which must be specified as 
 input parameter during \emph{flowPsi} configuration process. The two additional parameters in configuration process are 
 \emph{\texttt{-{}-}libm3l-dir} and \emph{\texttt{-{}-}lsipdx-dir}. 
