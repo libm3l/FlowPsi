@@ -1,0 +1,17 @@
+\subsection{The Gust Modeling}
+
+The model which is used in the \emph{flowPsi} to model the gust is call a 
+Disturbance Velocity Approach, DVM. This approach is based on idea of adding 
+additional grid velocity, which is given by a gust. As the gust moves, the 
+grid velocities in the computational domain are space and time dependent. 
+The model which is currently implemented in \emph{flowPsi} is \emph{1-cos} gust
+
+\subsubsection{1-cosine Gust}
+The \emph{1-cos} gust is a discreet gust which assumes the gust velocities have \emph{1-cosine} profile\cite{USDT}.
+The equation of  \emph{1-cosine} gust is 
+\begin{equation}
+u_g = \frac{U_{ds}}{2}\Bigg(1-cos\Big(\frac{\pi S}{L}\Big)\Bigg)
+\end{equation}
+where $U_{ds}$ is the maximum velocity for the gust , $L$ is the gust gradient length 
+and $S$ is a gust penetration distance.
+

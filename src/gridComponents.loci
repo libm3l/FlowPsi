@@ -97,9 +97,10 @@ namespace flowPsi {
     $componentMotionTypes->insert(string("prescribed")) ;
     $componentMotionTypes->insert(string("external")) ;
     $componentMotionTypes->insert(string("stationary")) ;
-  } ;
-    
-  
+  } ;    
+/*
+ * specify constraints for each type of motion
+ */ 
   $type componentRotation_X Constraint ;
   $type componentServo_X Constraint ;
   $type componentPrescribed_X Constraint ;
@@ -112,12 +113,13 @@ namespace flowPsi {
  */
   $type componentExternal_X Constraint ;
   $type componentExternalMotion_X Constraint ;
-
 /*
  * set what type of motion
  */
   $rule constraint(componentServo_X,componentRotation_X,componentPrescribed_X,
-       componentStationary_X,componentExternal_X,componentExternalMotion_X<-volumeTag(X),componentMotion,componentMotionTypes),
+       componentStationary_X,componentExternal_X,componentExternalMotion_X<-
+       volumeTag(X),componentMotion,componentMotionTypes),
+
     parametric(volumeTag(X)) {
     string tag = $volumeTag(X) ;
     $componentRotation_X = EMPTY ;
@@ -900,8 +902,8 @@ namespace flowPsi {
         int id = $componentID_node[nd] ;
         if(id != comp &&
            $pos[nd].x > bbox[0] && $pos[nd].x < bbox[1] &&
-						$pos[nd].y > bbox[2] && $pos[nd].y < bbox[3] &&
-										     $pos[nd].z > bbox[4] && $pos[nd].z < bbox[5]) {
+	   $pos[nd].y > bbox[2] && $pos[nd].y < bbox[3] &&
+           $pos[nd].z > bbox[4] && $pos[nd].z < bbox[5]) {
           send_set[proc].push_back(nd) ;
         }
   } ENDFORALL ;

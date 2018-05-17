@@ -49,7 +49,7 @@
 \newpage
 \section{Introduction}
 
-{\em FlowPsi } is an open source CFD solver that is developed
+{\em \emph{flowPsi} } is an open source CFD solver that is developed
 utilizing the Loci framework\cite{Luke.2005,Zhang.2009} which provides
 for automatic parallelization and logical consistency checks
 simplifying the design of highly parallel numerical solvers for
@@ -335,7 +335,7 @@ plane (away from the normal) are included in this geometry.
 \item {\tt timeStepMode }
 
 This variable selects the time integration mode.  It is set to either
-{\tt steady} or {\tt unsteady}.  In {\tt steady} mode, {\tt flowPsi }
+{\tt steady} or {\tt unsteady}.  In {\tt steady} mode, {\tt \emph{flowPsi} }
 will utilize a backward Euler time integration method with local
 timestepping enabled.  For time-accurate simulations select {\tt
   unsteady} to disable local timestepping and switch to a second order
@@ -1008,6 +1008,49 @@ regions near viscous walls.
 
 \end{itemize}
 
+\subsection{Gust specification}
+The gust is specified through the input parameters in vars file. 
+So far, the only gust implemented in \emph{flowPsi} are \emph{1-cos} 
+and \emph{step} gust.
+The parameters of this gust are specified through a gustSpecification 
+data set in vars file which looks
+
+\begin{itemize}
+\item \textbf{1-cos} gust
+
+\begin{verbatim}
+gustSpecification: < type=oneMcos, Lgrad=61.24727674 m, Usg=3 m/s, 
+                     gvel=[102.078794566 m/s, 0, 0], 
+                     gnorm=[0., 1., 0.], Ogust=[-1., 0., 0.] >
+\end{verbatim}
+The parameters in this set are
+\begin{itemize}
+ \item type specifies type of gust. For \emph{1-cos} the type is \textbf{oneMcos}
+ \item Lgrad specifies gradient length of \emph{1-cos} gust
+ \item Usg specifies maximum vertical gust velocity
+ \item gnorm specifies vector normal to gust plane (if gust in is x-z plane, specify [0,1,0])
+ \item Ogust origin of gust 
+\end{itemize}
+
+\item \textbf{pulse} gust
+
+\begin{verbatim}
+gustSpecification: < type=pulse, Usg=3 m/s, 
+                     gvel=[102.078794566 m/s, 0, 0], 
+                     gnorm=[0., 1., 0.], Ogust=[-1., 0., 0.] >
+\end{verbatim}
+The parameters in this set are
+\begin{itemize}
+ \item type specifies type of gust. For \emph{pulse} the type is \textbf{pulse}
+ \item Usg specifies maximum vertical gust velocity
+ \item gnorm specifies vector normal to gust plane (if gust in is x-z plane, specify [0,1,0])
+ \item Ogust origin of gust 
+\end{itemize}
+
+
+\end{itemize}
+
+
 \end{list}
 
 \subsubsection{ Notes on Vector Value Inputs }
@@ -1046,7 +1089,7 @@ The definition of the polar angles and the resulting $u$, $v$, and $w$ velocity 
 
 
 
-\subsubsection{ Notes on Inflow Velocity Specifications}
+\subsubsection{Notes on Inflow Velocity Specifications}
 
 A typical inflow boundary might be specified as:
 \begin{verbatim}
@@ -1309,19 +1352,19 @@ component surfaces.
 
 \newpage
 \section{Communication with External Solvers}
-the flowPsi is now able to communicate with externally run processes. It can send and receive data
-through a cosimulation engine. The cosimulation engine is a lsipdx utility\cite{Jirasek_2014}
+the \emph{flowPsi} is now able to communicate with externally run processes. It can send and receive data
+through a cosimulation engine. The cosimulation engine is the \emph{lsipdx} utility\cite{Jirasek_2014}
 which is available from github at \begin{verbatim}https://github.com/libm3l/lsipdx\end{verbatim}
-This utility is a co-simulation engine taking care of data transer and process synchronization. 
-It uses its own TPC/IP protocoll which needs to be installed along with lsipdx utility. 
-The TCP/IP protocall is called libm3l and is available on github at
+This utility is a co-simulation engine taking care of data transfer and process synchronization. 
+It uses its own TPC/IP protocol which needs to be installed along with \emph{lsipdx} utility. 
+The TCP/IP protocol is called \emph{libm3l} and is available on github at
 \begin{verbatim}https://github.com/libm3l/libm3l\end{verbatim}
 Both utilities, once installed, produce shared libraries which must be specified as 
-input parameter during flowPsi configuration process. The two additional parameters in configuration process are 
+input parameter during \emph{flowPsi} configuration process. The two additional parameters in configuration process are 
 \emph{\texttt{-{}-}libm3l-dir} and \emph{\texttt{-{}-}lsipdx-dir}. 
-If the two are not specified, the flowPsi is compiled without the ability for communication with external solvers.
+If the two are not specified, the \emph{flowPsi} is compiled without the ability for communication with external solvers.
 
-Once flowPsi needs to communicate, it looks for subset specified in .vars file called \emph{ext\_interfaces} which
+Once \emph{flowPsi} needs to communicate, it looks for subset specified in .vars file called \emph{ext\_interfaces} which
 may look like example below:
  
 \begin{verbatim}
@@ -1331,7 +1374,7 @@ ext_interfaces: <
  > 
 \end{verbatim}
 
-It contains one interface, ie. flowPsi will communicate with one external solver. The type of interface is global, 
+It contains one interface, ie. \emph{flowPsi} will communicate with one external solver. The type of interface is global, 
 which means the solver will share global data such as global forces/moments. The name of interface from example above
 is \emph{Interface\_1}. The parameters of interface are:
 \begin{enumerate}
@@ -1342,14 +1385,14 @@ Name of the volume tag. If \emph{All} is specified, the interface acts for all v
 
 \item {\tt type}
 
-This parameter specifies the type of the solver flowPsi will be communicating with. This is solver specific as it 
-determines what/if flowPsi will send data out and what/if flowPsi will recevie data. 
+This parameter specifies the type of the solver \emph{flowPsi} will be communicating with. This is solver specific as it 
+determines what/if \emph{flowPsi} will send data out and what/if \emph{flowPsi} will receive data. 
 
 \item {\tt comm\_freq}
 
-This parameter specifies how often flowPsi communicates. If the number is positive, it specifies frequency of time step
-which where flowPsi communicates, if the number is negative it specifies frequency of 
-Newton subiterations where flowPsi will communicate.
+This parameter specifies how often \emph{flowPsi} communicates. If the number is positive, it specifies frequency of time step
+which where \emph{flowPsi} communicates, if the number is negative it specifies frequency of 
+Newton subiterations where \emph{flowPsi} will communicate.
 
 \item {\tt IP}
 
@@ -1361,20 +1404,20 @@ This parameter specifies port number of \emph{lsipdx} co-simulation engine.
 
 \item {\tt I\_channel}
 
-This parameter name of channel through which flowPsi receives data
+This parameter name of channel through which \emph{flowPsi} receives data
 
 \item {\tt O\_channel}
 
-This parameter name of channel through which flowPsi sends data
+This parameter name of channel through which \emph{flowPsi} sends data
 
 
 \end{enumerate}
 
-\subsection{Execute flowPsi communicating with External Solvers}
-There are several steps need to be done to execute flowPsi coupled simlulations.
-The forst step is to execute \emph{lsipdx\_server.out} which is in the lsipdx distribution.
-For that the user needs a lsipdx inptu file which specifies which channels should be opened and 
-how many processes is accessing them. For the example of \emph{ext\_interface} above, the lsipdx input file looks:
+\subsection{Execute \emph{flowPsi} communicating with External Solvers}
+There are several steps need to be done to execute \emph{flowPsi} coupled simulations.
+The first step is to execute \emph{lsipdx\_server.out} which is in the \emph{lsipdx} distribution.
+For that the user needs a \emph{lsipdx} input file which specifies which channels should be opened and 
+how many processes is accessing them. For the example of \emph{ext\_interface} above, the \emph{lsipdx} input file looks:
 \begin{verbatim}
 COMM_DEF  DIR 2
         Process_Specifications DIR 1
@@ -1407,19 +1450,19 @@ COMM_DEF  DIR 2
                                 `N`
 -EOMF-
 \end{verbatim}
-This files specify, that the lsipdx server opens two channels, one called \emph{CFD2SIM} and second called \emph{SIM2CFD}.
+This files specify, that the \emph{lsipdx} server opens two channels, one called \emph{CFD2SIM} and second called \emph{SIM2CFD}.
 Each channel will have one sending and one receiving process. For now we can keep \emph{CONNECTION\_DIR} as it is, 
 for more details on parameters in this structure see\cite{Jirasek_2014}.
 The \emph{lsipdx\_server.out}  is then executed as
 \begin{verbatim}
 lsipdx_server.out --port 31000 --input_file lsipdx_input_file --show
 \end{verbatim}
-which opens the two channels and binds port 31000. The port number and the names of channels from lsipdx input file
+which opens the two channels and binds port 31000. The port number and the names of channels from \emph{lsipdx} input file
 must be the same as the port number in \emph{ext\_interface} structure.
-Once this is done, flowPsi and other communicating processes can be executed and it does not matter in which order.
-flowPsi and other solvers then communicatte with lsipdx server which resends data to processes associated with 
+Once this is done, \emph{flowPsi} and other communicating processes can be executed and it does not matter in which order.
+\emph{flowPsi} and other solvers then communicate with \emph{lsipdx} server which resend data to processes associated with 
 different channels. Since the communication is blocking TCP/IP communication, the data flow 
-ensures process synchronization. Once the entire coupled analysis is finihed, the \emph{lsipdx\_server} must be terminated manually. 
+ensures process synchronization. Once the entire coupled analysis is finished, the \emph{lsipdx\_server} must be terminated manually. 
 
 \newpage
 \section{{\em FlowPsi} Pre- and Post-processing Utilities}
@@ -1856,6 +1899,10 @@ Favre averaged while
 %%\input{jacobian.tex}
 
 %%\input{scalar_transport.tex}
+
+
+\input{gust.tex}
+
 
 \bibliography{guide}
 \bibliographystyle{aiaa}

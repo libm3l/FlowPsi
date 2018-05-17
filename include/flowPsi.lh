@@ -131,7 +131,9 @@ $type u_f               store<flowPsi::vect3d> ;
 $type bc_total_area store<flowPsi::real> ;
 $type bc_total_force store<flowPsi::real> ;
 $type bc_average_pressure store<flowPsi::real> ;
-
+/*
+ * free stream parameters
+ */
 $type flow_direction store<flowPsi::vect3d> ;
 $type rigid_u store<flowPsi::vect3d> ;
 $type p0Ref store<flowPsi::real> ;
@@ -227,6 +229,10 @@ $type initialConditions param<Loci::options_list> ;
 $type initialConditionRegions param<Loci::options_list> ;
 $type icRegionInfo blackbox<std::vector<flowPsi::ICstate_info> >;
 $type icRegionId store<int> ;
+/*
+ * gust specification
+ */
+$type gustSpecification param<Loci::options_list> ;
 
 $type print_freq  param<int> ;
 $type plot_freq   param<int> ;
@@ -332,8 +338,9 @@ $type timeStepAccurate Constraint ;
 $type LaminarSimulation Constraint ;
 $type TurbulentSimulation Constraint ;
 $type ViscousSimulation Constraint ;
-
-
+/*
+ * linear solver specification
+ */
 $type fluidLinearSolverSGS Constraint ;
 $type fluidLinearSolverFSGS Constraint ;
 $type fluidLinearSolverLSGS Constraint ;
@@ -390,7 +397,9 @@ $type name_BCoption Constraint ;
 
 $type AllViscousBCs store<bool> ;
 $type AllWallBCs store<bool> ;
-
+/*
+ * moving meshes specification
+ */
 $type componentMotion param<options_list> ;
 $type componentHierarchy param<options_list> ;
 $type componentGeometry param<options_list> ;
@@ -400,5 +409,4 @@ $type componentNodes_X store<bool> ;
 $type movingMesh store<bool> ;
 $type coriolis param<coriolis_options> ;
 $type gauss_seidel_iter param<int> ;
-  
 

@@ -19,6 +19,24 @@
 //#
 //#############################################################################
 
+/*
+ * 
+ * Description: 
+ *
+ * CHANGELOG:
+ * Version   Author:               Date       Patch number  CLA     Comment
+ * -------   -------               --------   --------      ---     -------
+ * 1-beta-6  Adam Jirasek         2018-05-14                      add us_ntmp temporary
+ *                                 velocity which is calculated from moving mesh. This 
+ *                                 velocity is then added to the us_n velocity. The
+ *                                 allocation of us_ntmp is required due to condition that 
+ *                                 only pointwise rules can use priority annotation
+ *                                 [var=moving::us_n{n,it} and similar for specified:: 
+ *                                 and axi::moving::us_n{n,it}]. Possibly later update
+ *                                 to more memory efficient approach.
+ * 
+ */
+
 #include <Loci.h>
 
 #include <iostream>
@@ -35,6 +53,8 @@ $include "FVM.lh"
 $include "flowPsi.lh"
 
 namespace flowPsi {
+
+   $type us_ntmp store<flowPsi::real> ;
   
 //  $rule pointwise(iblank),constraint(geom_cells) {
 //    $iblank = 0 ;
@@ -58,22 +78,41 @@ namespace flowPsi {
   $rule apply(hasMeshMotion)[Loci::Maximum],constraint(movingMesh),prelude {
     join(*$hasMeshMotion,1) ;
   } ;
-    
-  $rule pointwise(us_n),constraint(area) {
-    $us_n = 0 ;
+/*
+ * previously all es_n were rule pointwise
+ * since gust was added, all rules are apply because gust adds 
+ * gust velocity to us_n
+ */
+  $rule unit(us_n),constraint(area) {
+     $us_n= 0 ;
   }
-
+//   $rule pointwise(us_n),constraint(area) {
+//     $us_n = 0 ;
+//   }
+/*
+ * nullify temporary face normal velocity
+ */
+  $rule pointwise(us_ntmp),constraint(area) {
+    $us_ntmp = 0 ;
+  }
+/*
+ * add us_ntmp to us_n
+ */
+  $rule apply(us_n<-us_ntmp)[Loci::Summation],constraint(area){
+     $us_n += $us_ntmp ;
+  }
+  
   $type xgvel param<real> ;
   $rule optional(xgvel) { $xgvel = 0 ;  }
 
-  $rule pointwise(specified::us_n<-area,xgvel),constraint(xgvel,area) {
+  $rule pointwise(specified::us_ntmp<-area,xgvel),constraint(xgvel,area) {
     vect3d us($xgvel,0.0,0.0) ;
-    $us_n = dot(us,$area.n) ;
+    $us_ntmp = dot(us,$area.n) ;
   }
 /*
  * get grid velocities for moving mesh 
  */
-  $rule pointwise(moving::us_n{n,it}<-dtmax,face2node->(pos{n},pos{n,it}),area{n,it}),
+  $rule pointwise(moving::us_ntmp{n,it}<-dtmax,face2node->(pos{n},pos{n,it}),area{n,it}),
     constraint(movingMesh,area) {
     int fsz = $face2node.size() ;
     // Compute wireframe center
@@ -125,12 +164,12 @@ namespace flowPsi {
       us_n_int += dot(ah,xp-xm);
     }
     // Get grid velocity at face by dividing by face area
-    $us_n{n,it} = .25*us_n_int/(3.*max<real>($area{n,it}.sada,1e-30)*real($dtmax)) ;
+    $us_ntmp{n,it} = .25*us_n_int/(3.*max<real>($area{n,it}.sada,1e-30)*real($dtmax)) ;
   }
 /*
  * get grid velocities for moving mesh in axisymmetric mode
  */
-  $rule pointwise(axi::moving::us_n{n,it}<-dtmax,face2node->(pos{n},pos{n,it}),area{n,it}),
+  $rule pointwise(axi::moving::us_ntmp{n,it}<-dtmax,face2node->(pos{n},pos{n,it}),area{n,it}),
     constraint(movingMesh,area,axisymmetricCoordinateModel) {
     int fsz = $face2node.size() ;
     // Compute wireframe center
@@ -157,7 +196,7 @@ namespace flowPsi {
     wc_prev *= .5/lensum_prev ;
     wc_next *= .5/lensum_next ;
     
-    $us_n{n,it} = dot(wc_next-wc_prev,$area{n,it}.n)/real($dtmax) ;
+    $us_ntmp{n,it} = dot(wc_next-wc_prev,$area{n,it}.n)/real($dtmax) ;
   }
 
   // Compute absolute grid velocity for viscous walls
