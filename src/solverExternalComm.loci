@@ -73,6 +73,8 @@ namespace flowPsi {
 
   bool ident_intf(string Vol_tag, Loci::options_list ext_interfaces, comm_struct_t *pcomm_str);
 
+  $rule optional(ext_interfaces) {}
+
  // provides the condition under which to communicate
 
   $rule default(comm_freq) {

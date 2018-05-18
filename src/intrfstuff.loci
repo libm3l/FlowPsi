@@ -24,7 +24,4 @@
 namespace Loci {
   $type interfaces param<Loci::options_list> ;
   $rule optional(interfaces) {}
-
-  $type ext_interfaces param<Loci::options_list> ;
-  $rule optional(ext_interfaces) {}
 }

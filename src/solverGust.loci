@@ -219,8 +219,8 @@ namespace flowPsi {
     real xmax    = velfree * time;
 
     real xtmp = ($tmn1.x * ($facecenter.x-gust_orig.x)) +
-                        ($tmn1.y * ($facecenter.y-gust_orig.y)) +
-                        ($tmn1.z * ($facecenter.z-gust_orig.z));
+                ($tmn1.y * ($facecenter.y-gust_orig.y)) +
+                ($tmn1.z * ($facecenter.z-gust_orig.z));
 
     if(  (xtmp > xmin ) && (xtmp < xmax)){
        real gvel  = $Usg * (1 - cos(twopil * (xmax - xtmp) ))/2.;
@@ -230,7 +230,6 @@ namespace flowPsi {
     }else{
        usv = vect3d(0.0, 0.0, 0.0);
     }
-
     $us_n = -dot(usv,$area.n);
   };
 
