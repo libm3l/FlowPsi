@@ -30,7 +30,7 @@
  * Version   Author:               Date       Patch number  CLA     Comment
  * -------   -------               --------   --------      ---     -------
  * 1-beta-6  Adam Jirasek         2018-03-21                     Initial Implementation
- *                                                              of 1-cos and pulse gust
+ *                                                               of 1-cos and step gust
  *
  *
  *
@@ -235,9 +235,9 @@ namespace flowPsi {
   };
 
 /*
- * get parameters for pulse gust
+ * get parameters for step gust
  */
-  $rule singleton(Ogust,Usg,gnorm,gvel<-gustSpecification),constraint(GustTypes_pulse){
+  $rule singleton(Ogust,Usg,gnorm,gvel<-gustSpecification),constraint(GustTypes_step){
     string type;
     real  rpar;
     vect3d vpar;
@@ -257,10 +257,10 @@ namespace flowPsi {
     $Ogust = vpar;
   };
 /*
- * add artificial velocity due to pulse gust to face velocity
+ * add artificial velocity due to step gust to face velocity
  */
   $rule apply(us_n<-dtmax,stime,area,facecenter,tm3,tmn1,Gvel,Usg,Ogust)[Loci::Summation],
-    constraint(area,GustTypes_pulse){
+    constraint(area,GustTypes_step){
 
     real time = $dtmax + $stime;
     real velfree = $Gvel;
