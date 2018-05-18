@@ -28,8 +28,8 @@
  * CHANGELOG:
  * Version   Author:               Date       Patch number  CLA     Comment
  * -------   -------               --------   --------      ---     -------
- * 1-beta-6  Adam Jirasek         2018-03-26                       Add mesh file and restart 
- *                                                                  directory to .vars file
+ * 1-beta-6  Adam Jirasek         2018-03-26                 Add mesh file and restart direstory
+ *                                                           and model names to .vars file
  * 
  */
 

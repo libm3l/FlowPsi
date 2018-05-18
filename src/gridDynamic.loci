@@ -26,7 +26,7 @@
  * CHANGELOG:
  * Version   Author:               Date       Patch number  CLA     Comment
  * -------   -------               --------   --------      ---     -------
- * 1-beta-6  Adam Jirasek         2018-05-14                      add us_ntmp temporary
+ * 1-beta-6  Adam Jirasek         2018-05-14  b80a7be70f8c94c   add us_ntmp temporary
  *                                 velocity which is calculated from moving mesh. This 
  *                                 velocity is then added to the us_n velocity. The
  *                                 allocation of us_ntmp is required due to condition that 
