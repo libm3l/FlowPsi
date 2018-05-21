@@ -287,5 +287,60 @@ namespace flowPsi {
 
     $us_n = -dot(usv,$area.n);
   };
+/*
+ * if prescribed, read file with gust data
+ */
+  $type prescribedGust_X blackbox<motionSplines> ;
+  $rule blackbox(prescribedGust_X),
+    constraint(GustTypes_prescribed),
+    prelude {
+
+    if(Loci::MPI_rank==0) {
+      string filename = "gustdata.dat" ;
+      ifstream infile(filename.c_str(),ios::in) ;
+      if(infile.fail()) {
+        cerr << "open failed on '" << filename <<"'"<< endl ;
+        Loci::Abort() ;
+      }
+
+      int npnts = 0 ;
+      infile >> npnts ;
+
+      if(npnts <= 1 || npnts > 10000000) {
+        cerr << "unreasonable number of points, " << npnts << ", in file '" << filename << "'." << endl ;
+        cerr << "check file for validity"<< endl ;
+        Loci::Abort() ;
+      }
+      vector<real> t(npnts),x(npnts)
+      for(int i=0;i<npnts;++i) {
+        infile >> t[i] >> x[i] ;
+        if(infile.fail()) {
+          cerr << "problem reading data from file '" << filename << endl ;
+          Loci::Abort() ;
+        }
+        if(i>0 && t[i-1] > t[i]) {
+          cerr << "time series should be in order of increasing time in file '" << filename << endl ;
+          Loci::Abort() ;
+        }
+      }
+      MPI_Bcast(&npnts,1,MPI_INT,0,MPI_COMM_WORLD) ;
+      MPI_Bcast(&t[0],npnts,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
+      MPI_Bcast(&x[0],npnts,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
+      $prescribedMotion_X->initialize(t,x,y,z,q0,q1,q2,q3) ;
+    } else {
+      int npnts ;
+      MPI_Bcast(&npnts,1,MPI_INT,0,MPI_COMM_WORLD) ;
+      vector<real> t(npnts),x(npnts),y(npnts),z(npnts) ;
+      vector<real> q0(npnts),q1(npnts),q2(npnts),q3(npnts) ;
+      MPI_Bcast(&t[0],npnts,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
+      MPI_Bcast(&x[0],npnts,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
+      $prescribedMotion_X->initialize(t,x,y,z,q0,q1,q2,q3) ;
+    }
+  } ;
+
+ // Prescribed gust starts here... First we implement a cubic spline
+
+  // Compute spline derivatives
+
 
 }

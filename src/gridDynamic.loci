@@ -32,7 +32,8 @@
  *                                 allocation of us_ntmp is required due to condition that 
  *                                 only pointwise rules can use priority annotation
  *                                 [var=moving::us_n{n,it} and similar for specified:: 
- *                                 and axi::moving::us_n{n,it}]. Possibly later update
+ *                                 and axi::moving::us_n{n,it}], we need to use apply rule then 
+ *                                 to sum up the velocities. Possibly later update
  *                                 to more memory efficient approach.
  * 
  */

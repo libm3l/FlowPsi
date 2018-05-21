@@ -24,7 +24,7 @@
  * CHANGELOG:
  * Version   Author:               Date       Patch number  CLA     Comment
  * -------   -------               --------   --------      ---     -------
- * 1-beta-6  Adam Jirasek         2018-04-24    0001             Add external maneuver rule
+ * 1-beta-6  Adam Jirasek         2018-04-24    8d0d548f81f      Add external maneuver rule
  *                                                               end required flags
  *
  *
@@ -658,11 +658,10 @@ namespace flowPsi {
     $prescribedCG_X = cg ;
   }
 /*
- * External manuever rule (Patch 0001)
+ * External manuever rule (Patch 8d0d548f81f)
  * set values in componentMotionData when externally prescribed motion
  * the new values area stored in componentXform XmotionData
  * which is set in solverExtrnalComm.loci
- *
  */
   $rule apply(componentMotionData<-XmotionData(X),componentName_X)[Loci::NullOp],
     constraint(componentExternalMotion_X),parametric(volumeTag(X)), prelude{
@@ -671,11 +670,6 @@ namespace flowPsi {
 
 #ifdef LIBM3LSIPDX
     (*$componentMotionData)[name] = *$XmotionData(X) ;
- //   printf("           EXTERNAL   DT \n" );
- //   std::cout << "-------------  external name is   " << "  " << name << "   " << (*$XmotionData(X)).cg << endl ;
- //   std::cout << "-------------  external name is   " << "  " << name << "   " << (*$XmotionData(X)).new_cg << endl ;
- //   std::cout << "-------------  external name is   " << "  " << name << "   " << (*$XmotionData(X)).q.x << " "
- // << (*$XmotionData(X)).q.y << " "<< (*$XmotionData(X)).q.z << " "<< (*$XmotionData(X)).q.w<< endl ;
 #else
     if(Loci::MPI_rank==0) {
       cerr << " " << endl ;

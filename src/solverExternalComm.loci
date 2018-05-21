@@ -96,9 +96,9 @@ namespace flowPsi {
  */
  $type componentName_X blackbox<string> ;
 /*
- * vales of componentName_X which is the same as volumeTag
- * and componentExternal_X which indicates the tag communicates 
- * externally are set in gridComponent.loci
+ * vales of the componentName_X which is the same as volumeTag,
+ * and is with the componentExternal_X which indicates the tag communicates 
+ * externally set in gridComponent.loci
  */
  $rule singleton(XmotionData(X)<-dtmax,stime,ext_interfaces,componentName_X), 
    constraint(componentExternal_X),parametric(volumeTag(X)){
