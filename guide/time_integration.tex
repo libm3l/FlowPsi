@@ -67,14 +67,14 @@ converged.
 
 
 \subsubsection{Three-stage backward scheme}
-The three stage backward time stepping scheme solves equation
+The three stage backward time stepping scheme solves equation\cite{Pulliam}
 \begin{equation}
   \frac{3Q^{n+1}-4Q^{n}+Q^{n-1}}{2\Delta t}- R(q^{n+1}) = 0
 \label{Thee_stage}
 \end{equation}
 where residual $R$ is defined by equation \ref{resid}. For URANS, this scheme is more stable
 then the Crank-Nicolson scheme, can utilize larger time step, less
-Newton subiterations and larger value of {\tt urelax}. For more details see\cite{Pulliam}.
+Newton subiterations and larger value of {\tt urelax}.
 
 \subsubsection{Local Time-Stepping Scheme}
 
