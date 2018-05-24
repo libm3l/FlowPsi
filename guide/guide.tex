@@ -346,6 +346,13 @@ timestepping enabled.  For time-accurate simulations select {\tt
   unsteady} to disable local timestepping and switch to a second order
 temporal integration.
 
+\item {\tt TimeIntegration}
+
+This variable selects the time integration scheme.  It is set to either
+{\tt Crank-Nikolson} or {\tt Three-stage-backward}.  In {\tt Crank-Nicolson} mode, {\tt flowPsi }
+will utilize a Crank-Nicolson time integration method.  
+For the {\tt Three-stage-backward} mode it suses three stage backward time stepping scheme.
+
 \item {\tt timePressureBiasControl}
 
 This variable changes how pressure is interpolated in the unsteady
