@@ -54,8 +54,6 @@ $include "FVM.lh"
 $include "flowPsi.lh"
 
 namespace flowPsi {
-
-   $type us_ntmp store<flowPsi::real> ;
   
 //  $rule pointwise(iblank),constraint(geom_cells) {
 //    $iblank = 0 ;
