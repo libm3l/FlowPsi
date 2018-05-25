@@ -131,12 +131,11 @@ namespace flowPsi {
 /*
  * depending on what type of interface we call different routines
  */
-        if(commtype.compare("test") != 0){
-
+        if(commtype.compare("test_bridge") == 0){
            test_bridge_quaternion(t, ForceX, ForceY, ForceZ, &Alpha, &Qx, &Qy, &Qz,
                   &TransX, &TransY, &TransZ, &RotCX, &RotCY, &RotCZ, pcomm_str);
         }else{
-            std::cerr << "ERROR: did not find communication type, check .vars file" << std::endl ;
+            std::cerr << "ERROR: did not find communication type - " << commtype  << " - , check settings in .vars file" << std::endl ;
             exit(-1) ;
         }
       }
@@ -184,6 +183,9 @@ namespace flowPsi {
 
       options_list::option_namelist nl = int_info->getOptionNameList() ;
       options_list::option_namelist::iterator li;
+      
+      const lmchar_t *cp;
+      lmsize_t clen;
 /*
  * set li to the beginning of list of interfaces
  */
@@ -248,12 +250,20 @@ namespace flowPsi {
             ol.getOption(*lii,BCs);
         }
         else if(*lii == "I_channel" ){
+            bzero(pcomm_str->I_channel,80);
             ol.getOption(*lii,I_channel_name) ;
-            pcomm_str->I_channel = I_channel_name.c_str();
+            cp =  I_channel_name.c_str();
+            clen = strlen(cp);
+            strncpy(pcomm_str->I_channel, cp, clen);
+            pcomm_str->I_channel[clen] = '\0';
         }
         else if(*lii == "O_channel" ){
-	    ol.getOption(*lii,O_channel_name) ;
-            pcomm_str->O_channel = O_channel_name.c_str();
+            bzero(pcomm_str->O_channel,80);
+	        ol.getOption(*lii,O_channel_name) ;
+            cp =  O_channel_name.c_str();
+            clen = strlen(cp);
+            strncpy(pcomm_str->O_channel, cp, clen);
+            pcomm_str->O_channel[clen] = '\0';
         }
         else if(*lii == "tag" ){
 	    ol.getOption(*lii,tag) ;
@@ -271,12 +281,20 @@ namespace flowPsi {
             pcomm_str->intf_name = intf_name.c_str();
         }
         else if(*lii == "type" ){
-	        ol.getOption(*lii,type) ;
-            pcomm_str->type = type.c_str();
+            bzero(pcomm_str->type,80);
+            ol.getOption(*lii,type) ;
+            cp =  type.c_str();
+            clen = strlen(cp);
+            strncpy(pcomm_str->type, cp, clen);
+            pcomm_str->type[clen] = '\0';
         }
         else if(*lii == "IP" ){
+            bzero(pcomm_str->IP,80);
             ol.getOption(*lii,IP) ;
-            pcomm_str->IP = IP.c_str();
+            cp =  IP.c_str();
+            clen = strlen(cp);
+            strncpy(pcomm_str->IP, cp, clen);
+            pcomm_str->IP[clen] = '\0';         
         }
       }
 /*

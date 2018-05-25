@@ -46,11 +46,11 @@
 #define __SRC_BRIDGES_TYPES_H__
 
 typedef struct comm_struct {
-    const lmchar_t *type;
+    lmchar_t type[80];
     const lmchar_t *tag;
-    const lmchar_t *I_channel;
-    const lmchar_t *O_channel;
-    const lmchar_t *IP;    
+    lmchar_t I_channel[80];
+    lmchar_t O_channel[80];
+    lmchar_t IP[80];    
     const lmchar_t *intf_name;
     
     lmint_t portno;
