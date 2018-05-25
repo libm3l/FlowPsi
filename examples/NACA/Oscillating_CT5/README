@@ -23,7 +23,7 @@ Once the process is finished, kill lsipdx co-sumulation engine
 
 4. Posptprocess results - 
    use 
-   awk 'NR>300 {print 0.016+2.51*sin(2*3.1415926*6.6565344171*$1*2E-4), $6/1030.032519344/0.1}' output/flux_BC_2.dat > FZ
+   awk '{print 0.016+2.51*sin(2*3.1415926*6.6565344171*$1*2E-4), $6/1030.032519344/0.1}' output/flux_BC_2.dat > FZ
 
    to get normal force vs. angle of attack
 

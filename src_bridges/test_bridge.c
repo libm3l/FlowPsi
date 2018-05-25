@@ -90,7 +90,7 @@ lmint_t test_bridge(lmdouble_t ForceX, lmdouble_t ForceY, lmdouble_t ForceZ ,
 
 	lmchar_t *name ="CFD2SIM";
 	lmchar_t *name1="SIM2CFD";
-        lmchar_t *hostname ="localhost";
+    lmchar_t *hostname ="localhost";
 
 	lmdouble_t *tmpfloat;
 	client_fce_struct_t InpPar, *PInpPar;
@@ -99,7 +99,7 @@ lmint_t test_bridge(lmdouble_t ForceX, lmdouble_t ForceY, lmdouble_t ForceZ ,
 /*
  * Set parameters which are needed for opening the socket for sending data
  */
-        PInpPar = &InpPar;
+    PInpPar = &InpPar;
 	PInpPar->channel_name = name;   /* name of channel where to send data*/
 	PInpPar->SR_MODE = 'S';         /* set R or S, because we will write outgoing data to this 
                                                    socket, set it to S */
@@ -387,11 +387,10 @@ lmint_t test_bridge_quaternion(lmdouble_t time,
 	client_fce_struct_t InpPar, *PInpPar;
 	opts_t *Popts_1, opts, opts_1, *Popts;
 	find_t *SFounds;
-
 /*
  * Set parameters which are needed for opening the socket for sending data
  */
-        PInpPar = &InpPar;
+    PInpPar = &InpPar;
 	PInpPar->channel_name = comm_str->O_channel;   /* name of channel where to send data*/
 	PInpPar->SR_MODE = 'S';         /* set R or S, because we will write outgoing data to this 
                                                    socket, set it to S */
