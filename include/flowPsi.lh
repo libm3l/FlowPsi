@@ -410,5 +410,3 @@ $type componentNodes_X store<bool> ;
 $type movingMesh store<bool> ;
 $type coriolis param<coriolis_options> ;
 $type gauss_seidel_iter param<int> ;
-
-$type Sterm storeVec<real> ;
