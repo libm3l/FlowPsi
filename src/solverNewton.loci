@@ -225,36 +225,13 @@ namespace flowPsi {
   }
  
   $rule pointwise(temperature{n+1},gagePressure{n+1},u{n+1}<-
-		  temperature{n,it},gagePressure{n,it},u{n,it},iblank{n,it},
-                  temperature{n},gagePressure{n},u{n},
-                  localPBias_next{n,it},Pambient,Rtilde,gamma),
+		  temperature{n,it},gagePressure{n,it},u{n,it},
+                  temperature{n},gagePressure{n},u{n},localPBias_next{n,it}),
     inplace(temperature{n+1}|temperature{n,it}),
     inplace(gagePressure{n+1}|gagePressure{n,it}),
     inplace(u{n+1}|u{n,it}),
     constraint(geom_cells,timeStepAccurate,componentTimeInteg3SE),
     conditional(newtonFinished{n,it}){
-    const real Tstar = $temperature{n,it} ;
-    const real Tn = $temperature{n} ;
-    // Use harmonic mean of temperature to define Tstar
-    const real Tnp1 = Tn*Tstar/(2.*Tn-Tstar) ;
-
-    const real pgstar = $gagePressure{n,it} ;
-    const real peps = $localPBias_next{n,it} ;
-    const real pgnp1 = (2.*pgstar-(1.-peps)*$gagePressure{n})/(1+peps) ;
-    
-    const real rhon = ($gagePressure{n}+$Pambient)/($Rtilde*$temperature{n}) ;
-    const real rhonp = max<real>((pgstar+$Pambient)/($Rtilde*Tstar),1e-15) ;
-
-    const real srhonp = sqrt(rhonp) ;
-    const real srhon = sqrt(rhon) ;
-    const real w1 = (srhonp+srhon)/srhonp ;
-    const real w2 = srhon/srhonp ;
-    
-    vect3d unp1 = w1*$u{n,it}-w2*$u{n} ;
-//    $gagePressure{n+1} = ($iblank{n,it} > 1)?$gagePressure{n,it}:pgnp1 ;
-//    $temperature{n+1} = ($iblank{n,it} > 1)?$temperature{n,it}:Tnp1 ;
-//    $u{n+1} = ($iblank{n,it} > 1)?$u{n,it}:unp1 ;
-
     $gagePressure{n+1} = $gagePressure{n,it} ;
     $temperature{n+1}  = $temperature{n,it} ;
     $u{n+1}            = $u{n,it} ;
