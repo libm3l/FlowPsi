@@ -70,18 +70,18 @@ namespace flowPsi {
   } ;
 
   $type componentTimeIntegCN Constraint;
-  $type componentTimeInteg3SE Constraint;
+  $type componentTimeInteg3BW Constraint;
 /*
  * set time steping scheme
  */
-  $rule constraint(componentTimeIntegCN,componentTimeInteg3SE<-TimeIntegration,componentTimeIntegration){
+  $rule constraint(componentTimeIntegCN,componentTimeInteg3BW<-TimeIntegration,componentTimeIntegration){
     $componentTimeIntegCN  = EMPTY ;
-    $componentTimeInteg3SE = EMPTY ;
+    $componentTimeInteg3BW = EMPTY ;
    
     if($TimeIntegration == "Crank-Nicolson") {
       $componentTimeIntegCN = ~EMPTY ;
     } else if($TimeIntegration == "Three-stage-backward") {
-      $componentTimeInteg3SE = ~EMPTY ;
+      $componentTimeInteg3BW = ~EMPTY ;
     } else {
       if(Loci::MPI_rank == 0) {
         cerr << "Unknown time integration scheme '" << $TimeIntegration << "'" << endl ;
@@ -381,7 +381,7 @@ $rule pointwise(rhs{n,it}<-src{n,it},gagePressure{n},gagePressure{n-1},
    gagePressure{n,it},temperature{n},temperature{n-1},temperature{n,it},
    u{n},u{n-1},u{n,it},
    dtmax{n,it},dtau{n,it},vol{n,it},localPBias{n,it},Pambient,Rtilde,gamma),
-   inplace(rhs{n,it}|src{n,it}),constraint(geom_cells,timeStepAccurate,componentTimeInteg3SE) {
+   inplace(rhs{n,it}|src{n,it}),constraint(geom_cells,timeStepAccurate,componentTimeInteg3BW) {
     
     const real rhon  = ($gagePressure{n,it})/($Rtilde*$temperature{n,it}) ;
     const real rhonp = ($gagePressure{n})/($Rtilde*$temperature{n}) ;
