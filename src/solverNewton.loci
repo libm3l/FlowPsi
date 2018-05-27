@@ -24,7 +24,7 @@
  * CHANGELOG:
  * Version   Author:               Date       Patch number  CLA     Comment
  * -------   -------               --------   --------      ---     -------
- * 1-beta-6  Adam Jirasek         2018-04-23          Add three stage backward implicit scheme
+ * 1-beta-6  Adam Jirasek         2018-05-23          Add three stage backward implicit scheme
  *
  *
  *
@@ -60,15 +60,18 @@ namespace flowPsi {
 /*
  * for threestage backward scheme, initiate n-1 layer
  */
-  $rule pointwise(gagePressure{n=-1}<-gagePressure_ic) {
+  $rule pointwise(gagePressure{n=-1}<-gagePressure_ic),
+  constraint(geom_cells,timeStepAccurate,componentTimeInteg3SE) {
     $gagePressure{n=-1} = $gagePressure_ic ;
   }
 
-  $rule pointwise(temperature{n=-1}<-temperature_ic) {
+  $rule pointwise(temperature{n=-1}<-temperature_ic),
+  constraint(geom_cells,timeStepAccurate,componentTimeInteg3SE) {
     $temperature{n=-1} = $temperature_ic ;
   }
   
-  $rule pointwise(u{n=-1}<-u_ic) {
+  $rule pointwise(u{n=-1}<-u_ic) ,
+  constraint(geom_cells,timeStepAccurate,componentTimeInteg3SE) {
     $u{n=-1} = $u_ic ;
   }
 
