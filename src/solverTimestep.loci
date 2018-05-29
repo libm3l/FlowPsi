@@ -392,7 +392,7 @@ namespace flowPsi {
     $rhs{n,it}[4] = $src{n,it}[4] - (rhonp*e0np - rhon*e0n)*rdtvol ;
   }
 /*
- * thre stage Backward scheme
+ * three stage Backward scheme
  */
 $rule pointwise(rhs{n,it}<-src{n,it},gagePressure{n},gagePressure{n-1},
    gagePressure{n,it},temperature{n},temperature{n-1},temperature{n,it},
