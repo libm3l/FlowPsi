@@ -57,23 +57,6 @@ namespace flowPsi {
     constraint(geom_cells) {
     $u_i{n,it=0} = $u{n} ;
   }
-/*
- * for threestage backward scheme, initiate n-1 layer
- */
-  $rule pointwise(gagePressure{n=-1}<-gagePressure_ic),
-  constraint(geom_cells,timeStepAccurate,componentTimeInteg3BW) {
-    $gagePressure{n=-1} = $gagePressure_ic ;
-  }
-
-  $rule pointwise(temperature{n=-1}<-temperature_ic),
-  constraint(geom_cells,timeStepAccurate,componentTimeInteg3BW) {
-    $temperature{n=-1} = $temperature_ic ;
-  }
-  
-  $rule pointwise(u{n=-1}<-u_ic) ,
-  constraint(geom_cells,timeStepAccurate,componentTimeInteg3BW) {
-    $u{n=-1} = $u_ic ;
-  }
 
   // These rules will allow replacement by iblanked cells
   $rule pointwise(temperature{n,it}<-temperature_i{n,it}),
