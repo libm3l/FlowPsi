@@ -101,8 +101,8 @@ prog: $(OBJS)
 -include $(OBJS:.o=.d)
 
 %.o: %.c
-	$(CC) -c -O  -Wall $(LIBM3LPATH) $(LSIPDXPATH) -I$(LOCI_BASE)/include -I../include $(LIBOPENMPI) $(HDF5_INCLUDE) $*.c -o $*.o
-	$(CC) -MM -O  -Wall $(LIBM3LPATH) $(LSIPDXPATH) -I$(LOCI_BASE)/include -I../include $(HDF5_INCLUDE) $*.c > $*.d
+	$(CC) -c -O  -Wall -I$(LIBM3LPATH) -I$(LSIPDXPATH) -I$(LOCI_BASE)/include -I../include $(LIBOPENMPI) $(HDF5_INCLUDE) $*.c -o $*.o
+	$(CC) -MM -O -Wall -I$(LIBM3LPATH) -I$(LSIPDXPATH) -I$(LOCI_BASE)/include -I../include $(HDF5_INCLUDE) $*.c > $*.d
         
 	@mv -f $*.d $*.d.tmp
 	@sed -e 's|.*:|$*.o:|' < $*.d.tmp > $*.d
