@@ -88,10 +88,8 @@ else
 #
 #  did not find libm3l files, posibly LIBM3LPATH#L wrong
 #
-	@echo ERROR: Did not find lsipdx library and header file
-	@echo
-	@echo Check LSIPDXPATH variable setting in flowpsi.conf file
-	@echo
+	@echo Warning: Did not find libm3l and lsipdx library and header file
+	make prog
 endif
 
 

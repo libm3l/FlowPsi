@@ -653,4 +653,21 @@ lmint_t test_bridge_quaternion(lmdouble_t time,
 
 }
 
+#else
+
+   int test_bridge(double ForceX, double ForceY, double ForceZ , 
+                   double Alpha, double Beta, double Gamma,
+                   double TransX, double TransY, double TransZ,
+                   double RotCX, double RotCY, double RotCZ){
+
+      Perror"This version of flowPsi does not support external communication");
+
+   }
+
+   int test_bridge_quaternion(double time, 
+                    double ForceX, double ForceY, double ForceZ , 
+                    double *Alpha, double *Qx, double *Qy, double *Qz,
+                    double *TransX, double *TransY, double *TransZ,
+                    double *RotCX, double *RotCY, double *RotCZ, comm_struct_t *comm_str){
+
 #endif
