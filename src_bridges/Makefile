@@ -40,6 +40,8 @@
 #
 
 include ../flowpsi.conf
+include $(LOCI_BASE)/sys.conf
+include $(LOCI_BASE)/Loci.conf
 
 #FILES = $(shell find ./ -name "*.c" | sed 's/.\///' )
 FILES = $(shell ls  *.c )
@@ -53,8 +55,6 @@ OBJS=$(FILES:%.c=%.o)
 CC = mpic++
 CFLAGS = -fbounds-check -fstack-check -g 
 LFLAGS = -fbounds-check -fstack-check -g 
-
-INCLUDES = -I$(LIBM3LPATH) -I$(LSIPDXPATH) -I$(LOCI_BASE)/include -I../include
 
 #
 #Autodependencies with GNU make
@@ -101,8 +101,9 @@ prog: $(OBJS)
 -include $(OBJS:.o=.d)
 
 %.o: %.c
-	$(CC) -c -O  -Wall -I$(LIBM3LPATH) -I$(LSIPDXPATH) -I$(LOCI_BASE)/include -I../include $(LIBOPENMPI) $*.c -o $*.o
-	$(CC) -MM -O  -Wall   -I$(LIBM3LPATH) -I$(LSIPDXPATH) -I$(LOCI_BASE)/include -I../include $*.c > $*.d
+	$(CC) -c -O  -Wall $(LIBM3LPATH) $(LSIPDXPATH) -I$(LOCI_BASE)/include -I../include $(LIBOPENMPI) $(HDF5_INCLUDE) $*.c -o $*.o
+	$(CC) -MM -O  -Wall $(LIBM3LPATH) $(LSIPDXPATH) -I$(LOCI_BASE)/include -I../include $(HDF5_INCLUDE) $*.c > $*.d
+        
 	@mv -f $*.d $*.d.tmp
 	@sed -e 's|.*:|$*.o:|' < $*.d.tmp > $*.d
 	@sed -e 's/.*://' -e 's/\\$$//' < $*.d.tmp | fmt -1 | \
