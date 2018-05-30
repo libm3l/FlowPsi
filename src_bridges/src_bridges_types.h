@@ -39,6 +39,7 @@
  *     Description
  * 
  */
+#ifdef LIBM3LSIPDX
 
 #include <libm3l.h> 
 
@@ -54,9 +55,26 @@ typedef struct comm_struct {
     const lmchar_t *intf_name;
     
     lmint_t portno;
-    lmint_t comm_freq;
+    
+lmint_t comm_freq;
     
 }comm_struct_t;
 
 #endif
 
+#else
+
+    typedef struct comm_struct {
+    char type[80];
+    const char *tag;
+    char I_channel[80];
+    char O_channel[80];
+    char IP[80];    
+    const char *intf_name;
+    
+    int portno;
+    int comm_freq;
+    
+}comm_struct_t;
+
+#endif
