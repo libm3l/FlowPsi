@@ -45,16 +45,16 @@ include $(LOCI_BASE)/Loci.conf
 
 #FILES = $(shell find ./ -name "*.c" | sed 's/.\///' )
 FILES = $(shell ls  *.c )
-PATHL  = $(shell pwd )
-HFILES = $(shell ls  *.h  |   sed '/lsipdx_header.h/d'  |   sed '/lsipdx.h/d' | sed '/libm3l.h/d' | sort -df)
 EMPTYL = $(shell find $(LIBM3LPATH) \( -name libm3l.so -o -iname libm3l.h -o -iname libm3l.so.1.0 \) | wc -l )
 EMPTYLS = $(shell find $(LSIPDXPATH) \( -name liblsipdx.so -o -iname lsipdx.h -o -iname liblsipdx.so.1.0 \) | wc -l )
 
 OBJS=$(FILES:%.c=%.o)
 
-CC = mpic++
+CC = $(CPP)
 CFLAGS = -fbounds-check -fstack-check -g 
 LFLAGS = -fbounds-check -fstack-check -g 
+
+INCLUDE = -I$(LIBM3LPATH) -I$(LSIPDXPATH) -I$(LOCI_BASE)/include -I../include $(LIBOPENMPI) $(HDF5_INCLUDE)
 
 #
 #Autodependencies with GNU make
@@ -94,15 +94,14 @@ endif
 
 
 prog: $(OBJS)
-
-	$(CC) -c $(OBJS)
-	ar  rcs libbridges.a  *.o    
+	ar rcs libbridges.a *.o    
 
 -include $(OBJS:.o=.d)
 
 %.o: %.c
-	$(CC) -c -O  -Wall -I$(LIBM3LPATH) -I$(LSIPDXPATH) -I$(LOCI_BASE)/include -I../include $(LIBOPENMPI) $(HDF5_INCLUDE) $*.c -o $*.o
-	$(CC) -MM -O -Wall -I$(LIBM3LPATH) -I$(LSIPDXPATH) -I$(LOCI_BASE)/include -I../include $(HDF5_INCLUDE) $*.c > $*.d
+	echo $(INCLUDE)
+	$(CC) -c -O  -Wall $(INCLUDE) $*.c -o $*.o
+	$(CC) -MM -O -Wall $(INCLUDE) $*.c > $*.d
         
 	@mv -f $*.d $*.d.tmp
 	@sed -e 's|.*:|$*.o:|' < $*.d.tmp > $*.d

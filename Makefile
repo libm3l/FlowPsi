@@ -21,7 +21,7 @@ flowpsi: setup src_bridges
 	$(MAKE) -C src LOCI_BASE="$(LOCI_BASE)" all
 
 src_bridges: setup
-	$(MAKE) -C src_bridges main
+	$(MAKE) -C src_bridges main FLOWPSI_BASE="$(FLOWPSI_BASE)" 
 
 turbulence: setup
 	$(MAKE) -C turbulence FLOWPSI_BASE="$(FLOWPSI_BASE)" all
