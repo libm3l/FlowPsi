@@ -131,8 +131,8 @@ namespace flowPsi {
 /*
  * depending on what type of interface we call different routines
  */
-        if(commtype.compare("test_bridge") == 0){
-           test_bridge_quaternion(t, ForceX, ForceY, ForceZ, &Alpha, &Qx, &Qy, &Qz,
+        if(commtype.compare("prescribed_quaternion") == 0){
+           bridge_prescribed_quaternion(t, ForceX, ForceY, ForceZ, &Alpha, &Qx, &Qy, &Qz,
                   &TransX, &TransY, &TransZ, &RotCX, &RotCY, &RotCZ, pcomm_str);
         }else{
             std::cerr << "ERROR: did not find communication type - " << commtype  << " - , check settings in .vars file" << std::endl ;

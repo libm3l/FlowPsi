@@ -64,7 +64,7 @@ extern CPP_C lmint_t test_bridge(lmdouble_t, lmdouble_t, lmdouble_t,
 				  lmdouble_t, lmdouble_t, lmdouble_t,
 				  lmdouble_t, lmdouble_t, lmdouble_t);
 
-extern CPP_C lmint_t test_bridge_quaternion(lmdouble_t, lmdouble_t, lmdouble_t, lmdouble_t,
+extern CPP_C lmint_t bridge_prescribed_quaternion(lmdouble_t, lmdouble_t, lmdouble_t, lmdouble_t,
 				  lmdouble_t *, lmdouble_t *, lmdouble_t *, lmdouble_t *,
 				  lmdouble_t *, lmdouble_t *, lmdouble_t *,
 				  lmdouble_t *, lmdouble_t *, lmdouble_t *, comm_struct_t *);
@@ -76,7 +76,7 @@ extern CPP_C lmint_t test_bridge(double, double, double,
 				  double, double, double,
 				  double, double, double);
 
-extern CPP_C lmint_t test_bridge_quaternion(double, double, double, double,
+extern CPP_C lmint_t bridge_prescribed_quaternion(double, double, double, double,
 				  double *, double *, double *, double *,
 				  double *, double *, double *,
 				  double *, double *, double *, comm_struct_t *);

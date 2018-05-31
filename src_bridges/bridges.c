@@ -369,9 +369,10 @@ lmint_t test_bridge(lmdouble_t ForceX, lmdouble_t ForceY, lmdouble_t ForceZ ,
 
 
 
-
-
-lmint_t test_bridge_quaternion(lmdouble_t time, 
+/*
+ * prescribed motion
+ */
+lmint_t bridge_prescribed_quaternion(lmdouble_t time, 
                     lmdouble_t ForceX, lmdouble_t ForceY, lmdouble_t ForceZ , 
                     lmdouble_t *Alpha, lmdouble_t *Qx, lmdouble_t *Qy, lmdouble_t *Qz,
                     lmdouble_t *TransX, lmdouble_t *TransY, lmdouble_t *TransZ,

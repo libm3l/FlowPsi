@@ -1401,6 +1401,12 @@ Name of the volume tag. If \emph{All} is specified, the interface acts for all v
 This parameter specifies the type of the solver \emph{flowPsi} will be communicating with. This is solver specific as it 
 determines what/if \emph{flowPsi} will send data out and what/if \emph{flowPsi} will receive data. 
 
+types of interfaces currently available are
+\begin{enumerate}
+\item {\tt prescribed\_quaternion}
+   prescribed motion as a function of quaternion vs time
+\end{enumerate}
+
 \item {\tt comm\_freq}
 
 This parameter specifies how often \emph{flowPsi} communicates. If the number is positive, it specifies frequency of time step
