@@ -40,22 +40,25 @@
 #
 
 include ../flowpsi.conf
-include $(LOCI_BASE)/sys.conf
 include $(LOCI_BASE)/Loci.conf
 
-#FILES = $(shell find ./ -name "*.c" | sed 's/.\///' )
-FILES = $(shell ls  *.c )
-EMPTYL = $(shell find $(LIBM3LPATH) \( -name libm3l.so -o -iname libm3l.h -o -iname libm3l.so.1.0 \) | wc -l )
+FILES = $(shell find ./ -name "*.c" | sed 's/.\///' )
+FILES   = $(shell ls  *.c )
+EMPTYL  = $(shell find $(LIBM3LPATH) \( -name libm3l.so -o -iname libm3l.h -o -iname libm3l.so.1.0 \) | wc -l )
 EMPTYLS = $(shell find $(LSIPDXPATH) \( -name liblsipdx.so -o -iname lsipdx.h -o -iname liblsipdx.so.1.0 \) | wc -l )
 
 OBJS=$(FILES:%.c=%.o)
 
-CC = $(CPP)
+#CC = $(CPP)
+CC = mpic++
 CFLAGS = -fbounds-check -fstack-check -g 
 LFLAGS = -fbounds-check -fstack-check -g 
 
 INCLUDE = -I$(LIBM3LPATH) -I$(LSIPDXPATH) -I$(LOCI_BASE)/include -I../include $(LIBOPENMPI) $(HDF5_INCLUDE)
-
+#
+#  define INCLUDES for Loci.conf
+#
+INCLUDES = $(INCLUDE) 
 #
 #Autodependencies with GNU make
 #Scott McPeak, November 2001 
@@ -75,9 +78,7 @@ else
 #
 #  did not find libm3l files, posibly LIBM3LPATH#L wrong
 #
-	@echo ERROR: Did not find libml3 library and header file
-	@echo
-	@echo Check LIBM3LPATH variable setting  in flowpsi.conf file
+	@echo Warning: Did not find libm3l and lsipdx library and header file
 	@echo
 endif
 
@@ -99,7 +100,6 @@ prog: $(OBJS)
 -include $(OBJS:.o=.d)
 
 %.o: %.c
-	echo $(INCLUDE)
 	$(CC) -c -O  -Wall $(INCLUDE) $*.c -o $*.o
 	$(CC) -MM -O -Wall $(INCLUDE) $*.c > $*.d
         
