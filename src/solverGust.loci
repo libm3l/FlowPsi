@@ -68,7 +68,6 @@ namespace flowPsi {
 
   $rule optional(gustSpecification) {}
 
-  $type Gust param<bool>;
   $type tmn1 param<vect3d>;
   $type tm3  param<vect3d>;
 

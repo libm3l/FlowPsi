@@ -78,7 +78,7 @@ $type u                 store<flowPsi::vect3d> ;
 $type us_n store<flowPsi::real> ;
 $type us store<flowPsi::vect3d> ;
 $type gcl_sum store<flowPsi::real>;
-$type us_ntmp store<flowPsi::real> ;
+//$type us_ntmp store<flowPsi::real> ;
 
 $type mu        store<flowPsi::real> ; // fluid viscosity cell
 $type mu_f      store<flowPsi::real> ; // fluid viscosity face
@@ -410,3 +410,7 @@ $type componentNodes_X store<bool> ;
 $type movingMesh store<bool> ;
 $type coriolis param<coriolis_options> ;
 $type gauss_seidel_iter param<int> ;
+
+$type componentTimeIntegCN Constraint;
+$type componentTimeInteg3BW Constraint;
+$type Gust param<bool>;

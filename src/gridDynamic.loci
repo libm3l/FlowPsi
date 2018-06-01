@@ -63,6 +63,8 @@ $include "flowPsi.lh"
 
 namespace flowPsi {
 
+  $type us_ntmp store<flowPsi::real> ;
+
   // Moving Mesh because of moving components
   $rule pointwise(movingMesh),constraint(componentMotion) {
     $movingMesh = true ;
@@ -599,7 +601,7 @@ namespace flowPsi {
     $gcl_sum = 0;
   }
 /*
- * add us_ntmp to us_n
+ * calculate GCL, use us_n if no gust of us_ntmpgust if gust
  */
   $type us_ntmpgcl store<flowPsi::real> ;
 /*

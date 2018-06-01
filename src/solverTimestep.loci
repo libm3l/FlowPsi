@@ -68,9 +68,6 @@ namespace flowPsi {
     $componentTimeIntegration->insert(string("Crank-Nocolson")) ;
     $componentTimeIntegration->insert(string("Three-stage-backward")) ;
   } ;
-
-  $type componentTimeIntegCN Constraint;
-  $type componentTimeInteg3BW Constraint;
 /*
  * set time steping scheme
  */
