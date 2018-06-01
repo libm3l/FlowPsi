@@ -598,15 +598,46 @@ namespace flowPsi {
     constraint( geom_cells ) {
     $gcl_sum = 0;
   }
+
+/*
+ * add us_ntmp to us_n
+ */
+  $type us_ntmpgcl store<flowPsi::real> ;
+/*
+ * of no gust, use us_n in GCL
+ * otherwise use us_n_gcl
+ */
+  $type NoGust param<bool>;
+  $rule default(NoGust) {
+    $NoGust = true ;
+  }
+  $rule singleton(NoGust),constraint(Gust) {
+    $NoGust = false ;
+  }
+  $rule pointwise(us_ntmpgcl<-us_ntmp),constraint(area,Gust){
+     $us_ntmpgcl += $us_ntmp ;
+  }
+
   //--------------------------------------------------------------------
   $rule apply( cl->gcl_sum <- us_n, area )[Loci::Summation],
-    constraint( cl->geom_cells ) {
+    constraint( cl->geom_cells,NoGust ) {
     $cl->$gcl_sum += $area.sada*$us_n;
   }
   //--------------------------------------------------------------------
   $rule apply( cr->gcl_sum <- us_n, area )[Loci::Summation],
-    constraint( cr->geom_cells ) {
+    constraint( cr->geom_cells,NoGust ) {
     $cr->$gcl_sum -= $area.sada*$us_n;
+  }
+
+  //--------------------------------------------------------------------
+  $rule apply( cl->gcl_sum <- us_ntmpgcl, area )[Loci::Summation],
+    constraint( cl->geom_cells,Gust ) {
+    $cl->$gcl_sum += $area.sada*$us_ntmpgcl;
+  }
+  //--------------------------------------------------------------------
+  $rule apply( cr->gcl_sum <- us_ntmpgcl, area )[Loci::Summation],
+    constraint( cr->geom_cells,Gust ) {
+    $cr->$gcl_sum -= $area.sada*$us_ntmpgcl;
   }
 
   //--------------------------------------------------------------------
