@@ -6,12 +6,13 @@ The communication occurs every time step.
 
 1. run stady case using NACAViscous_STD.vars
 
-2. move restart file to restart_STD directory
+2. move restart file to restart_STD directory (copy all files from last subdir with max iterations to the root of restart_STD dir)
 
 3. execute unsteady analysis
 
-  3a. start lsipdx co-sumulation engine using Definition_File in this directory
+  3a. start lsipdx co-sumulation engine using Definition_File in this directory (Definition_File is attached)
       example: lsipdx_server.out --port 31000 --input_file Definition_File --show
+	  
 
   3b. start separate solver in ExternalProcesses (from External_Processes directory)
      Client1_FakedSimulink_Quaternion.out localhost 31000
