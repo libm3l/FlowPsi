@@ -598,7 +598,6 @@ namespace flowPsi {
     constraint( geom_cells ) {
     $gcl_sum = 0;
   }
-
 /*
  * add us_ntmp to us_n
  */
@@ -614,10 +613,16 @@ namespace flowPsi {
   $rule singleton(NoGust),constraint(Gust) {
     $NoGust = false ;
   }
-  $rule pointwise(us_ntmpgcl<-us_ntmp),constraint(area,Gust){
+
+  $rule unit(us_ntmpgcl),constraint(area,Gust) {
+     $us_ntmpgcl= 0 ;
+  }
+/*
+ * add us_ntmp to us_n
+ */
+  $rule apply(us_ntmpgcl<-us_ntmp)[Loci::Summation],constraint(area,Gust){
      $us_ntmpgcl += $us_ntmp ;
   }
-
   //--------------------------------------------------------------------
   $rule apply( cl->gcl_sum <- us_n, area )[Loci::Summation],
     constraint( cl->geom_cells,NoGust ) {
