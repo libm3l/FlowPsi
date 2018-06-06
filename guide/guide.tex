@@ -47,7 +47,7 @@
 - May-2018: Added External Solver Communication (added by Adam Jirasek)\\
 - May-2018: Added additional parameters to preamble of vars file (added by Adam Jirasek)\\
 - May-2018: Added gust modeling  (added by Adam Jirasek)\\
-- May-2018: Added new time interation scheme  (added by Adam Jirasek)
+- May-2018: Added new time interation scheme  (added by Adam Jirasek/Ed Luke)
 
 
 \newpage
@@ -1632,7 +1632,7 @@ specified with the point locations.  Probes will generate output files
 in the form {\tt probeX.dat}, where {\tt X} is the probe number.
 The file contains lines with the following information:
 \begin{verbatim}
-  <ncycle> <stime> <T> <p> <rho> <a> [ <U> ] [ <pos> ] <dist> <mass fractions>
+  <ncycle> <stime> <T> <p> [ <U> ] [ <pos> ] <dist> 
 \end{verbatim}
 where:
 \begin{verbatim}
@@ -1640,8 +1640,6 @@ where:
   <stime> is the simulation time
   <T> is the temperature
   <p> is the pressure
-  <rho> is the density
-  <a> is the sound speed
   <U> is the velocity vector
   <pos> is the position of the probe
   <dist> is the distance between the probed value and the position given in the
