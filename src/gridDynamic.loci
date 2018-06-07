@@ -63,8 +63,6 @@ $include "flowPsi.lh"
 
 namespace flowPsi {
 
-  $type us_ntmp store<flowPsi::real> ;
-
   // Moving Mesh because of moving components
   $rule pointwise(movingMesh),constraint(componentMotion) {
     $movingMesh = true ;

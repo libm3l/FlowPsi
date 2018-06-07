@@ -1,3 +1,4 @@
+   
 //#############################################################################
 //#
 //# Copyright 2018, Adam Jirasek
@@ -200,7 +201,7 @@ namespace flowPsi {
 /*
  * add artificial velocity due to 1-cos gust to face velocity
  */
-  $rule apply(us_n<-dtmax,stime,area,facecenter,tm3,tmn1,Lgrad,Gvel,Usg,Ogust)[Loci::Summation],
+  $rule apply(us_n<-dtmax,stime,area,facecenter,tm3,tmn1,Lgrad,Gvel,Usg,Ogust)[Loci::NullOp],
     constraint(area,GustTypes_oneMcos){
 
     real time = $dtmax + $stime;
@@ -208,7 +209,6 @@ namespace flowPsi {
     real velfree = $Gvel;
 
     vect3d usv;
-
     vect3d gust_orig = $Ogust;
     real twopil = 3.1415926 / length ;  // length is so called gradient length
 /*
@@ -257,7 +257,7 @@ namespace flowPsi {
 /*
  * add artificial velocity due to step gust to face velocity
  */
-  $rule apply(us_n<-dtmax,stime,area,facecenter,tm3,tmn1,Gvel,Usg,Ogust)[Loci::Summation],
+  $rule apply(us_n<-dtmax,stime,area,facecenter,tm3,tmn1,Gvel,Usg,Ogust)[Loci::NullOp],
     constraint(area,GustTypes_step){
 
     real time = $dtmax + $stime;
