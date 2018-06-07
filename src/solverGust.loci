@@ -61,6 +61,7 @@ using std::set ;
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include "solverGust.h"
 
 $include "flowPsi.lh"
 
@@ -200,7 +201,7 @@ namespace flowPsi {
 /*
  * add artificial velocity due to 1-cos gust to face velocity
  */
-  $rule apply(us_n<-dtmax,stime,area,facecenter,tm3,tmn1,Lgrad,Gvel,Usg,Ogust)[Loci::Summation],
+  $rule apply(us_n<-dtmax,stime,area,facecenter,tm3,tmn1,Lgrad,Gvel,Usg,Ogust)[Loci::NullOp],
     constraint(area,GustTypes_oneMcos){
 
     real time = $dtmax + $stime;
@@ -208,7 +209,6 @@ namespace flowPsi {
     real velfree = $Gvel;
 
     vect3d usv;
-
     vect3d gust_orig = $Ogust;
     real twopil = 3.1415926 / length ;  // length is so called gradient length
 /*
@@ -257,7 +257,7 @@ namespace flowPsi {
 /*
  * add artificial velocity due to step gust to face velocity
  */
-  $rule apply(us_n<-dtmax,stime,area,facecenter,tm3,tmn1,Gvel,Usg,Ogust)[Loci::Summation],
+  $rule apply(us_n<-dtmax,stime,area,facecenter,tm3,tmn1,Gvel,Usg,Ogust)[Loci::NullOp],
     constraint(area,GustTypes_step){
 
     real time = $dtmax + $stime;
@@ -286,5 +286,84 @@ namespace flowPsi {
 
     $us_n = -dot(usv,$area.n);
   };
+  
+/*
+ * read prescribed gust file 
+ */
+   $type prescribedGust blackbox<gustSplines> ;
+
+   $rule blackbox(prescribedGust<-gustSpecification),
+    constraint(GustTypes_prescribed),
+    prelude {
+
+    if(Loci::MPI_rank==0) {
+      string filename = "gust.dat" ;
+      ifstream infile(filename.c_str(),ios::in) ;
+      if(infile.fail()) {
+        cerr << "open failed on '" << filename <<"'"<< endl ;
+        Loci::Abort() ;
+      }
+
+      int npnts = 0 ;
+      infile >> npnts ;
+
+      if(npnts <= 1 || npnts > 10000000) {
+        cerr << "unreasonable number of points, " << npnts << ", in gust file '" << filename << "'." << endl ;
+        cerr << "check file for validity"<< endl ;
+        Loci::Abort() ;
+      }
+      vector<real> x(npnts),v(npnts);
+      for(int i=0;i<npnts;++i) {
+        infile >> x[i] >> v[i];
+        if(infile.fail()) {
+          cerr << "problem reading gust data from file '" << filename << endl ;
+          Loci::Abort() ;
+        }
+        if(i>0 && x[i-1] > x[i]) {
+          cerr << "gust time series should be in order of increasing time in file '" << filename << endl ;
+          Loci::Abort() ;
+        }
+      }
+      MPI_Bcast(&npnts,1,MPI_INT,0,MPI_COMM_WORLD) ;
+      MPI_Bcast(&x[0],npnts,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
+      MPI_Bcast(&v[0],npnts,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
+      $prescribedGust->gust_initialize(x,v) ;
+    } else {
+      int npnts ;
+      MPI_Bcast(&npnts,1,MPI_INT,0,MPI_COMM_WORLD) ;
+      vector<real> x(npnts),v(npnts);
+      MPI_Bcast(&x[0],npnts,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
+      MPI_Bcast(&v[0],npnts,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
+      $prescribedGust->gust_initialize(x,v) ;
+    }
+  } ;
+/*
+ * set values of gust velocity
+ */
+  $rule apply(us_n<-prescribedGust,Ogust,dtmax,area,facecenter,tm3,Gvel,tmn1,stime)[Loci::NullOp],
+    constraint(GustTypes_prescribed){
+    real time = $stime + real($dtmax) ;
+    real ustab;
+    vect3d usv;
+    real velfree = $Gvel;
+
+    vect3d gust_orig = $Ogust;
+/*
+ * interpolate
+ */
+    real front = velfree * time;
+    real xtmp  = ($tmn1.x * ($facecenter.x-gust_orig.x)) +
+                 ($tmn1.y * ($facecenter.y-gust_orig.y)) +
+                 ($tmn1.z * ($facecenter.z-gust_orig.z));
+
+// actual position in table front - xtmp
+
+    usv.x = $tm3.x * ustab;
+    usv.y = $tm3.y * ustab;
+    usv.z = $tm3.z * ustab;
+
+    $us_n = -dot(usv,$area.n);
+
+  } ;
 
 }
