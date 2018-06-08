@@ -138,7 +138,7 @@ namespace flowPsi {
     constraint(UNIVERSE),prelude {
     $GustTypes->insert(string("oneMcos")) ;
     $GustTypes->insert(string("step")) ;
-    $GustTypes->insert(string("prescribed")) ;
+    $GustTypes->insert(string("tabulated")) ;
   } ;
 /*
  * specify constraints for each type of gust
@@ -166,7 +166,7 @@ namespace flowPsi {
       $GustTypes_oneMcos = ~EMPTY ;
     } else if(type == "step") {
       $GustTypes_step = ~EMPTY ;
-    } else if(type == "prescribed") {
+    } else if(type == "tabulated") {
       $GustTypes_prescribed = ~EMPTY ;
     } else {
       cerr << "Unknown gust type '" << type << "'" << endl ;
