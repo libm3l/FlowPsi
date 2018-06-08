@@ -604,14 +604,14 @@ namespace flowPsi {
  * calculate GCL,
  */
   //--------------------------------------------------------------------
-  $rule apply( cl->gcl_sum <- us_ntmp, area )[Loci::Summation],
+  $rule apply( cl->gcl_sum <- us_n, area )[Loci::Summation],
     constraint( cl->geom_cells ) {
-    $cl->$gcl_sum += $area.sada*$us_ntmp;
+    $cl->$gcl_sum += $area.sada*$us_n;
   }
   //--------------------------------------------------------------------
-  $rule apply( cr->gcl_sum <- us_ntmp, area )[Loci::Summation],
+  $rule apply( cr->gcl_sum <- us_n, area )[Loci::Summation],
     constraint( cr->geom_cells ) {
-    $cr->$gcl_sum -= $area.sada*$us_ntmp;
+    $cr->$gcl_sum -= $area.sada*$us_n;
   }
 
   //--------------------------------------------------------------------

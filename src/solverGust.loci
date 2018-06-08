@@ -145,8 +145,8 @@ namespace flowPsi {
  * gust is specified in entire domain, not per
  * volumeTag
  */ 
-  $type GustTypes_oneMcos Constraint ;
-  $type GustTypes_step    Constraint ;
+  $type GustTypes_oneMcos    Constraint ;
+  $type GustTypes_step       Constraint ;
   $type GustTypes_prescribed Constraint ;
 /*
  * set the proper gust type
@@ -204,8 +204,8 @@ namespace flowPsi {
   $rule apply(us_n<-dtmax,stime,area,facecenter,tm3,tmn1,Lgrad,Gvel,Usg,Ogust)[Loci::NullOp],
     constraint(area,GustTypes_oneMcos){
 
-    real time = $dtmax + $stime;
-    real length = $Lgrad;
+    real time    = $dtmax + $stime;
+    real length  = $Lgrad;
     real velfree = $Gvel;
 
     vect3d usv;
@@ -231,19 +231,18 @@ namespace flowPsi {
     }
     $us_n = -dot(usv,$area.n);
   };
-
 /*
  * get parameters for step gust
  */
   $rule singleton(Ogust,Usg,gnorm,gvel<-gustSpecification),constraint(GustTypes_step){
     string type;
-    real  rpar;
+    real   rpar;
     vect3d vpar;
 
     Loci::options_list int_info ;
     int_info  = $gustSpecification;
 /*
- * get 1-cos gust parameters 
+ * get step gust parameters 
  */
     int_info.getOptionUnits("Usg","m/s",rpar) ;
     $Usg = rpar;
@@ -260,7 +259,7 @@ namespace flowPsi {
   $rule apply(us_n<-dtmax,stime,area,facecenter,tm3,tmn1,Gvel,Usg,Ogust)[Loci::NullOp],
     constraint(area,GustTypes_step){
 
-    real time = $dtmax + $stime;
+    real time    = $dtmax + $stime;
     real velfree = $Gvel;
 
     vect3d usv;
@@ -269,7 +268,7 @@ namespace flowPsi {
 /*
  * interpolate
  */
-    real xfront    = velfree * time;
+    real xfront = velfree * time;
 
     real xtmp = ($tmn1.x * ($facecenter.x-gust_orig.x)) +
                 ($tmn1.y * ($facecenter.y-gust_orig.y)) +
@@ -286,15 +285,33 @@ namespace flowPsi {
 
     $us_n = -dot(usv,$area.n);
   };
-  
+/*
+ * get parameters for prescribed gust
+ */
+  $rule singleton(Ogust,gnorm,gvel<-gustSpecification),constraint(GustTypes_prescribed){
+    string type;
+    real   rpar;
+    vect3d vpar;
+
+    Loci::options_list int_info ;
+    int_info  = $gustSpecification;
+/*
+ * get prescribed gust parameters 
+ */
+    int_info.getOptionUnits("gnorm"," ", vpar,1); 
+    $gnorm = vpar;
+    int_info.getOptionUnits("gvel","m/s",vpar,1); 
+    $gvel = vpar;
+    int_info.getOptionUnits("Ogust","m/s",vpar,1); 
+    $Ogust = vpar;
+  };
 /*
  * read prescribed gust file 
  */
    $type prescribedGust blackbox<gustSplines> ;
 
    $rule blackbox(prescribedGust<-gustSpecification),
-    constraint(GustTypes_prescribed),
-    prelude {
+    constraint(GustTypes_prescribed),prelude {
 
     if(Loci::MPI_rank==0) {
       string filename = "gust.dat" ;
@@ -319,10 +336,10 @@ namespace flowPsi {
           cerr << "problem reading gust data from file '" << filename << endl ;
           Loci::Abort() ;
         }
-        if(i>0 && x[i-1] > x[i]) {
-          cerr << "gust time series should be in order of increasing time in file '" << filename << endl ;
-          Loci::Abort() ;
-        }
+//        if(i>0 && x[i-1] > x[i]) {
+//          cerr << "gust time series should be in order of increasing time in file '" << filename << endl ;
+//          Loci::Abort() ;
+//        }
       }
       MPI_Bcast(&npnts,1,MPI_INT,0,MPI_COMM_WORLD) ;
       MPI_Bcast(&x[0],npnts,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
@@ -340,23 +357,73 @@ namespace flowPsi {
 /*
  * set values of gust velocity
  */
-  $rule apply(us_n<-prescribedGust,Ogust,dtmax,area,facecenter,tm3,Gvel,tmn1,stime)[Loci::NullOp],
-    constraint(GustTypes_prescribed){
+  $rule apply(us_n<-prescribedGust,dtmax,stime,area,facecenter,tm3,tmn1,Gvel,Ogust)[Loci::NullOp],
+    constraint(area,GustTypes_prescribed){
+
     real time = $stime + real($dtmax) ;
     real ustab;
     vect3d usv;
-    real velfree = $Gvel;
+    real x1, x2, v1, v2, dx;
+    int pt;
 
+    int n = $prescribedGust.xg.size() ;
+    real velfree = $Gvel;
     vect3d gust_orig = $Ogust;
 /*
  * interpolate
  */
-    real front = velfree * time;
-    real xtmp  = ($tmn1.x * ($facecenter.x-gust_orig.x)) +
-                 ($tmn1.y * ($facecenter.y-gust_orig.y)) +
-                 ($tmn1.z * ($facecenter.z-gust_orig.z));
+    real xfront = velfree * time;
+    real xtmp   = ($tmn1.x * ($facecenter.x-gust_orig.x)) +
+                  ($tmn1.y * ($facecenter.y-gust_orig.y)) +
+                  ($tmn1.z * ($facecenter.z-gust_orig.z));
 
 // actual position in table front - xtmp
+   
+    real xmax = $prescribedGust.xg[0]   + xfront;
+    real xmin = $prescribedGust.xg[n-1] + xfront;
+    int nmin = 0 ;
+    int nmax = n-1 ;
+/*
+ * find interval
+ */
+    if(xtmp < xmin){
+      $us_n = 0;
+      return;}
+    if(xtmp > xmax){
+      $us_n = 0;
+      return;}
+
+ //   pt = int(floor((xtmp-xmin)/(xmax-xmin))) ;
+//    while( $prescribedGust.xg[pt+1] < xtmp ||  $prescribedGust.xg[pt] > xtmp) {
+//        if( $prescribedGust.xg[pt] < xtmp)
+//          nmin = pt+1 ;
+//        if($prescribedGust.xg[pt+1] > xtmp)
+//        nmax = pt-1 ;
+//
+//        pt = (nmin+nmax)/2 ;
+//    }
+
+     int i;
+     pt = 0;
+     for(i=0; i<n-1; i++){
+       x1 = xtmp - ($prescribedGust.xg[i]   + xfront);
+       x2 = xtmp - ($prescribedGust.xg[i+1] + xfront);
+
+       if(x1*x2 < 0.){
+         pt = i;
+         break;
+       }
+     }
+/*
+ * interpolate
+ */
+    x1 = $prescribedGust.xg[pt]   + xfront;
+    x2 = $prescribedGust.xg[pt+1] + xfront;
+    v1 = $prescribedGust.vg[pt]; 
+    v2 = $prescribedGust.vg[pt+1];
+
+    dx = xtmp - x1;
+    ustab = v1 + (v2-v1)/(x2-x1)*dx;
 
     usv.x = $tm3.x * ustab;
     usv.y = $tm3.y * ustab;
