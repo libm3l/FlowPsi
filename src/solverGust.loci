@@ -404,17 +404,17 @@ namespace flowPsi {
 //        pt = (nmin+nmax)/2 ;
 //    }
 
-     int i;
-     pt = 0;
-     for(i=0; i<n-1; i++){
-       x1 = xtmp - ($prescribedGust.xg[i]   + xfront);
-       x2 = xtmp - ($prescribedGust.xg[i+1] + xfront);
+      int ib = int(floor((xtmp-xmin)/(xmax-xmin))) ;
+      pt = 0;
+      for(int i = ib; i<n-1; i++){
+        x1 = xtmp - ($prescribedGust.xg[i]   + xfront);
+        x2 = xtmp - ($prescribedGust.xg[i+1] + xfront);
 
-       if(x1*x2 < 0.){
-         pt = i;
-         break;
-       }
-     }
+        if(x1*x2 < 0.){
+          pt = i;
+          break;
+        }
+      }
 /*
  * interpolate
  */
