@@ -95,7 +95,7 @@ namespace flowPsi {
 /*
  * add us_ntmp to us_n
  */
-  $rule apply(us_n<-us_ntmp)[Loci::Summation],constraint(area){
+  $rule apply(us_n<-us_ntmp)[Loci::Summation],constraint(area,movingMesh){
      $us_n += $us_ntmp ;
   }
   
@@ -591,9 +591,6 @@ namespace flowPsi {
   //--------------------------------------------------------------------
   // Rules for the Geometric Conservation Law source term.
   //--------------------------------------------------------------------
-  //--------------------------------------------------------------------
-  // Rules for the Geometric Conservation Law source term.
-  //--------------------------------------------------------------------
   $rule unit( gcl_sum ),
     constraint( geom_cells ) {
     $gcl_sum = 0;
@@ -601,12 +598,13 @@ namespace flowPsi {
 /*
  * calculate GCL,
  */
-  //--------------------------------------------------------------------
+ 
+//--------------------------------------------------------------------
   $rule apply( cl->gcl_sum <- us_n, area )[Loci::Summation],
     constraint( cl->geom_cells ) {
     $cl->$gcl_sum += $area.sada*$us_n;
   }
-  //--------------------------------------------------------------------
+//--------------------------------------------------------------------
   $rule apply( cr->gcl_sum <- us_n, area )[Loci::Summation],
     constraint( cr->geom_cells ) {
     $cr->$gcl_sum -= $area.sada*$us_n;
