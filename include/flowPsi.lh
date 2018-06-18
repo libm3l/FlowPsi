@@ -199,6 +199,7 @@ $type timeStepSize      param<flowPsi::real> ;
 $type cflmax            param<flowPsi::real> ;
 $type cflpdt            store<flowPsi::real> ; // Multiply this by dt to get cfl
 $type cfl               param<std::pair<flowPsi::real,flowPsi::real> > ;
+$type Relax             param<flowPsi::real> ;
 
 $type dtau              store<flowPsi::real> ;
 $type iblank store<flowPsi::byte_t> ;

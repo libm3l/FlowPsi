@@ -42,6 +42,12 @@ namespace flowPsi {
   $type temperature_i store<real> ;
   $type gagePressure_i store<real> ;
   $type u_i store<vect3d> ;
+/*
+ * some default setting
+ */
+  $rule default(Relax) {
+    $Relax = 0.8 ;
+  }
   /*
    * fill iblanked by previous time step at the beginning of Newton loop
    */
@@ -108,7 +114,7 @@ namespace flowPsi {
                   dfluid{n,it},
                   localPBias{n,it},iblank{n,it},
 		  temperature{n},gagePressure{n},
-		  Pambient),
+		  Pambient,Relax),
     inplace(temperature_i{n,it+1}|temperature{n,it}),
     inplace(gagePressure_i{n,it+1}|gagePressure{n,it}),
     inplace(u_i{n,it+1}|u{n,it}),
@@ -117,7 +123,7 @@ namespace flowPsi {
     const vect3d du($dfluid{n,it}[1],$dfluid{n,it}[2],$dfluid{n,it}[3]) ;
     const real dp = $dfluid{n,it}[4] ;
     real alpha = 1.0 ;
-    real relax = 0.8 ;
+    real relax = $Relax ;
     const real Tstar = $temperature{n,it} ;
     const real Tn = $temperature{n} ;
 
@@ -182,7 +188,7 @@ namespace flowPsi {
 		  temperature{n,it},gagePressure{n,it},u{n,it},u{n},dfluid{n,it},
                   localPBias{n,it},iblank{n,it},
 		  temperature{n},gagePressure{n},
-		  Pambient),
+		  Pambient, Relax),
     inplace(temperature_i{n,it+1}|temperature{n,it}),
     inplace(gagePressure_i{n,it+1}|gagePressure{n,it}),
     inplace(u_i{n,it+1}|u{n,it}),
@@ -191,7 +197,7 @@ namespace flowPsi {
     const vect3d du($dfluid{n,it}[1],$dfluid{n,it}[2],$dfluid{n,it}[3]) ;
     const real dp = $dfluid{n,it}[4] ;
     real alpha = 1.0 ;
-    real relax = 0.8 ;
+    real relax = $Relax ;
     const real Tstar = $temperature{n,it} ;
     
     alpha = min<real>(alpha,Tstar/max<real>(fabs(dT),1e-30)) ;
