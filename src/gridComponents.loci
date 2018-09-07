@@ -107,7 +107,7 @@ namespace flowPsi {
   $type componentStationary_X Constraint ;
   $type volumeTag(X) param<string> ;
 /*
- * componentExternal is set always when itnerface calls for external communication
+ * componentExternal is set always when interface calls for external communication
  * componentExternalMotion is set when component motion is set to external
  * some of the external communication does not necessarily need mesh motion
  */
