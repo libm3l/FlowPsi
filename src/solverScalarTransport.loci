@@ -449,6 +449,8 @@ namespace flowPsi {
 
   $type rhon store<real> ;
 
+  // Compute rhs of Newton step
+
   $rule pointwise(X_rhs{n,it}<-vol{n,it},dtau{n,it},X_src{n,it},
                   X{n},X{n,it},rhon{n,it}),
     constraint(X_src{n,it},geom_cells{n,it},C,timeStepSteadyState),
@@ -956,7 +958,7 @@ namespace flowPsi {
   }
 
   $type rhon store<real> ;
-
+  // Compute rhs of Newton step
   $rule pointwise(X_rhs{n,it}<-vol{n,it},dtau{n,it},X_src{n,it},
                   X{n},X{n,it},rhon{n,it}),
     constraint(X_src{n,it},geom_cells{n,it},C,timeStepSteadyState),
