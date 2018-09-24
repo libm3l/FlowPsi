@@ -136,43 +136,47 @@ namespace flowPsi {
  * depending on what type of interface we call different routines
  */
         if(commtype.compare("prescribed_quaternion") == 0){
+/*
+ * interface for prescribing rigid mesh motion through prescribing 
+ * quaternion. The bridge enables sending Forces to external solver and 
+ * get back quaternion,translation and rotation center
+ */
            bridge_prescribed_quaternion(t, ForceX, ForceY, ForceZ, &Alpha, &Qx, &Qy, &Qz,
                   &TransX, &TransY, &TransZ, &RotCX, &RotCY, &RotCZ, pcomm_str);
+/*
+ * broadcast and save in XmotionData structure
+ */
+           MPI_Bcast(&communicate,1,MPI_INTEGER,0,MPI_COMM_WORLD) ;
+
+           if(communicate == 1){
+             MPI_Bcast(&TransX,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
+             MPI_Bcast(&TransY,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
+             MPI_Bcast(&TransZ,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
+             MPI_Bcast(&RotCX,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
+             MPI_Bcast(&RotCY,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
+             MPI_Bcast(&RotCZ,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
+             MPI_Bcast(&Alpha,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
+             MPI_Bcast(&Qx,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
+             MPI_Bcast(&Qy,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
+             MPI_Bcast(&Qz,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
+
+             cg     = vect3d(RotCX, RotCY, RotCZ);
+             cg_new = vect3d(TransX, TransY, TransZ);
+             cg_new = cg + cg_new;
+
+             $XmotionData(X).cg = cg;
+             $XmotionData(X).new_cg = cg_new ;
+             $XmotionData(X).q.x = Qx ;
+             $XmotionData(X).q.y = Qy ;
+             $XmotionData(X).q.z = Qz ;
+             $XmotionData(X).q.w = Alpha;
+           }  
         }else{
             std::cerr << "ERROR: did not find communication type - " << commtype  << " - , check settings in .vars file" << std::endl ;
   //          exit(-1) ;
         }
       }
-    }
-/*
- * broadcast and save in XmotionData structure
- */
-    MPI_Bcast(&TransX,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
-
-    MPI_Bcast(&communicate,1,MPI_INTEGER,0,MPI_COMM_WORLD) ;
-
-    if(communicate == 1){
-      MPI_Bcast(&TransY,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
-      MPI_Bcast(&TransZ,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
-      MPI_Bcast(&RotCX,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
-      MPI_Bcast(&RotCY,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
-      MPI_Bcast(&RotCZ,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
-      MPI_Bcast(&Alpha,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
-      MPI_Bcast(&Qx,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
-      MPI_Bcast(&Qy,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
-      MPI_Bcast(&Qz,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
-
-      cg     = vect3d(RotCX, RotCY, RotCZ);
-      cg_new = vect3d(TransX, TransY, TransZ);
-      cg_new = cg + cg_new;
-
-      $XmotionData(X).cg = cg;
-      $XmotionData(X).new_cg = cg_new ;
-      $XmotionData(X).q.x = Qx ;
-      $XmotionData(X).q.y = Qy ;
-      $XmotionData(X).q.z = Qz ;
-      $XmotionData(X).q.w = Alpha;
-    }   
+    } 
   };
 
 /*
