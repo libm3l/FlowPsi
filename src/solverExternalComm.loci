@@ -71,7 +71,7 @@ using Loci::MPI_rank ;
  * check gridComponent.loci for other smilarities
  */
 $type boundaryName(X) param<string>  ;
-$type ExtInterfaceName(X) param<string>  ;
+$type extInterfaceName(X) param<string>  ;
 
 namespace flowPsi { 
 
@@ -136,8 +136,8 @@ namespace flowPsi {
  * depending on what type of interface we call different routines
  */
         if(commtype.compare("prescribed_quaternion") == 0){
-//           bridge_prescribed_quaternion(t, ForceX, ForceY, ForceZ, &Alpha, &Qx, &Qy, &Qz,
-//                  &TransX, &TransY, &TransZ, &RotCX, &RotCY, &RotCZ, pcomm_str);
+           bridge_prescribed_quaternion(t, ForceX, ForceY, ForceZ, &Alpha, &Qx, &Qy, &Qz,
+                  &TransX, &TransY, &TransZ, &RotCX, &RotCY, &RotCZ, pcomm_str);
         }else{
             std::cerr << "ERROR: did not find communication type - " << commtype  << " - , check settings in .vars file" << std::endl ;
   //          exit(-1) ;
@@ -340,15 +340,14 @@ $rule singleton(OUTPUT<-ncycle,boundaryName(X)),
     };
 
 
-$rule singleton(OUTPUT<-ncycle,ExtInterfaceName(X)),
-    parametric(ExtInterfaceName(X))
+$rule singleton(OUTPUT<-ncycle,extInterfaceName(X)),
+    parametric(extInterfaceName(X))
     {
 /*
  * get number of points on boundary
  */
-        cout << "RANK " << Loci::MPI_rank << " Cycle " << $ncycle << "  " << " INTF NAME  is "<<  $ExtInterfaceName(X) << endl;
+        cout << "RANK " << Loci::MPI_rank << " Cycle " << $ncycle << "  " << " INTF NAME  is "<<  $extInterfaceName(X) << endl;
     };
-
 }
 
 #else
