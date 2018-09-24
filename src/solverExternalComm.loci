@@ -318,28 +318,24 @@ end_loop: continue;
       return false;
   }
 };
-
-//$rule pointwise(OUTPUT<-ncycle,boundaryName(X)),
+/*
+ * list boundary conditions - test rule
+ */
+//$rule singleton(OUTPUT<-ncycle,boundaryName(X)),
 //    constraint(boundaryName(X)),
 //    parametric(boundaryName(X))
-//    ,prelude {
-//      cout << "BC NAME  is ---------------------BLAAAAAAAAAAAAAAAAAAAAAAA  "<<  *$boundaryName(X) << endl;
+//    {
+///*
+// * get number of points on boundary
+// */
+//        Loci::entitySet dom = entitySet(seq) ;
+//        int ndom = dom.size() ;
+//        cout << "RANK " << Loci::MPI_rank << " Cycle " << $ncycle << "  " << " BC NAME  is "<<  $boundaryName(X) << "  " << ndom << endl;
 //    };
 
-
-$rule singleton(OUTPUT<-ncycle,boundaryName(X)),
-    constraint(boundaryName(X)),
-    parametric(boundaryName(X))
-    {
 /*
- * get number of points on boundary
+ * list interfaces - test rule
  */
-        Loci::entitySet dom = entitySet(seq) ;
-        int ndom = dom.size() ;
-        cout << "RANK " << Loci::MPI_rank << " Cycle " << $ncycle << "  " << " BC NAME  is "<<  $boundaryName(X) << "  " << ndom << endl;
-    };
-
-
 $rule singleton(OUTPUT<-ncycle,extInterfaceName(X)),
     parametric(extInterfaceName(X))
     {
