@@ -46,12 +46,13 @@
 #include <fcntl.h>
 
 #include <vector>
+#include "solverExternalComm.h"
 
 using std::vector ;
 
 
 using flowPsi::read_grid ;
-//using flowPsi::get_interface_info ;
+using flowPsi::get_interface_info ;
 
 
 using Loci::storeRepP ;
@@ -481,7 +482,7 @@ int main(int ac, char *av[]) {
 
 //  param<options_list> ext_interfaces;
 
-//  get_interface_info(facts);
+  get_interface_info(facts);
 
 
   if(command_vars.size() > 0) {
