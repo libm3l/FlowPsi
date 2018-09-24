@@ -44,6 +44,7 @@
 #define __SRC_BRIDGES_H__
 
 #include "extcomm_def.h"
+#include "src_bridges_types.h"
 
 #include <Loci.h>
 #ifdef LIBM3LSIPDX

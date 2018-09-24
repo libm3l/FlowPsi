@@ -25,6 +25,7 @@
  * Version   Author:               Date       Patch number  CLA     Comment
  * -------   -------               --------   --------      ---     -------
  * 1-beta-6  Adam Jirasek         2018-05-23          Add three stage backward implicit scheme
+ *                                                    (checked and fixed by Ed Luke)
  *
  *
  *

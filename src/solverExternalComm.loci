@@ -53,6 +53,8 @@ using std::list ;
 using std::vector ;
 using std::endl ;
 using std::cerr ;
+using std::cout ;
+using Loci::MPI_rank ;
 
 #ifdef LIBM3LSIPDX
 /*
@@ -68,6 +70,8 @@ using std::cerr ;
 /* 
  * check gridComponent.loci for other smilarities
  */
+$type boundaryName(X) param<string>  ;
+$type ExtInterfaceName(X) param<string>  ;
 
 namespace flowPsi { 
 
@@ -132,11 +136,11 @@ namespace flowPsi {
  * depending on what type of interface we call different routines
  */
         if(commtype.compare("prescribed_quaternion") == 0){
-           bridge_prescribed_quaternion(t, ForceX, ForceY, ForceZ, &Alpha, &Qx, &Qy, &Qz,
-                  &TransX, &TransY, &TransZ, &RotCX, &RotCY, &RotCZ, pcomm_str);
+//           bridge_prescribed_quaternion(t, ForceX, ForceY, ForceZ, &Alpha, &Qx, &Qy, &Qz,
+//                  &TransX, &TransY, &TransZ, &RotCX, &RotCY, &RotCZ, pcomm_str);
         }else{
             std::cerr << "ERROR: did not find communication type - " << commtype  << " - , check settings in .vars file" << std::endl ;
-            exit(-1) ;
+  //          exit(-1) ;
         }
       }
     }
@@ -315,6 +319,35 @@ end_loop: continue;
   }
 };
 
+//$rule pointwise(OUTPUT<-ncycle,boundaryName(X)),
+//    constraint(boundaryName(X)),
+//    parametric(boundaryName(X))
+//    ,prelude {
+//      cout << "BC NAME  is ---------------------BLAAAAAAAAAAAAAAAAAAAAAAA  "<<  *$boundaryName(X) << endl;
+//    };
+
+
+$rule singleton(OUTPUT<-ncycle,boundaryName(X)),
+    constraint(boundaryName(X)),
+    parametric(boundaryName(X))
+    {
+/*
+ * get number of points on boundary
+ */
+        Loci::entitySet dom = entitySet(seq) ;
+        int ndom = dom.size() ;
+        cout << "RANK " << Loci::MPI_rank << " Cycle " << $ncycle << "  " << " BC NAME  is "<<  $boundaryName(X) << "  " << ndom << endl;
+    };
+
+
+$rule singleton(OUTPUT<-ncycle,ExtInterfaceName(X)),
+    parametric(ExtInterfaceName(X))
+    {
+/*
+ * get number of points on boundary
+ */
+        cout << "RANK " << Loci::MPI_rank << " Cycle " << $ncycle << "  " << " INTF NAME  is "<<  $ExtInterfaceName(X) << endl;
+    };
 
 }
 
