@@ -121,62 +121,61 @@ namespace flowPsi {
     comm_struct_t comm_str, *pcomm_str;
     pcomm_str = &comm_str;
 
-    int communicate;
+    int comm_qaternion;
 
-    communicate = 0;
+    comm_qaternion = 0;
 
     if(Loci::MPI_rank==0) {
 /*
  * communicate
  */
       if( ident_intf(Vol_tag, $ext_interfaces, pcomm_str)){
-        communicate = 1;
         commtype = pcomm_str->type;
 /*
  * depending on what type of interface we call different routines
  */
         if(commtype.compare("prescribed_quaternion") == 0){
 /*
- * interface for prescribing rigid mesh motion through prescribing 
- * quaternion. The bridge enables sending Forces to external solver and 
- * get back quaternion,translation and rotation center
+ * this is rigid body motion interface, sends away forces and gets back quaternion, translation and 
+ * center of rotation
  */
+           comm_qaternion = 1;
            bridge_prescribed_quaternion(t, ForceX, ForceY, ForceZ, &Alpha, &Qx, &Qy, &Qz,
                   &TransX, &TransY, &TransZ, &RotCX, &RotCY, &RotCZ, pcomm_str);
+        }else{
+            std::cerr << "ERROR: did not find communication type - " << commtype  << " - , check settings in .vars file" << std::endl ;
+       //     exit(-1) ;
+        }
+      }
+    }
 /*
  * broadcast and save in XmotionData structure
  */
-           MPI_Bcast(&communicate,1,MPI_INTEGER,0,MPI_COMM_WORLD) ;
+    MPI_Bcast(&comm_qaternion,1,MPI_INTEGER,0,MPI_COMM_WORLD) ;
 
-           if(communicate == 1){
-             MPI_Bcast(&TransX,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
-             MPI_Bcast(&TransY,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
-             MPI_Bcast(&TransZ,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
-             MPI_Bcast(&RotCX,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
-             MPI_Bcast(&RotCY,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
-             MPI_Bcast(&RotCZ,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
-             MPI_Bcast(&Alpha,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
-             MPI_Bcast(&Qx,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
-             MPI_Bcast(&Qy,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
-             MPI_Bcast(&Qz,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
+    if(comm_qaternion == 1){
+      MPI_Bcast(&TransX,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
+      MPI_Bcast(&TransY,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
+      MPI_Bcast(&TransZ,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
+      MPI_Bcast(&RotCX,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
+      MPI_Bcast(&RotCY,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
+      MPI_Bcast(&RotCZ,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
+      MPI_Bcast(&Alpha,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
+      MPI_Bcast(&Qx,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
+      MPI_Bcast(&Qy,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
+      MPI_Bcast(&Qz,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
 
-             cg     = vect3d(RotCX, RotCY, RotCZ);
-             cg_new = vect3d(TransX, TransY, TransZ);
-             cg_new = cg + cg_new;
+      cg     = vect3d(RotCX, RotCY, RotCZ);
+      cg_new = vect3d(TransX, TransY, TransZ);
+      cg_new = cg + cg_new;
 
-             $XmotionData(X).cg = cg;
-             $XmotionData(X).new_cg = cg_new ;
-             $XmotionData(X).q.x = Qx ;
-             $XmotionData(X).q.y = Qy ;
-             $XmotionData(X).q.z = Qz ;
-             $XmotionData(X).q.w = Alpha;
-           }  
-        }else{
-            std::cerr << "ERROR: did not find communication type - " << commtype  << " - , check settings in .vars file" << std::endl ;
-  //          exit(-1) ;
-        }
-      }
-    } 
+      $XmotionData(X).cg = cg;
+      $XmotionData(X).new_cg = cg_new ;
+      $XmotionData(X).q.x = Qx ;
+      $XmotionData(X).q.y = Qy ;
+      $XmotionData(X).q.z = Qz ;
+      $XmotionData(X).q.w = Alpha;
+    }   
   };
 
 /*
@@ -203,8 +202,11 @@ namespace flowPsi {
  * set li to the beginning of interface list
  */
       for(li=nl.begin();li!=nl.end();++li) {
-
+/*
+ * this is name of interface
+ */
         bname = *li ;
+        printf(" NAME is %s\n",bname.c_str());
 
         Loci::option_value_type vt = int_info->getOptionValueType(bname);
         Loci::option_values ov = int_info->getOption(bname) ;
@@ -284,10 +286,6 @@ namespace flowPsi {
                 goto end_loop;
             }
         }
-        else if(*lii == "name" ){
-	        ol.getOption(*lii,intf_name) ;
-            pcomm_str->intf_name = intf_name.c_str();
-        }
         else if(*lii == "type" ){
             bzero(pcomm_str->type,80);
             ol.getOption(*lii,type) ;
@@ -302,7 +300,7 @@ namespace flowPsi {
             cp =  IP.c_str();
             clen = strlen(cp);
             strncpy(pcomm_str->IP, cp, clen);
-            pcomm_str->IP[clen] = '\0';         
+            pcomm_str->IP[clen] = '\0';  
         }
       }
 /*
@@ -316,7 +314,7 @@ namespace flowPsi {
       ol.getOptionUnits("portno","",param);
       pcomm_str->portno = (int)param;
 
-      return true;
+      return true;  /* this causes termination of loop over items in ext_interfaces */
 
 end_loop: continue;
       return false;
@@ -349,6 +347,8 @@ $rule singleton(OUTPUT<-ncycle,extInterfaceName(X)),
         cout << "RANK " << Loci::MPI_rank << " Cycle " << $ncycle << "  " << " INTF NAME  is "<<  $extInterfaceName(X) << endl;
     };
 }
+
+
 
 #else
 /*
