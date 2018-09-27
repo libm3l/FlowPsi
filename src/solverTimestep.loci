@@ -65,7 +65,7 @@ namespace flowPsi {
   } ;
   $rule apply(componentTimeIntegration)[Loci::NullOp],
     constraint(UNIVERSE),prelude {
-    $componentTimeIntegration->insert(string("Crank-Nocolson")) ;
+    $componentTimeIntegration->insert(string("Crank-Nicolson")) ;
     $componentTimeIntegration->insert(string("Three-stage-backward")) ;
   } ;
 /*
