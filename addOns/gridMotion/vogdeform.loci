@@ -216,7 +216,7 @@ void find_mind_deform(fact_db &facts) {
     map<string,entitySet> volMap ;
     for(variableSet::const_iterator vi=vars.begin();vi!=vars.end();++vi) {
       if(variable(*vi).get_arg_list().size() > 0 &&
-         variable(*vi).get_info().name == "volumeTag") {
+        variable(*vi).get_info().name == "volumeTag") {
         param<string> vname(facts.get_variable(*vi)) ;
         ostringstream vn ;
         vn << *vi ;

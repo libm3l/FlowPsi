@@ -349,14 +349,14 @@ $rule singleton(OUTPUT<-ncycle,extInterfaceName(X)),
     };
 
 
-$rule singleton(OUTPUT<-ncycle,ConstextInterfaceName(X)),
-    parametric(ConstextInterfaceName(X))
-    {
-/*
- * get number of points on boundary
- */
-        cout << "RANK-CCC " << Loci::MPI_rank << " Cycle " << $ncycle << "  " << " INTF NAME  is "<<  $ConstextInterfaceName(X) << endl;
-    };
+//$rule singleton(OUTPUT<-ncycle,ConstextInterfaceName(X)),
+//    parametric(ConstextInterfaceName(X))
+//    {
+///*
+// * get number of points on boundary
+// */
+//        cout << "RANK-CCC " << Loci::MPI_rank << " Cycle " << $ncycle << "  " << " INTF NAME  is "<<  $ConstextInterfaceName(X) << endl;
+//    };
 
 $rule singleton(OUTPUT<-ncycle,extInterfaceName(X)),
     parametric(ConstextInterfaceName(X))

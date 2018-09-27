@@ -478,10 +478,11 @@ int main(int ac, char *av[]) {
     }
     read_grid(facts,rdb,av[1],meshfile.c_str(),model_name.c_str(),input_model_name.c_str(),dryrun) ;
   }
-
-
-//  param<options_list> ext_interfaces;
-
+/*
+ * if interfaces defined in .vars file, loop over
+ * find out if global or local, and if local 
+ * add boundary conditions in the list to newly created constraint for each interface
+ */
   get_interface_info(facts);
 
 

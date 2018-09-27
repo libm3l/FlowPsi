@@ -77,9 +77,13 @@ namespace flowPsi {
     
     param<options_list> bc_info, int_info ;
 /*
- * get interfaces facts 
+ * get interfaces facts, if not found return
  */
-    int_info = facts.get_variable("ext_interfaces");
+    Loci::storeRepP tmp = facts.get_variable("ext_interfaces") ;
+    if(tmp == 0) 
+      return error;
+
+    int_info = tmp;
 
     error = true ;
 
@@ -93,12 +97,16 @@ namespace flowPsi {
 /*
  * loop over all interfaces 
  */
+    vector<string> intf_list_bc_names ;
     for(li=nl.begin();li!=nl.end();++li) {
       string bname = *li ;
       Loci::option_value_type vt = int_info->getOptionValueType(bname);
       Loci::option_values ov = int_info->getOption(bname) ;
       options_list::arg_list value_list ;
       string name ;
+/*
+ * print interface name
+ */
       if(Loci::MPI_rank == 0)
         std::cout << "Interface name  " << bname << endl ;
 /*
@@ -108,13 +116,12 @@ namespace flowPsi {
       *interfaceSet = bname ;
       string factname = "extInterfaceName(" + bname + ")" ;
       facts.create_fact(factname,interfaceSet) ;
-/*  EXAMPLE OF ADDING CONSTAINT  */
-        constraint bc_constraint ;
-  //      bc_constraint = "task" ;
-        std::string constraint_name = "ConstextInterfaceName(" + bname + ")" ;
-        facts.create_fact(constraint_name,bc_constraint) ;
 /*
- * get options in intf
+ *   loop over boundary conditions and if in interface list, add to constraint
+ */
+
+/*
+ * get options in interface
  */
       switch(vt) {
       case Loci::NAME :
@@ -125,10 +132,6 @@ namespace flowPsi {
         ov.get_value(name) ;
         ov.get_value(value_list) ;
         bc_info->setOption(bname,name,value_list) ;
-  
-//        if(Loci::MPI_rank == 0) 
-//          std::cout << "Interface value list: " << value_list << endl;
-
         break ;
       default:
         cerr << "setup_interface can not interpret value assigned to " << bname 
@@ -147,17 +150,44 @@ namespace flowPsi {
 /*
  * loop through options
  */
+      entitySet intsurf ;
+      Loci::storeRepP sp;
+      intsurf = EMPTY;
+
       options_list::option_namelist nlb = ol.getOptionNameList() ;
       options_list::option_namelist::iterator lii;
       for(lii=nlb.begin();lii!=nlb.end();++lii){
+/*
+ * if option is boundary condition which is a string array defined in [], get the name of each of them
+ */
         if( *lii == "boundary_conditions" ){
+
+              Loci::options_list::arg_list list ;
+              ol.getOption(*lii,list) ;
+              int size = list.size() ;
+
               Loci::option_values oss = ol.getOption(*lii) ;
-              if(Loci::MPI_rank == 0)
+              if(Loci::MPI_rank == 0){
                  std::cout << "Boundary condition(s) associated with interface: "<< oss << endl ;
+              }
+
+              for(int i=0;i<size;++i) {
+                string val;
+                list[i].get_value(val) ;
+                intf_list_bc_names.push_back(val) ;
+//                std::cout << "Value number " << i<< " is : "<< val << endl ;
+/*
+ * add to list 
+ */
+                sp = facts.get_variable(val) ;
+                intsurf += sp->domain() ; 
+//                std::cout << "Intsurf: "<< intsurf << endl ;
+              }
+
            }
         }
 /*
- * get value of comm_freq from interface
+ * if option == comm_freq, get the number
  */
         int comm_freq = 0 ;
         real param = 0;
@@ -171,6 +201,18 @@ namespace flowPsi {
             std::cout << "Required communication frequency is every " << comm_freq  <<" iteration" <<endl;
           }
         }
+/*
+ * add all intsurf to a newly created constraint ConstextInterfaceName_X
+ */
+        sp = facts.get_variable("ref") ;
+        intsurf = all_collect_entitySet(intsurf) ;
+        Loci::MapRepP mp = Loci::MapRepP(sp->getRep()) ;
+        entitySet ifaces = mp->preimage(intsurf).first ;
+        constraint bc_constraint ;
+        *bc_constraint = ifaces;
+        std::string constraint_name = "ConstextInterfaceName(" + bname + ")" ;
+        facts.create_fact(constraint_name,bc_constraint) ;
+
       }
     if(Loci::MPI_rank == 0)
        std::cout << "    " << endl ;
