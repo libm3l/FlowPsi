@@ -1,6 +1,6 @@
 //#############################################################################
 //#
-//# Copyright 2015, Adam Jirasek
+//# Copyright 2018, Adam Jirasek
 //#
 //# This file is part of the flowPsi computational fluid dynamics solver.
 //#
@@ -108,6 +108,11 @@ namespace flowPsi {
       *interfaceSet = bname ;
       string factname = "extInterfaceName(" + bname + ")" ;
       facts.create_fact(factname,interfaceSet) ;
+/*  EXAMPLE OF ADDING CONSTAINT  */
+        constraint bc_constraint ;
+  //      bc_constraint = "task" ;
+        std::string constraint_name = "ConstextInterfaceName(" + bname + ")" ;
+        facts.create_fact(constraint_name,bc_constraint) ;
 /*
  * get options in intf
  */

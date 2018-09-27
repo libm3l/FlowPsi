@@ -72,6 +72,7 @@ using Loci::MPI_rank ;
  */
 $type boundaryName(X) param<string>  ;
 $type extInterfaceName(X) param<string>  ;
+$type ConstextInterfaceName(X) constraint  ;
 
 namespace flowPsi { 
 
@@ -345,6 +346,25 @@ $rule singleton(OUTPUT<-ncycle,extInterfaceName(X)),
  * get number of points on boundary
  */
         cout << "RANK " << Loci::MPI_rank << " Cycle " << $ncycle << "  " << " INTF NAME  is "<<  $extInterfaceName(X) << endl;
+    };
+
+
+$rule singleton(OUTPUT<-ncycle,ConstextInterfaceName(X)),
+    parametric(ConstextInterfaceName(X))
+    {
+/*
+ * get number of points on boundary
+ */
+        cout << "RANK-CCC " << Loci::MPI_rank << " Cycle " << $ncycle << "  " << " INTF NAME  is "<<  $ConstextInterfaceName(X) << endl;
+    };
+
+$rule singleton(OUTPUT<-ncycle,extInterfaceName(X)),
+    parametric(ConstextInterfaceName(X))
+    {
+/*
+ * get number of points on boundary
+ */
+        cout << "RANK-CCC1111 " << Loci::MPI_rank << " Cycle " << $ncycle << "  " << " INTF NAME1111  is "<<  $extInterfaceName(X) << endl;
     };
 }
 
