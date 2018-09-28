@@ -108,7 +108,7 @@ namespace flowPsi {
  * print interface name
  */
       if(Loci::MPI_rank == 0)
-        std::cout << "Interface name  " << bname << endl ;
+        std::cout << "Interface name:  " << bname << endl ;
 /*
  * create new extinterfaces facts
  */
@@ -168,20 +168,19 @@ namespace flowPsi {
 
               Loci::option_values oss = ol.getOption(*lii) ;
               if(Loci::MPI_rank == 0){
-                 std::cout << "Boundary condition(s) associated with interface: "<< oss << endl ;
+                 std::cout << "Boundary condition(s) associated with interface "<<bname <<" : "<< oss << endl ;
               }
 
               for(int i=0;i<size;++i) {
                 string val;
                 list[i].get_value(val) ;
                 intf_list_bc_names.push_back(val) ;
-//                std::cout << "Value number " << i<< " is : "<< val << endl ;
 /*
  * add to list 
  */
                 sp = facts.get_variable(val) ;
                 intsurf += sp->domain() ; 
-//                std::cout << "Intsurf: "<< intsurf << endl ;
+                std::cout << bname << " " << intsurf << endl ;
               }
 
            }
@@ -204,12 +203,9 @@ namespace flowPsi {
 /*
  * add all intsurf to a newly created constraint ConstextInterfaceName_X
  */
-        sp = facts.get_variable("ref") ;
         intsurf = all_collect_entitySet(intsurf) ;
-        Loci::MapRepP mp = Loci::MapRepP(sp->getRep()) ;
-        entitySet ifaces = mp->preimage(intsurf).first ;
         constraint bc_constraint ;
-        *bc_constraint = ifaces;
+        *bc_constraint = intsurf;
         std::string constraint_name = "ConstextInterfaceName(" + bname + ")" ;
         facts.create_fact(constraint_name,bc_constraint) ;
 
