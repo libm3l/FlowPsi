@@ -60,10 +60,6 @@
 #endif
 
 #ifdef LIBM3LSIPDX
-extern CPP_C lmint_t test_bridge(lmdouble_t, lmdouble_t, lmdouble_t,
-				  lmdouble_t, lmdouble_t, lmdouble_t,
-				  lmdouble_t, lmdouble_t, lmdouble_t,
-				  lmdouble_t, lmdouble_t, lmdouble_t);
 
 extern CPP_C lmint_t bridge_prescribed_quaternion(lmdouble_t, lmdouble_t, lmdouble_t, lmdouble_t,
 				  lmdouble_t *, lmdouble_t *, lmdouble_t *, lmdouble_t *,
@@ -72,10 +68,6 @@ extern CPP_C lmint_t bridge_prescribed_quaternion(lmdouble_t, lmdouble_t, lmdoub
 
 #endif
 #else
-extern CPP_C lmint_t test_bridge(double, double, double,
-				  double, double, double,
-				  double, double, double,
-				  double, double, double);
 
 extern CPP_C lmint_t bridge_prescribed_quaternion(double, double, double, double,
 				  double *, double *, double *, double *,
