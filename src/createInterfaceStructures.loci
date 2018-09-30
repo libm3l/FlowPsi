@@ -72,16 +72,15 @@ namespace flowPsi {
     bool get_interface_info(fact_db &facts){
       
     bool error = false ;
-
-    bool doprint = (Loci::MPI_rank == 0) ;
     
     param<options_list> bc_info, int_info ;
 /*
  * get interfaces facts, if not found return
  */
     Loci::storeRepP tmp = facts.get_variable("ext_interfaces") ;
-    if(tmp == 0) 
+    if(tmp == 0) {
       return error;
+    }
 
     int_info = tmp;
 
