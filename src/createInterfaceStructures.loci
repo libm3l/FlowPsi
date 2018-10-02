@@ -135,10 +135,15 @@ namespace flowPsi {
       string factname = "extInterfaceName(" + bname + ")" ;
       facts.create_fact(factname,interfaceSet) ;
 
+      int Root_ind = 0;
+
       param<InterfStr_t> interfaceSet_str ;
-//      interfaceSet_str->INTF_comm = 1524;
+      interfaceSet_str->INTF_comm = -1;
       interfaceSet_str->INTF_Root_ind = 0;
       factname = "extInterfaceNameStr(" + bname + ")" ;
+
+      std::cout << "Created fact: "<<factname <<" : "<< endl ;
+      
       facts.create_fact(factname,interfaceSet_str) ;
 /*
  * create new extinterfaces facts ==================================================
@@ -212,7 +217,7 @@ namespace flowPsi {
                 int np  = dom.size();
     //            std::cout << val << " "<< rank <<"  " << np << endl ;
                 if(np > 0) proc_arr[rank] = 1;
-                if(rank == 0 && np > 0)interfaceSet_str->INTF_Root_ind = 1;
+                if(rank == 0 && np > 0)Root_ind = 1;
               }
 
            }
@@ -277,13 +282,10 @@ namespace flowPsi {
  * this is a hack because Loci at the moment does not seem to allow 
  * having MPI_Comm as a part of compound data type not part of the facts
  */
-       interfaceSet_str->INTF_comm  = MPI_Comm_c2f(new_comm);
 
- /* create communicator
- * remove group
- * 
- * free array of processors in group
- */
+      interfaceSet_str->INTF_comm  = MPI_Comm_c2f(new_comm);
+      interfaceSet_str->INTF_Root_ind  = Root_ind;
+
 
 /*
  * add all intsurf to a newly created constraint ConstextInterfaceName_X

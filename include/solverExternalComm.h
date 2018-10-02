@@ -20,6 +20,7 @@ namespace Loci {
       static DatatypeP get_type() {
         CompoundDatatypeP cmpd = CompoundFactory(InterfStr_t());
         LOCI_INSERT_TYPE(cmpd, InterfStr_t, INTF_comm);
+        LOCI_INSERT_TYPE(cmpd, InterfStr_t, INTF_Root_ind);
         return DatatypeP(cmpd);
       }
     };
