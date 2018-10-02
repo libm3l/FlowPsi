@@ -69,11 +69,9 @@ namespace flowPsi {
 /*
  * loop through list of interfaces and parse parameters
  */
-    bool get_interface_info(fact_db &facts){
-      
+    bool get_interface_info(fact_db &facts){      
     bool error = false ;
-
-    bool doprint = (Loci::MPI_rank == 0) ;
+    int *proc_arr, *proc_glob_arr;
     
     param<options_list> bc_info, int_info ;
 /*
@@ -110,15 +108,42 @@ namespace flowPsi {
       if(Loci::MPI_rank == 0)
         std::cout << "Interface name:  " << bname << endl ;
 /*
- * create new extinterfaces facts
+ * ==================================================
+ */
+/*
+ * find number of MPI processes and allocate array of integers
+ */
+      int procs = 1 ;
+      MPI_Comm_size(MPI_COMM_WORLD,&procs) ;
+      int rank = 0 ;
+      MPI_Comm_rank(MPI_COMM_WORLD,&rank) ;
+      
+      if(  (proc_arr = (int *) malloc(procs * sizeof(int))) == NULL)
+          cerr << "error allocating proc_arr array " << endl ;
+      if(  (proc_glob_arr = (int *) malloc(procs * sizeof(int))) == NULL)
+          cerr << "error allocating proc_glob_arr array " << endl ;
+
+      for(int i=0; i<procs; i++)
+          proc_arr[i] = 0;
+      
+      if(rank == 0)proc_arr[0] = 1;
+/*
+ * create new extinterfaces facts 
  */
       param<string> interfaceSet ;
       *interfaceSet = bname ;
       string factname = "extInterfaceName(" + bname + ")" ;
       facts.create_fact(factname,interfaceSet) ;
+
+      param<InterfStr_t> interfaceSet_str ;
+//      interfaceSet_str->INTF_comm = 1524;
+      interfaceSet_str->INTF_Root_ind = 0;
+      factname = "extInterfaceNameStr(" + bname + ")" ;
+      facts.create_fact(factname,interfaceSet_str) ;
 /*
- *   loop over boundary conditions and if in interface list, add to constraint
+ * create new extinterfaces facts ==================================================
  */
+
 
 /*
  * get options in interface
@@ -180,7 +205,14 @@ namespace flowPsi {
  */
                 sp = facts.get_variable(val) ;
                 intsurf += sp->domain() ; 
-                std::cout << bname << " " << intsurf << endl ;
+/*
+ * find if BCs have any point on this partionm if yes, set proc_arr[rank] = 1
+ */
+                Loci::entitySet dom = entitySet(sp->domain()) ;
+                int np  = dom.size();
+    //            std::cout << val << " "<< rank <<"  " << np << endl ;
+                if(np > 0) proc_arr[rank] = 1;
+                if(rank == 0 && np > 0)interfaceSet_str->INTF_Root_ind = 1;
               }
 
            }
@@ -201,9 +233,67 @@ namespace flowPsi {
           }
         }
 /*
+ * do MPI stuff
+ * fill proc_arr with ranks
+ */
+        MPI_Allreduce(proc_arr,proc_glob_arr,procs,MPI_INT,MPI_SUM,MPI_COMM_WORLD);
+
+        int gproc = 0;
+        for(int i=0; i<procs; i++){
+           if(proc_glob_arr[i] > 0){
+             gproc += 1;
+           } 
+        }
+
+        int *loc_proc;
+
+        if(  (loc_proc = (int *) malloc(gproc * sizeof(int))) == NULL)
+          cerr << "error allocating loc_proc array " << endl ;
+         
+        gproc = 0;
+        for(int i=0; i<procs; i++){
+           if(proc_glob_arr[i] > 0){
+             loc_proc[gproc] = i;
+             gproc += 1;
+           } 
+        }
+/*
+ * get number of processors in group
+ * allocate array for processors in group
+ * and fill it with ranks
+ *
+ * create group, communicator, remove group
+ */
+       MPI_Group world_group;
+       MPI_Group new_group;
+       MPI_Comm new_comm;
+
+       MPI_Comm_group(MPI_COMM_WORLD, &world_group );
+       MPI_Group_incl(world_group, gproc, loc_proc, &new_group);
+       MPI_Comm_create_group(MPI_COMM_WORLD, new_group, 0, &new_comm);
+       MPI_Group_free( &new_group );
+       free(loc_proc);
+/*
+ * this is a hack because Loci at the moment does not seem to allow 
+ * having MPI_Comm as a part of compound data type not part of the facts
+ */
+       interfaceSet_str->INTF_comm  = MPI_Comm_c2f(new_comm);
+
+ /* create communicator
+ * remove group
+ * 
+ * free array of processors in group
+ */
+
+/*
  * add all intsurf to a newly created constraint ConstextInterfaceName_X
  */
         intsurf = all_collect_entitySet(intsurf) ;
+/*
+ * do some stdout write out
+ */
+        if(Loci::MPI_rank == 0)std::cout << bname << " " << intsurf << endl ;
+
         constraint bc_constraint ;
         *bc_constraint = intsurf;
         std::string constraint_name = "ConstextInterfaceName(" + bname + ")" ;
@@ -212,7 +302,9 @@ namespace flowPsi {
       }
     if(Loci::MPI_rank == 0)
        std::cout << "    " << endl ;
-
+    
+    free(proc_arr);
+    free(proc_glob_arr);
     return error ;
   };
 
