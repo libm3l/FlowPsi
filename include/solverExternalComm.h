@@ -11,6 +11,10 @@ namespace flowPsi {
 typedef struct InterfStr{
   int INTF_comm;
   int INTF_Root_ind;
+  int INTF_Number;
+  int INTF_Activated;
+  int INTF_domsize;
+  Array<char,24> INTF_Name;
 }InterfStr_t;
 
  
@@ -21,6 +25,10 @@ namespace Loci {
         CompoundDatatypeP cmpd = CompoundFactory(InterfStr_t());
         LOCI_INSERT_TYPE(cmpd, InterfStr_t, INTF_comm);
         LOCI_INSERT_TYPE(cmpd, InterfStr_t, INTF_Root_ind);
+        LOCI_INSERT_TYPE(cmpd, InterfStr_t, INTF_Number);
+        LOCI_INSERT_TYPE(cmpd, InterfStr_t, INTF_Activated);
+        LOCI_INSERT_TYPE(cmpd, InterfStr_t, INTF_Name);
+        LOCI_INSERT_TYPE(cmpd, InterfStr_t, INTF_domsize);
         return DatatypeP(cmpd);
       }
     };

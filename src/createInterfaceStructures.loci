@@ -60,9 +60,8 @@ using std::list ;
 using std::vector ;
 using std::endl ;
 using std::cerr ;
-
 /* 
- * check gridComponent.loci for other smilarities
+ * creates data sets necessary for external interfaces
  */
 
 namespace flowPsi { 
@@ -96,6 +95,19 @@ namespace flowPsi {
  * loop over all interfaces 
  */
     vector<string> intf_list_bc_names ;
+/*
+ * get number of interfaces 
+ */
+    int nbif = nl.size();
+    int intf_number = 0;
+/*
+ * find number of MPI processes
+ */
+    int procs = 1 ;
+    MPI_Comm_size(MPI_COMM_WORLD,&procs) ;
+    int rank = 0 ;
+    MPI_Comm_rank(MPI_COMM_WORLD,&rank) ;
+
     for(li=nl.begin();li!=nl.end();++li) {
       string bname = *li ;
       Loci::option_value_type vt = int_info->getOptionValueType(bname);
@@ -108,16 +120,8 @@ namespace flowPsi {
       if(Loci::MPI_rank == 0)
         std::cout << "Interface name:  " << bname << endl ;
 /*
- * ==================================================
- */
-/*
- * find number of MPI processes and allocate array of integers
- */
-      int procs = 1 ;
-      MPI_Comm_size(MPI_COMM_WORLD,&procs) ;
-      int rank = 0 ;
-      MPI_Comm_rank(MPI_COMM_WORLD,&rank) ;
-      
+ * allocate temporary arrays  (maybe something like std::vector<int> proc_arr(procs) ; would me more C++ like)
+ */      
       if(  (proc_arr = (int *) malloc(procs * sizeof(int))) == NULL)
           cerr << "error allocating proc_arr array " << endl ;
       if(  (proc_glob_arr = (int *) malloc(procs * sizeof(int))) == NULL)
@@ -141,8 +145,15 @@ namespace flowPsi {
       interfaceSet_str->INTF_comm = -1;
       interfaceSet_str->INTF_Root_ind = 0;
       factname = "extInterfaceNameStr(" + bname + ")" ;
+      char *cptr;
+      cptr = &interfaceSet_str->INTF_Name[0];
+      for(int i=0; i<24; i++)
+          interfaceSet_str->INTF_Name[i] = '\0';
+      strcpy(cptr, bname.c_str());
 
-      std::cout << "Created fact: "<<factname <<" : "<< endl ;
+      intf_number += 1;
+      interfaceSet_str->INTF_Number = intf_number;
+      interfaceSet_str->INTF_Activated = 0;
       
       facts.create_fact(factname,interfaceSet_str) ;
 /*
@@ -200,7 +211,9 @@ namespace flowPsi {
               if(Loci::MPI_rank == 0){
                  std::cout << "Boundary condition(s) associated with interface "<<bname <<" : "<< oss << endl ;
               }
-
+/*
+ * loop over BCs in the interface list
+ */
               for(int i=0;i<size;++i) {
                 string val;
                 list[i].get_value(val) ;
@@ -218,7 +231,10 @@ namespace flowPsi {
     //            std::cout << val << " "<< rank <<"  " << np << endl ;
                 if(np > 0) proc_arr[rank] = 1;
                 if(rank == 0 && np > 0)Root_ind = 1;
+
               }
+              Loci::entitySet dom = entitySet(intsurf) ;
+              interfaceSet_str->INTF_domsize = dom.size();
 
            }
         }
