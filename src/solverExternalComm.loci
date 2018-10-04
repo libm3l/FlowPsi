@@ -82,28 +82,11 @@ namespace flowPsi {
 
   bool ident_intf(string Vol_tag, Loci::options_list ext_interfaces, comm_struct_t *pcomm_str, string name);
   $rule optional(ext_interfaces) {}
-
- // provides the condition under which to communicate
-
- $type do_communicate_presrcibedQ param<bool> ;
- $type do_communicate_presrcibedQ_G param<bool> ;
-
- $type do_communicate_testIntf param<bool> ;
- 
- $rule default(do_communicate_presrcibedQ,do_communicate_presrcibedQ_G,do_communicate_testIntf) {
-    $do_communicate_presrcibedQ = false ;
-    $do_communicate_testIntf = false ;
-    $do_communicate_presrcibedQ_G = false;
-  }
 /*
  * componentExternal is set always when interface calls for external communication
  * it is set in gridComponents.loci
  */
-    $type componentExternal_X Constraint ;
-  
-   $rule singleton(do_communicate_presrcibedQ_G),constraint(do_communicate_presrcibedQ){
-       $do_communicate_presrcibedQ_G = true;
-   }
+  $type componentExternal_X Constraint ;
   
  $type componentName_X blackbox<string> ;
 /*
@@ -116,15 +99,9 @@ namespace flowPsi {
 /*
  * this routine loops sequentially over interfaces
  */
-$rule singleton(OUTPUT{n,it},do_communicate_presrcibedQ{n,it},do_communicate_testIntf{n,it}
-       <-ncycle{n},
-       extInterfaceNameStr(X),extInterfaceName(X),ext_interfaces,$it{n,it}),
+$rule singleton(OUTPUT{n,it},extInterfaceNameStr(X){n,it}
+       <-ncycle{n},extInterfaceNameStr(X),extInterfaceName(X),ext_interfaces,$it{n,it}),
     constraint(ConstextInterfaceName(X)),parametric(extInterfaceName(X))
-
-
-//$rule singleton(OUTPUT<-ncycle,
-//       extInterfaceNameStr(X),extInterfaceName(X),ext_interfaces),
-//    constraint(ConstextInterfaceName(X)),parametric(extInterfaceName(X))
     {
 /*
  * loop over fact database with interfaces and find if it is there
@@ -137,9 +114,7 @@ $rule singleton(OUTPUT{n,it},do_communicate_presrcibedQ{n,it},do_communicate_tes
 /*
  * set defaults
  */      
-      $do_communicate_presrcibedQ{n,it} = false ;
-      $do_communicate_testIntf{n,it} = false ;
-
+      $extInterfaceNameStr(X){n,it}.INTF_docommunicate = false;
       string commtype;
 
       string Vol_tag = "" ; // $componentName_X;
@@ -190,11 +165,12 @@ $rule singleton(OUTPUT{n,it},do_communicate_presrcibedQ{n,it},do_communicate_tes
             if(Loci::MPI_rank==0)   std::cout << "communication  - " << commtype  << " and char " << pcomm_str->type << endl ;
 
            if(commtype.compare("prescribed_quaternion") == 0){
-              $do_communicate_presrcibedQ{n,it} = true;
+ //             $do_communicate_presrcibedQ{n,it} = true;
+               $extInterfaceNameStr(X){n,it}.INTF_docommunicate = true;
 //              $intf = $extInterfaceNameStr(X).INTF_Number;
            } 
            else if(commtype.compare("test_interface") == 0 ){
-              $do_communicate_testIntf{n,it} = true ;
+               $extInterfaceNameStr(X){n,it}.INTF_docommunicate = true;
            }
            else{
               std::cerr << "ERROR: did not find communication type - " << commtype  << " - , check settings in .vars file" << std::endl ;
@@ -205,16 +181,27 @@ $rule singleton(OUTPUT{n,it},do_communicate_presrcibedQ{n,it},do_communicate_tes
   };
 
 /*
+ * this is a temporary hack which makes the comm rule always executed
+ * find out how to replace by conditional($extInterfaceNameStr(X).INTF_docommunicate)
+ */
+  $type docom param<bool>;
+  $rule default(docom){
+      $docom=true;
+  }
+  
+/*
  * execute interfaces
  *
  * Prescribed Quaternion interface
  */
   $rule singleton(OUTPUT<-ncycle,
     extInterfaceNameStr(X),extInterfaceName(X),ext_interfaces),
-    constraint(ConstextInterfaceName(X)),conditional(do_communicate_presrcibedQ),
+    constraint(ConstextInterfaceName(X)),conditional(docom),
     parametric(extInterfaceName(X)){
-              
-       std::cout << "COMMMMMMMMMMMMMMMMMMMMMMMM  - " << $extInterfaceName(X)  << "    " << std::endl ;
+    
+       if( $extInterfaceNameStr(X).INTF_docommunicate){
+           std::cout << "COMMMMMMMMMMMMMMMMMMMMMMMM  - " << $extInterfaceName(X)  << "    " << std::endl ;
+       }
   }
 
   

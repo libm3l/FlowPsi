@@ -15,6 +15,7 @@ typedef struct InterfStr{
   int INTF_Activated;   /* =0 interface not active   =1 interface active */
   int INTF_domsize;     /* size of interface data set on partitiin */
   Array<char,24> INTF_Name;  /* interface name */
+  bool INTF_docommunicate;
 }InterfStr_t;
 
  
@@ -29,6 +30,7 @@ namespace Loci {
         LOCI_INSERT_TYPE(cmpd, InterfStr_t, INTF_Activated);
         LOCI_INSERT_TYPE(cmpd, InterfStr_t, INTF_Name);
         LOCI_INSERT_TYPE(cmpd, InterfStr_t, INTF_domsize);
+        LOCI_INSERT_TYPE(cmpd, InterfStr_t, INTF_docommunicate);
         return DatatypeP(cmpd);
       }
     };
