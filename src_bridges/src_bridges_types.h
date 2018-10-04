@@ -47,16 +47,14 @@
 #define __SRC_BRIDGES_TYPES_H__
 
 typedef struct comm_struct {
-    lmchar_t type[80];
-    const lmchar_t *tag;
-    lmchar_t I_channel[80];
-    lmchar_t O_channel[80];
-    lmchar_t IP[80];    
-    const lmchar_t *intf_name;
-    
-    lmint_t portno;
-    
-lmint_t comm_freq;
+    lmchar_t type[80];         /* interface type */
+    lmchar_t VolTag[80];    /* volume tag  */
+    lmchar_t I_channel[80];    /* channel in  */
+    lmchar_t O_channel[80];    /* channel out */
+    lmchar_t IP[80];           /* IP address of server */
+    lmchar_t intf_name[80]; /* interface name */
+    lmint_t portno;            /* port number */
+    lmint_t comm_freq;         /* communicatin frequnecy */
     
 }comm_struct_t;
 
@@ -66,11 +64,11 @@ lmint_t comm_freq;
 
     typedef struct comm_struct {
     char type[80];
-    const char *tag;
+    char VolTag;
     char I_channel[80];
     char O_channel[80];
     char IP[80];    
-    const char *intf_name;
+    char intf_name;
     
     int portno;
     int comm_freq;

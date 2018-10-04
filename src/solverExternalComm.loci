@@ -45,9 +45,11 @@ $include "flowPsi.lh"
 #include "gridComponent.h"
 #include "extcomm_def.h"
 #include "src_bridges_types.h"
+#include "solverExternalComm.h"
 
 #include <vector>
 #include <list>
+#include <string.h>
 
 using std::list ;
 using std::vector ;
@@ -59,130 +61,156 @@ using Loci::MPI_rank ;
 #ifdef LIBM3LSIPDX
 /*
  * compile with libm3l and lsipdx support
- */
-/*
+ *
  *  include header files for libm3l and lsipdx library and header file for bridges (located in ../src_bridges)
  */
 #include "src_bridges.h"
 #include "libm3l.h"
 #include "lsipdx.h"
-
 /* 
- * check gridComponent.loci for other smilarities
+ * declarations
  */
-$type boundaryName(X) param<string>  ;
-$type extInterfaceName(X) param<string>  ;
-$type ConstextInterfaceName(X) constraint  ;
+$type boundaryName(X) param<string>;
+$type extInterfaceName(X) param<string>;
+$type ConstextInterfaceName(X) constraint;
+$type extInterfaceNameStr(X)  param<InterfStr_t>;
+$type TimeIntegration param<string> ;
 
 namespace flowPsi { 
 
-  bool ident_intf(string Vol_tag, Loci::options_list ext_interfaces, comm_struct_t *pcomm_str);
+ // $type intf param<int>;
 
+  bool ident_intf(string Vol_tag, Loci::options_list ext_interfaces, comm_struct_t *pcomm_str, string name);
   $rule optional(ext_interfaces) {}
 
  // provides the condition under which to communicate
 
-  $rule default(comm_freq) {
-    $comm_freq = 1 ;
+ $type do_communicate_presrcibedQ param<bool> ;
+ $type do_communicate_testIntf param<bool> ;
+ $rule default(do_communicate_presrcibedQ,do_communicate_testIntf) {
+    $do_communicate_presrcibedQ = false ;
+    $do_communicate_testIntf = false ;
   }
-
-  $type do_communicate_nit param<bool> ;
-  $rule singleton(do_communicate_nit{n,it}<-ncycle{n},comm_freq,$it{n,it}) {
-    //the condition for when to communicate
-    if($comm_freq < 0){
-        $do_communicate_nit{n,it} = ($$it{n,it} % -$comm_freq) == 0;
-    }
-    else{
-        $do_communicate_nit{n,it} = ($ncycle{n} % $comm_freq) == 0 && ($$it{n,it} == 0) ;
-    }
-  } 
-/*
- * this is test rule which set some motion component parameters
- */
  $type componentName_X blackbox<string> ;
 /*
- * vales of the componentName_X which is the same as volumeTag,
+ * values of the componentName_X which is the same as volumeTag,
  * and is with the componentExternal_X which indicates the tag communicates 
  * externally set in gridComponent.loci
  */
- $rule singleton(XmotionData(X)<-dtmax,stime,ext_interfaces,componentName_X), 
-   constraint(componentExternal_X),parametric(volumeTag(X)){
 
-    vect3d cg = vect3d (1.0,1.0,1.0) ;
-    vect3d cg_new;
-    real t = $stime + $dtmax ;
-    string Vol_tag = $componentName_X;
-    string commtype;
 
-    lmdouble_t RotCX, RotCY,  RotCZ;
-    lmdouble_t TransX, TransY, TransZ;
-    lmdouble_t Alpha, Qx, Qy, Qz;
-    lmdouble_t ForceX, ForceY, ForceZ;
-
-    comm_struct_t comm_str, *pcomm_str;
-    pcomm_str = &comm_str;
-
-    int comm_qaternion;
-
-    comm_qaternion = 0;
-
-    if(Loci::MPI_rank==0) {
 /*
- * communicate
+ * this routine loops sequentially over interfaces
  */
-      if( ident_intf(Vol_tag, $ext_interfaces, pcomm_str)){
-        commtype = pcomm_str->type;
+$rule singleton(OUTPUT{n,it},do_communicate_presrcibedQ{n,it},do_communicate_testIntf{n,it}
+       <-ncycle{n},
+       extInterfaceNameStr(X),extInterfaceName(X),ext_interfaces,$it{n,it}),
+    constraint(ConstextInterfaceName(X)),parametric(extInterfaceName(X))
+
+
+//$rule singleton(OUTPUT<-ncycle,
+//       extInterfaceNameStr(X),extInterfaceName(X),ext_interfaces),
+//    constraint(ConstextInterfaceName(X)),parametric(extInterfaceName(X))
+    {
 /*
- * depending on what type of interface we call different routines
+ * loop over fact database with interfaces and find if it is there
  */
-        if(commtype.compare("prescribed_quaternion") == 0){
+      comm_struct_t comm_str, *pcomm_str;
+      pcomm_str = &comm_str;
+
+      int comm_interface;
+      comm_interface = 0;
 /*
- * this is rigid body motion interface, sends away forces and gets back quaternion, translation and 
- * center of rotation
+ * set defaults
+ */      
+      $do_communicate_presrcibedQ{n,it} = false ;
+      $do_communicate_testIntf{n,it} = false ;
+
+      string commtype;
+
+      string Vol_tag = "" ; // $componentName_X;
+
+      if(Loci::MPI_rank==0) {
+        std::cout << "Looking for interface  - " <<  $extInterfaceName(X)  << std::endl ; 
+/*
+ * identify interface
  */
-           comm_qaternion = 1;
-           bridge_prescribed_quaternion(t, ForceX, ForceY, ForceZ, &Alpha, &Qx, &Qy, &Qz,
-                  &TransX, &TransY, &TransZ, &RotCX, &RotCY, &RotCZ, pcomm_str);
-        }else{
-            std::cerr << "ERROR: did not find communication type - " << commtype  << " - , check settings in .vars file" << std::endl ;
-       //     exit(-1) ;
+        if( ident_intf(Vol_tag, $ext_interfaces, pcomm_str, $extInterfaceName(X))){
+/*
+ * check that type among allowed types of interfaces
+ */
+          lmsize_t clen = strlen(pcomm_str->type);
+          if( strncmp(pcomm_str->type, "prescribed_quaternion", clen) != 0 &&
+              strncmp(pcomm_str->type, "test_interface", clen) != 0 ){
+
+            std::cerr << "ERROR: uknown type of interface '" << pcomm_str->type << "', check settings in .vars file" << std::endl ;
+            exit(-1) ;
+
+          }
+/*
+ * set if to communicate
+ */
+          if(pcomm_str->comm_freq < 0){
+            if(  ($$it{n,it} % pcomm_str->comm_freq) == 0 )comm_interface = 1;
+          }
+          else{
+            if ( ($ncycle{n} % pcomm_str->comm_freq) == 0 && ($$it{n,it} == 0) )  comm_interface = 1;;
+          }
+        }
+        else{
+            std::cerr << "ERROR: did not find interface - " << $extInterfaceName(X)  << " - , check settings in .vars file" << std::endl ;
+            exit(-1) ;
         }
       }
-    }
-/*
- * broadcast and save in XmotionData structure
+/* 
+ * broadcast comm_interface
  */
-    MPI_Bcast(&comm_qaternion,1,MPI_INTEGER,0,MPI_COMM_WORLD) ;
+        MPI_Bcast(&comm_interface,1,MPI_INTEGER,0,MPI_COMM_WORLD) ;
+        if(comm_interface == 1){
+/*
+ * if comm_interface == 1 broadcast pcomm_str
+ */
+           MPI_Bcast(pcomm_str->type,80,MPI_CHAR,0,MPI_COMM_WORLD) ;
+           commtype = pcomm_str->type;
 
-    if(comm_qaternion == 1){
-      MPI_Bcast(&TransX,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
-      MPI_Bcast(&TransY,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
-      MPI_Bcast(&TransZ,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
-      MPI_Bcast(&RotCX,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
-      MPI_Bcast(&RotCY,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
-      MPI_Bcast(&RotCZ,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
-      MPI_Bcast(&Alpha,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
-      MPI_Bcast(&Qx,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
-      MPI_Bcast(&Qy,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
-      MPI_Bcast(&Qz,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
+            if(Loci::MPI_rank==0)   std::cout << "communication  - " << commtype  << " and char " << pcomm_str->type << endl ;
 
-      cg     = vect3d(RotCX, RotCY, RotCZ);
-      cg_new = vect3d(TransX, TransY, TransZ);
-      cg_new = cg + cg_new;
+           if(commtype.compare("prescribed_quaternion") == 0){
+              $do_communicate_presrcibedQ{n,it} = true;
+//              $intf = $extInterfaceNameStr(X).INTF_Number;
+           } 
+           else if(commtype.compare("test_interface") == 0 ){
+              $do_communicate_testIntf{n,it} = true ;
+           }
+           else{
+              std::cerr << "ERROR: did not find communication type - " << commtype  << " - , check settings in .vars file" << std::endl ;
+              exit(-1) ;
+           }
 
-      $XmotionData(X).cg = cg;
-      $XmotionData(X).new_cg = cg_new ;
-      $XmotionData(X).q.x = Qx ;
-      $XmotionData(X).q.y = Qy ;
-      $XmotionData(X).q.z = Qz ;
-      $XmotionData(X).q.w = Alpha;
-    }   
+        }
   };
+
+/*
+ * execute interfaces
+ *
+ * Prescribed Quaternion interface
+ */
+  $rule singleton(OUTPUT<-ncycle,
+    extInterfaceNameStr(X),extInterfaceName(X),ext_interfaces),
+    constraint(ConstextInterfaceName(X)),conditional(do_communicate_presrcibedQ),
+    parametric(extInterfaceName(X)){
+              
+       std::cout << "COMMMMMMMMMMMMMMMMMMMMMMMM  - " << $extInterfaceName(X)  << "    " << std::endl ;
+  }
+
+
+
+
 
 /*
  * function loops over interfaces, find if there is associated tag 
  */
-     bool ident_intf(string Vol_tag, Loci::options_list ext_interfaces, comm_struct_t *pcomm_str){
+     bool ident_intf(string Vol_tag, Loci::options_list ext_interfaces, comm_struct_t *pcomm_str, string name){
 /*
  * get pointer on interfaces in facts 
  */
@@ -207,7 +235,15 @@ namespace flowPsi {
  * this is name of interface
  */
         bname = *li ;
-        printf(" NAME is %s\n",bname.c_str());
+/*
+ * if not requested interface, skip the rest of the loop
+ */
+        if(*li != name)continue;
+
+        cp = bname.c_str();
+        clen = strlen(cp);
+        strncpy(pcomm_str->intf_name, cp, clen);
+        pcomm_str->intf_name[clen] = '\0';
 
         Loci::option_value_type vt = int_info->getOptionValueType(bname);
         Loci::option_values ov = int_info->getOption(bname) ;
@@ -278,14 +314,18 @@ namespace flowPsi {
         }
         else if(*lii == "tag" ){
 	    ol.getOption(*lii,tag) ;
-            pcomm_str->tag = tag.c_str();
-            if((Vol_tag.compare(tag) && Vol_tag.compare("All")) != 0){
+            cp = tag.c_str();
+            clen = strlen(cp);
+            strncpy(pcomm_str->VolTag, cp, clen);
+            pcomm_str->VolTag[clen] = '\0';
+
+     //       if((Vol_tag.compare(tag) && Vol_tag.compare("All")) != 0){
 /*
  * if tag different from tag specfied in interface specification or 
  * if tag in interface not All, skip
  */
-                goto end_loop;
-            }
+     //           goto end_loop;
+     //       }
         }
         else if(*lii == "type" ){
             bzero(pcomm_str->type,80);
@@ -319,55 +359,23 @@ namespace flowPsi {
 
 end_loop: continue;
       return false;
-  }
+  } 
+  
+  return false;  /* put this statement here to avoid having warning message during compillation*/
+
 };
-/*
- * list boundary conditions - test rule
- */
-//$rule singleton(OUTPUT<-ncycle,boundaryName(X)),
-//    constraint(boundaryName(X)),
-//    parametric(boundaryName(X))
-//    {
-///*
-// * get number of points on boundary
-// */
-//        Loci::entitySet dom = entitySet(seq) ;
-//        int ndom = dom.size() ;
-//        cout << "RANK " << Loci::MPI_rank << " Cycle " << $ncycle << "  " << " BC NAME  is "<<  $boundaryName(X) << "  " << ndom << endl;
-//    };
-
-/*
- * list interfaces - test rule
- */
-$rule singleton(OUTPUT<-ncycle,extInterfaceName(X)),
-    parametric(extInterfaceName(X))
-    {
-/*
- * get number of points on boundary
- */
-        cout << "RANK " << Loci::MPI_rank << " Cycle " << $ncycle << "  " << " INTF NAME  is "<<  $extInterfaceName(X) << endl;
-    };
 
 
-//$rule singleton(OUTPUT<-ncycle,ConstextInterfaceName(X)),
-//    parametric(ConstextInterfaceName(X))
-//    {
-///*
-// * get number of points on boundary
-// */
-//        cout << "RANK-CCC " << Loci::MPI_rank << " Cycle " << $ncycle << "  " << " INTF NAME  is "<<  $ConstextInterfaceName(X) << endl;
-//    };
 
-$rule singleton(OUTPUT<-ncycle,extInterfaceName(X)),
-    parametric(ConstextInterfaceName(X))
-    {
-/*
- * get number of points on boundary
- */
-        cout << "RANK-CCC1111 " << Loci::MPI_rank << " Cycle " << $ncycle << "  " << " INTF NAME1111  is "<<  $extInterfaceName(X) << endl;
-    };
+
+
+
+
+
+
+
+
 }
-
 
 
 #else
@@ -376,9 +384,6 @@ $rule singleton(OUTPUT<-ncycle,extInterfaceName(X)),
  */
 namespace flowPsi { 
 
-  $rule default(comm_freq) {
-    $comm_freq = 1 ;
-  }
 
   $rule singleton(XmotionData(X)<-dtmax,stime), 
     constraint(componentExternal_X),parametric(volumeTag(X)){
