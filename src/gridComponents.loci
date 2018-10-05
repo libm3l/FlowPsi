@@ -58,7 +58,9 @@ using std::set ;
 
 $include "FVM.lh"
 $include "flowPsi.lh"
-
+/*
+ * this library defines LIBM3LSIPDX variable, support for libm3l and lsipdx library
+ */
 #include "extcomm_def.h"
 
 namespace flowPsi {
@@ -222,7 +224,7 @@ namespace flowPsi {
   $type componentTransformMap blackbox<map<string,vector<componentXform> > > ;
 
   
-  $type componentMotionData blackbox<map<string,componentXform> > ;
+//  $type componentMotionData blackbox<map<string,componentXform> > ;
 
   $rule unit(componentMotionData<-componentMotion), prelude {
     *$componentMotionData = map<string,componentXform>() ;
@@ -346,7 +348,9 @@ namespace flowPsi {
     string name = *$componentName_X ;
     (*$componentMotionData)[name] = xform ;
   } ;
-
+/*
+ * set componentMotionData for stationary
+ */
   $rule apply(componentMotionData<-componentName_X)[Loci::NullOp],
     constraint(componentStationary_X),parametric(volumeTag(X)), prelude {
     const vect3d cg = vect3d(0,0,0) ;
@@ -359,6 +363,35 @@ namespace flowPsi {
     string name = *$componentName_X ;
     (*$componentMotionData)[name] = xform ;
   } ;
+/* 
+ * set componentMotionData for external motion
+ *
+ * External manuever rule (Patch 8d0d548f81f)
+ * set values in componentMotionData when externally prescribed motion
+ * the new values area stored in componentXform XmotionData
+ * which is set in solverExtrnalComm.loci
+ */
+  $rule apply(componentMotionData<-XmotionData(X),componentName_X)[Loci::NullOp],
+    constraint(componentExternalMotion_X),parametric(volumeTag(X)), prelude{
+
+    string name = *$componentName_X ;
+
+#ifdef LIBM3LSIPDX
+    (*$componentMotionData)[name] = *$XmotionData(X) ;
+#else
+    if(Loci::MPI_rank==0) {
+      cerr << " " << endl ;
+      cerr << "ERROR: in rule: componentMotionData<-XmotionData(X),componentName_X" << endl ;
+      cerr << "Current version of flowPsi not compiled with libm3l and lsidpx support" << endl ;
+      cerr << "componentMotion: external not supported" << endl ;
+      cerr << "Exiting ...  " << endl ;
+    }
+    exit(-1) ;
+#endif
+  } ;
+
+
+
 
   $type ServoPositionInfo blackbox<map<string,real> > ;
 
@@ -658,31 +691,7 @@ namespace flowPsi {
     $prescribedCG_X = cg ;
   }
 /*
- * External manuever rule (Patch 8d0d548f81f)
- * set values in componentMotionData when externally prescribed motion
- * the new values area stored in componentXform XmotionData
- * which is set in solverExtrnalComm.loci
- */
-  $rule apply(componentMotionData<-XmotionData(X),componentName_X)[Loci::NullOp],
-    constraint(componentExternalMotion_X),parametric(volumeTag(X)), prelude{
-
-    string name = *$componentName_X ;
-
-#ifdef LIBM3LSIPDX
-    (*$componentMotionData)[name] = *$XmotionData(X) ;
-#else
-    if(Loci::MPI_rank==0) {
-      cerr << " " << endl ;
-      cerr << "ERROR: in rule: componentMotionData<-XmotionData(X),componentName_X" << endl ;
-      cerr << "Current version of flowPsi not compiled with libm3l and lsidpx support" << endl ;
-      cerr << "componentMotion: external not supported" << endl ;
-      cerr << "Exiting ...  " << endl ;
-    }
-    exit(-1) ;
-#endif
-  } ;
-/*
- * set values in componentMotionData
+ * set values in componentMotionData for prescribed motion
  */
   $rule apply(componentMotionData<-prescribedMotion_X,prescribedCG_X,componentName_X,dtmax,stime)[Loci::NullOp],
     constraint(componentPrescribed_X),parametric(volumeTag(X)), prelude {

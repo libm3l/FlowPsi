@@ -329,6 +329,7 @@ $type global_rot_center param<flowPsi::vect3d> ;
 $type ext_interfaces param<Loci::options_list> ;
 $type comm_freq   param<int> ;
 $type XmotionData(X) blackbox<componentXform> ;
+$type componentMotionData blackbox<map<string,componentXform> > ;
 
 
 

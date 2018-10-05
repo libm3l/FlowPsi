@@ -50,6 +50,8 @@ $include "flowPsi.lh"
 #include <vector>
 #include <list>
 #include <string.h>
+#include <map>
+using std::map ;
 
 using std::list ;
 using std::vector ;
@@ -74,13 +76,15 @@ $type boundaryName(X) param<string>;
 $type extInterfaceName(X) param<string>;
 $type ConstextInterfaceName(X) constraint;
 $type extInterfaceNameStr(X)  param<InterfStr_t>;
-$type TimeIntegration param<string> ;
+$type TimeIntegration param<string>;
+
+//$type componentMotionData blackbox<map<string,componentXform> > ;
 
 namespace flowPsi { 
 
  // $type intf param<int>;
 
-  bool ident_intf(string Vol_tag, Loci::options_list ext_interfaces, comm_struct_t *pcomm_str, string name);
+  bool ident_intf(Loci::options_list::arg_list Vol_tags, Loci::options_list ext_interfaces, comm_struct_t *pcomm_str, string name);
   $rule optional(ext_interfaces) {}
 /*
  * componentExternal is set always when interface calls for external communication
@@ -116,15 +120,14 @@ $rule singleton(OUTPUT{n,it},extInterfaceNameStr(X){n,it}
  */      
       $extInterfaceNameStr(X){n,it}.INTF_docommunicate = false;
       string commtype;
-
-      string Vol_tag = "" ; // $componentName_X;
+      Loci::options_list::arg_list Vol_tags;
 
       if(Loci::MPI_rank==0) {
         std::cout << "Looking for interface  - " <<  $extInterfaceName(X)  << std::endl ; 
 /*
  * identify interface
  */
-        if( ident_intf(Vol_tag, $ext_interfaces, pcomm_str, $extInterfaceName(X))){
+        if( ident_intf(Vol_tags, $ext_interfaces, pcomm_str, $extInterfaceName(X))){
 /*
  * check that type among allowed types of interfaces
  */
@@ -188,7 +191,11 @@ $rule singleton(OUTPUT{n,it},extInterfaceNameStr(X){n,it}
   $rule default(docom){
       $docom=true;
   }
-  
+
+  $type docomappl param<bool>;
+  $rule default(docomappl){
+      $docomappl=false;
+  }
 /*
  * execute interfaces
  *
@@ -206,6 +213,191 @@ $rule singleton(OUTPUT{n,it},extInterfaceNameStr(X){n,it}
 
   
   
+//  $rule singleton(componentMotionData<-dtmax,stime,
+  $rule singleton(OUTPUT<-dtmax,stime,
+    extInterfaceNameStr(X),extInterfaceName(X),ext_interfaces),
+    constraint(ConstextInterfaceName(X)),conditional(docom),
+    parametric(extInterfaceName(X)){
+/*
+ * if interface is active". communicate
+ */           
+      if( $extInterfaceNameStr(X).INTF_docommunicate){    
+      std::cout << "INTTTTTTTTTTTTTTTTT  - " << $extInterfaceName(X)  << "    " << std::endl ;
+
+        vect3d cg = vect3d (1.0,1.0,1.0) ;
+        vect3d cg_new;
+        real t = $stime + $dtmax ;
+        string Vol_tag ="";
+        string commtype;
+
+        lmdouble_t RotCX, RotCY,  RotCZ;
+        lmdouble_t TransX, TransY, TransZ;
+        lmdouble_t Alpha, Qx, Qy, Qz;
+        lmdouble_t ForceX, ForceY, ForceZ;
+        componentXform xform ;
+
+        comm_struct_t comm_str, *pcomm_str;
+        pcomm_str = &comm_str;
+        Loci::options_list::arg_list Vol_tags;
+
+        if(Loci::MPI_rank==0) {
+/*
+ * communicate, if interface found, execute it, all checks were done before this rule
+ */
+           if( ident_intf(Vol_tags, $ext_interfaces, pcomm_str,$extInterfaceName(X))){
+
+            std::cout << "IDENTIFied tags  - " << Vol_tags  << "    " << std::endl ;
+/*
+ * this is rigid body motion interface, sends away forces and gets back quaternion, translation and 
+ * center of rotation
+ */
+         //       bridge_prescribed_quaternion(t, ForceX, ForceY, ForceZ, &Alpha, &Qx, &Qy, &Qz,
+         //          &TransX, &TransY, &TransZ, &RotCX, &RotCY, &RotCZ, pcomm_str);
+            }
+        }
+/*
+ * broadcast and save in XmotionData structure
+ */
+        MPI_Bcast(&TransX,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
+        MPI_Bcast(&TransY,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
+        MPI_Bcast(&TransZ,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
+        MPI_Bcast(&RotCX,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
+        MPI_Bcast(&RotCY,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
+        MPI_Bcast(&RotCZ,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
+        MPI_Bcast(&Alpha,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
+        MPI_Bcast(&Qx,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
+        MPI_Bcast(&Qy,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
+        MPI_Bcast(&Qz,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
+
+        cg     = vect3d(RotCX, RotCY, RotCZ);
+        cg_new = vect3d(TransX, TransY, TransZ);
+        cg_new = cg + cg_new;
+
+        xform.cg = cg;
+        xform.new_cg = cg_new ;
+        xform.q.x = Qx ;
+        xform.q.y = Qy ;
+        xform.q.z = Qz ;
+        xform.q.w = Alpha;
+/*
+ * loop over volume tags and set componentMotionData
+ */
+        int size = Vol_tags.size() ;
+/*
+ * loop over volume tags
+ */
+        std::cout << "VOLUME TAG   - " << size  << "    " << std::endl ;
+        for(int i=0;i<size;++i) {
+          string name;
+          Vol_tags[i].get_value(name) ;
+
+          std::cout << "VOLUME TAG   - " << name  << "    " << std::endl ;
+
+ //         (*$componentMotionData)[name] = xform;
+
+        }
+      }
+   };
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  $rule apply(componentMotionData<-dtmax,stime,
+    extInterfaceNameStr(X),extInterfaceName(X),ext_interfaces)[Loci::NullOp],
+    constraint(ConstextInterfaceName(X)),conditional(docom),
+    parametric(extInterfaceName(X)),prelude{
+/*
+ * if interface is "active" communicate
+ */
+      std::cout << "COMMMMMMMMMMMMMMMMMMMMMMMM  - " << $extInterfaceName(X)  << "    " << std::endl ;
+
+      if( (*$extInterfaceNameStr(X)).INTF_docommunicate){    
+
+        vect3d cg = vect3d (1.0,1.0,1.0) ;
+        vect3d cg_new;
+/*
+ * get simulation time
+ */
+        real t = *$stime + *$dtmax ;
+        string Vol_tag ="";
+        string commtype;
+
+        lmdouble_t RotCX, RotCY,  RotCZ;
+        lmdouble_t TransX, TransY, TransZ;
+        lmdouble_t Alpha, Qx, Qy, Qz;
+        lmdouble_t ForceX, ForceY, ForceZ;
+
+        comm_struct_t comm_str, *pcomm_str;
+        pcomm_str = &comm_str;
+        Loci::options_list::arg_list Vol_tags;
+        Loci::options_list::arg_list list ;
+        options_list::arg_list value_list ;
+        componentXform xform ;
+
+        if(Loci::MPI_rank==0) {
+/*
+ * communicate, if interface found, execute it, all checks were done before this rule
+ */
+           if( ident_intf(Vol_tags, *$ext_interfaces, pcomm_str,*$extInterfaceName(X))){
+/*
+ * this is rigid body motion interface, sends away forces and gets back quaternion, translation and 
+ * center of rotation
+ */
+                bridge_prescribed_quaternion(t, ForceX, ForceY, ForceZ, &Alpha, &Qx, &Qy, &Qz,
+                   &TransX, &TransY, &TransZ, &RotCX, &RotCY, &RotCZ, pcomm_str);
+            }
+        }
+/*
+ * broadcast and save in XmotionData structure
+ */
+        MPI_Bcast(&TransX,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
+        MPI_Bcast(&TransY,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
+        MPI_Bcast(&TransZ,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
+        MPI_Bcast(&RotCX,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
+        MPI_Bcast(&RotCY,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
+        MPI_Bcast(&RotCZ,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
+        MPI_Bcast(&Alpha,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
+        MPI_Bcast(&Qx,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
+        MPI_Bcast(&Qy,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
+        MPI_Bcast(&Qz,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
+
+        cg     = vect3d(RotCX, RotCY, RotCZ);
+        cg_new = vect3d(TransX, TransY, TransZ);
+        cg_new = cg + cg_new;
+
+        xform.cg = cg;
+        xform.new_cg = cg_new ;
+        xform.q.x = Qx ;
+        xform.q.y = Qy ;
+        xform.q.z = Qz ;
+        xform.q.w = Alpha;
+/*
+ * loop over volume tags and set componentMotionData
+ */
+        int size = Vol_tags.size() ;
+/*
+ * loop over volume tags
+ */
+        for(int i=0;i<size;++i) {
+          string name;
+          Vol_tags[i].get_value(name) ;
+
+ //         (*$componentMotionData)[name] = xform;
+
+        }
+      }
+   };
+  
   
 
 
@@ -214,7 +406,7 @@ $rule singleton(OUTPUT{n,it},extInterfaceNameStr(X){n,it}
 /*
  * function loops over interfaces, find if there is associated tag 
  */
-     bool ident_intf(string Vol_tag, Loci::options_list ext_interfaces, comm_struct_t *pcomm_str, string name){
+     bool ident_intf(Loci::options_list::arg_list Vol_tags, Loci::options_list ext_interfaces, comm_struct_t *pcomm_str, string name){
 /*
  * get pointer on interfaces in facts 
  */
@@ -282,19 +474,16 @@ $rule singleton(OUTPUT{n,it},extInterfaceNameStr(X){n,it}
  */
       Loci::variable bcv(name) ;
 /*
- * loop through options and add them to bvars
+ * loop through options 
  */
       options_list::option_namelist nlb = ol.getOptionNameList() ;
-      Loci::variableSet bvars ;
       Loci::option_values oss;
 
       double param;
       string type,tag,I_channel, O_channel, intf_name,IP, BCs, I_channel_name, O_channel_name;
 
       options_list::option_namelist::iterator lii;
-      for(lii=nlb.begin();lii!=nlb.end();++lii){
-
-        bvars += Loci::variable(*lii) ;
+      for(lii=nlb.begin();lii!=nlb.end();++lii){ 
 
         if( *lii == "boundary_conditions" ){
             oss = ol.getOption(*lii) ;
@@ -316,20 +505,11 @@ $rule singleton(OUTPUT{n,it},extInterfaceNameStr(X){n,it}
             strncpy(pcomm_str->O_channel, cp, clen);
             pcomm_str->O_channel[clen] = '\0';
         }
-        else if(*lii == "tag" ){
-	    ol.getOption(*lii,tag) ;
-            cp = tag.c_str();
-            clen = strlen(cp);
-            strncpy(pcomm_str->VolTag, cp, clen);
-            pcomm_str->VolTag[clen] = '\0';
-
-     //       if((Vol_tag.compare(tag) && Vol_tag.compare("All")) != 0){
-/*
- * if tag different from tag specfied in interface specification or 
- * if tag in interface not All, skip
- */
-     //           goto end_loop;
-     //       }
+        else if(*lii == "Volume_tags" ){
+            oss = ol.getOption(*lii) ;
+	    ol.getOption(*lii,Vol_tags) ;
+            std::cout << "IDENTIFY   - " << *lii  << "    " << std::endl ;
+            std::cout << "IDENTIFY tags  - " << Vol_tags  << "    " << std::endl ;
         }
         else if(*lii == "type" ){
             bzero(pcomm_str->type,80);
@@ -359,10 +539,8 @@ $rule singleton(OUTPUT{n,it},extInterfaceNameStr(X){n,it}
       ol.getOptionUnits("portno","",param);
       pcomm_str->portno = (int)param;
 
-      return true;  /* this causes termination of loop over items in ext_interfaces */
+      return true;  /* specified interface found, return*/
 
-end_loop: continue;
-      return false;
   } 
   
   return false;  /* put this statement here to avoid having warning message during compillation*/
