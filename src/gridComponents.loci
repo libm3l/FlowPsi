@@ -224,7 +224,7 @@ namespace flowPsi {
   $type componentTransformMap blackbox<map<string,vector<componentXform> > > ;
 
   
-//  $type componentMotionData blackbox<map<string,componentXform> > ;
+//   $type componentMotionData blackbox<map<string,componentXform> > ;
 
   $rule unit(componentMotionData<-componentMotion), prelude {
     *$componentMotionData = map<string,componentXform>() ;
@@ -371,24 +371,28 @@ namespace flowPsi {
  * the new values area stored in componentXform XmotionData
  * which is set in solverExtrnalComm.loci
  */
-  $rule apply(componentMotionData<-XmotionData(X),componentName_X)[Loci::NullOp],
-    constraint(componentExternalMotion_X),parametric(volumeTag(X)), prelude{
-
-    string name = *$componentName_X ;
-
-#ifdef LIBM3LSIPDX
-    (*$componentMotionData)[name] = *$XmotionData(X) ;
-#else
-    if(Loci::MPI_rank==0) {
-      cerr << " " << endl ;
-      cerr << "ERROR: in rule: componentMotionData<-XmotionData(X),componentName_X" << endl ;
-      cerr << "Current version of flowPsi not compiled with libm3l and lsidpx support" << endl ;
-      cerr << "componentMotion: external not supported" << endl ;
-      cerr << "Exiting ...  " << endl ;
-    }
-    exit(-1) ;
-#endif
-  } ;
+//  $rule apply(componentMotionData<-XmotionData(X),componentName_X)[Loci::NullOp],
+//   $rule apply(componentMotionData<-componentName_X)[Loci::NullOp],
+//     constraint(componentExternalMotion_X),parametric(volumeTag(X)), prelude{
+// 
+//     string name = *$componentName_X ;
+// 
+// #ifdef LIBM3LSIPDX
+//   //  (*$componentMotionData)[name] = *$XmotionData(X) ;  
+// 
+//     std::cout << "Bogus rule ----------------------------------  - " << name  << "    " << std::endl ;
+// 
+// #else
+//     if(Loci::MPI_rank==0) {
+//       cerr << " " << endl ;
+//       cerr << "ERROR: in rule: componentMotionData<-XmotionData(X),componentName_X" << endl ;
+//       cerr << "Current version of flowPsi not compiled with libm3l and lsidpx support" << endl ;
+//       cerr << "componentMotion: external not supported" << endl ;
+//       cerr << "Exiting ...  " << endl ;
+//     }
+//     exit(-1) ;
+// #endif
+//   } ;
 
 
 
@@ -707,7 +711,7 @@ namespace flowPsi {
     (*$componentMotionData)[name] = xform ;
   } ;
 /*
- * transform mesh
+ * transform mesh (rotate and translate)
  */
   $rule pointwise(pos{n,it}<-pos{n},pos,componentTransformsn_X{n,it}),
     constraint(componentNodes_X{n},componentMotion),
