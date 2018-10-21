@@ -72,12 +72,10 @@ using Loci::MPI_rank ;
 /* 
  * declarations
  */
-$type boundaryName(X) param<string>;
-$type extInterfaceName(X) param<string>;
-$type ConstextInterfaceName(X) constraint;
-$type extInterfaceNameStr(X)  param<InterfStr_t>;
-$type TimeIntegration param<string>;
-// $type componentMotionData blackbox<map<string,componentXform> > ;
+$type extInterfaceName(X,Y) param<string>;
+$type ConstextInterfaceName(X,Y) constraint;
+$type extInterfaceNameStr(X,Y)  param<InterfStr_t>;
+$type componentName_X blackbox<string> ;
 
 namespace flowPsi { 
 
@@ -98,91 +96,6 @@ namespace flowPsi {
  * externally set in gridComponent.loci
  */
 
-
-/*
- * this routine loops sequentially over interfaces
- */
-$rule singleton(OUTPUT{n,it},extInterfaceNameStr(X){n,it}
-       <-ncycle{n},extInterfaceNameStr(X),extInterfaceName(X),ext_interfaces,$it{n,it}),
-    constraint(ConstextInterfaceName(X)),parametric(extInterfaceName(X))
-    {
-/*
- * loop over fact database with interfaces and find if it is there
- */
-      comm_struct_t comm_str, *pcomm_str;
-      pcomm_str = &comm_str;
-
-      int comm_interface;
-      comm_interface = 0;
-/*
- * set defaults
- */      
-      $extInterfaceNameStr(X){n,it}.INTF_docommunicate = false;
-      string commtype;
-      Loci::options_list::arg_list Vol_tags, *pVol_tags;
-      pVol_tags = &Vol_tags;
-
-      if(Loci::MPI_rank==0) {
-        std::cout << "Looking for interface  - " <<  $extInterfaceName(X)  << std::endl ; 
-/*
- * identify interface
- */
-        if( ident_intf(pVol_tags, $ext_interfaces, pcomm_str, $extInterfaceName(X))){
-/*
- * check that type among allowed types of interfaces
- */
-          lmsize_t clen = strlen(pcomm_str->type);
-          if( strncmp(pcomm_str->type, "prescribed_quaternion", clen) != 0 &&
-              strncmp(pcomm_str->type, "test_interface", clen) != 0 ){
-
-            std::cerr << "ERROR: uknown type of interface '" << pcomm_str->type << "', check settings in .vars file" << std::endl ;
-            exit(-1) ;
-
-          }
-/*
- * set if to communicate
- */
-          if(pcomm_str->comm_freq < 0){
-            if(  ($$it{n,it} % pcomm_str->comm_freq) == 0 )comm_interface = 1;
-          }
-          else{
-            if ( ($ncycle{n} % pcomm_str->comm_freq) == 0 && ($$it{n,it} == 0) )  comm_interface = 1;;
-          }
-        }
-        else{
-            std::cerr << "ERROR: did not find interface - " << $extInterfaceName(X)  << " - , check settings in .vars file" << std::endl ;
-            exit(-1) ;
-        }
-      }
-/* 
- * broadcast comm_interface
- */
-        MPI_Bcast(&comm_interface,1,MPI_INTEGER,0,MPI_COMM_WORLD) ;
-        if(comm_interface == 1){
-/*
- * if comm_interface == 1 broadcast pcomm_str
- */
-           MPI_Bcast(pcomm_str->type,80,MPI_CHAR,0,MPI_COMM_WORLD) ;
-           commtype = pcomm_str->type;
-
-            if(Loci::MPI_rank==0)   std::cout << "communication  - " << commtype  << " and char " << pcomm_str->type << endl ;
-
-           if(commtype.compare("prescribed_quaternion") == 0){
- //             $do_communicate_presrcibedQ{n,it} = true;
-               $extInterfaceNameStr(X){n,it}.INTF_docommunicate = true;
-//              $intf = $extInterfaceNameStr(X).INTF_Number;
-           } 
-           else if(commtype.compare("test_interface") == 0 ){
-               $extInterfaceNameStr(X){n,it}.INTF_docommunicate = true;
-           }
-           else{
-              std::cerr << "ERROR: did not find communication type - " << commtype  << " - , check settings in .vars file" << std::endl ;
-              exit(-1) ;
-           }
-
-        }
-  };
-
 /*
  * this is a temporary hack which makes the comm rule always executed
  * find out how to replace by conditional($extInterfaceNameStr(X).INTF_docommunicate)
@@ -202,156 +115,57 @@ $rule singleton(OUTPUT{n,it},extInterfaceNameStr(X){n,it}
  * Prescribed Quaternion interface
  */
   $rule singleton(OUTPUT<-ncycle,
-    extInterfaceNameStr(X),extInterfaceName(X),ext_interfaces),
-    constraint(ConstextInterfaceName(X)),conditional(docom),
-    parametric(extInterfaceName(X)){
+    extInterfaceNameStr(X,Y),extInterfaceName(X,Y),ext_interfaces),
+    constraint(ConstextInterfaceName(X,Y)),conditional(docom),
+    parametric(extInterfaceName(X,Y)){
     
-       if( $extInterfaceNameStr(X).INTF_docommunicate){
-           std::cout << "COMMMMMMMMMMMMMMMMMMMMMMMM  - " << $extInterfaceName(X)  << "    " << std::endl ;
+       if( $extInterfaceNameStr(X,Y).INTF_docommunicate){
+           std::cout << "COMMMMMMMMMMMMMMMMMMMMMMMM  - " << $extInterfaceName(X,Y)  << "    " << std::endl ;
        }
   }
-  
-  
-//=============================================================================
-  
-//     $type componentExternalMotion_X Constraint ;
-//   
-//   
-//    $rule apply(componentMotionData<-componentName_X,ext_interfaces)[Loci::NullOp],
-//     constraint(componentExternalMotion_X),parametric(volumeTag(X)), prelude{
-// 
-//     string name = *$componentName_X ;
-//  (*$componentMotionData)[name] = *$XmotionData(X) ;  
-/*
-    std::cout << "Bogus rule ----------------------------------  - " << name  << "    " << std::endl ;
-
-  } ;*/
-  
-  
- //=============================================================================
 
   
   
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
+    $rule singleton(OUTPUT<-ncycle,
+    extInterfaceNameStr(X,Y),extInterfaceName(X,Y),ext_interfaces),
+    constraint(ConstextInterfaceName(X,Y)),conditional(docom),
+    parametric(extInterfaceNameStr(X,Y)){
+    
+       if( $extInterfaceNameStr(X,Y).INTF_docommunicate){
+           std::cout << "COMM1111111111111111  - " << $extInterfaceName(X,Y)  << "    " << ($extInterfaceNameStr(X,Y)).INTF_docommunicate<< std::endl ;
+       }
+  }
 
-  
-  
-  $rule singleton(componentMotionData<-dtmax,stime,ncycle,
-//  $rule singleton(OUTPUT<-dtmax,stime,ncycle,
-    extInterfaceNameStr(X),extInterfaceName(X),ext_interfaces),
-    constraint(componentExternalMotion_X),conditional(docom),
-    parametric(extInterfaceName(X)){
-        
-       std::cout << "HERERRRRR  - " << $extInterfaceName(X)  << "    " << std::endl ;
-
-/*
- * if interface is active". communicate
- */           
-      if( $extInterfaceNameStr(X).INTF_docommunicate){    
-      std::cout << "INTTTTTTTTTTTTTTTTT  - " << $extInterfaceName(X)  << "    " << std::endl ;
-
-        vect3d cg = vect3d (1.0,1.0,1.0) ;
-        vect3d cg_new;
-        real t = $stime + $dtmax ;
-        string Vol_tag ="";
-        string commtype;
-
-        lmdouble_t RotCX, RotCY,  RotCZ;
-        lmdouble_t TransX, TransY, TransZ;
-        lmdouble_t Alpha, Qx, Qy, Qz;
-        lmdouble_t ForceX, ForceY, ForceZ;
-        componentXform xform ;
-
-        comm_struct_t comm_str, *pcomm_str;
-        pcomm_str = &comm_str;
-        Loci::options_list::arg_list Vol_tags, *pVol_tags;
-        pVol_tags = &Vol_tags;
-
-        if(Loci::MPI_rank==0) {
-/*
- * communicate, if interface found, execute it, all checks were done before this rule
- */
-           if( ident_intf(pVol_tags, $ext_interfaces, pcomm_str,$extInterfaceName(X))){
-/*
- * this is rigid body motion interface, sends away forces and gets back quaternion, translation and 
- * center of rotation
- */
-                bridge_prescribed_quaternion(t, ForceX, ForceY, ForceZ, &Alpha, &Qx, &Qy, &Qz,
-                   &TransX, &TransY, &TransZ, &RotCX, &RotCY, &RotCZ, pcomm_str);
-            }
-        }
-/*
- * broadcast and save in XmotionData structure
- */
-        MPI_Bcast(&TransX,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
-        MPI_Bcast(&TransY,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
-        MPI_Bcast(&TransZ,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
-        MPI_Bcast(&RotCX,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
-        MPI_Bcast(&RotCY,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
-        MPI_Bcast(&RotCZ,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
-        MPI_Bcast(&Alpha,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
-        MPI_Bcast(&Qx,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
-        MPI_Bcast(&Qy,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
-        MPI_Bcast(&Qz,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
-
-        cg     = vect3d(RotCX, RotCY, RotCZ);
-        cg_new = vect3d(TransX, TransY, TransZ);
-        cg_new = cg + cg_new;
-
-        xform.cg = cg;
-        xform.new_cg = cg_new ;
-        xform.q.x = Qx ;
-        xform.q.y = Qy ;
-        xform.q.z = Qz ;
-        xform.q.w = Alpha;
-/*
- * loop over volume tags and set componentMotionData
- */
-        int size = Vol_tags.size() ;
-/*
- * loop over volume tags
- */
-        for(int i=0;i<size;++i) {
-          string name;
-          Vol_tags[i].get_value(name) ;
-          ($componentMotionData)[name] = xform;
-
-        }
-      }
-   };
+//          $rule apply(componentMotionData<-volumeTag(X),ncycle, stime, dtmax,ext_interfaces,
+//               extInterfaceName(X,Y))[Loci::NullOp], parametric(extInterfaceName(X,Y)), prelude{
+//           
+//         std::cout << "Bogus2222222 rule ----------------------------------  - " << *$extInterfaceName(X,Y) << std::endl ;
+//       };
 
 
+     $rule apply(componentMotionData<-ncycle, stime, dtmax,ext_interfaces,extInterfaceNameStr(X,Y),componentName_X,
+               extInterfaceName(X,Y))[Loci::NullOp], parametric(extInterfaceName(X,Y)),
+               constraint(ConstextInterfaceName(X,Y)), 
+               conditional(docom),
+               prelude{
 
-
-
-
-
-
-
-
-
-
-  
-  
-  $rule apply(componentMotionData<-dtmax,stime,
-    extInterfaceNameStr(X),extInterfaceName(X),ext_interfaces)[Loci::NullOp],
-    constraint(componentExternalMotion_X),conditional(docom),
-    parametric(extInterfaceName(X)),prelude{
 /*
  * if interface is "active" communicate
  */
-      std::cout << "COMMMMMMMMMMMMMMMMMMMMMMMM  - " << $extInterfaceName(X)  << "    " << std::endl ;
+      std::cout << "COAPLYYYYYYYYYYYYY  - " << $extInterfaceName(X,Y)  << "    " << std::endl ;
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
 
-      if( (*$extInterfaceNameStr(X)).INTF_docommunicate){    
+
+  //    if( (*$extInterfaceNameStr(X,Y)).INTF_docommunicate){    
 
         vect3d cg = vect3d (1.0,1.0,1.0) ;
         vect3d cg_new;
@@ -380,12 +194,12 @@ $rule singleton(OUTPUT{n,it},extInterfaceNameStr(X){n,it}
 /*
  * communicate, if interface found, execute it, all checks were done before this rule
  */
-           if( ident_intf(pVol_tags, *$ext_interfaces, pcomm_str,*$extInterfaceName(X))){
+           if( ident_intf(pVol_tags, *$ext_interfaces, pcomm_str,*$extInterfaceName(X,Y))){
 /*
  * this is rigid body motion interface, sends away forces and gets back quaternion, translation and 
  * center of rotation
  */
-                bridge_prescribed_quaternion(t, ForceX, ForceY, ForceZ, &Alpha, &Qx, &Qy, &Qz,
+               bridge_prescribed_quaternion(t, ForceX, ForceY, ForceZ, &Alpha, &Qx, &Qy, &Qz,
                    &TransX, &TransY, &TransZ, &RotCX, &RotCY, &RotCZ, pcomm_str);
             }
         }
@@ -413,6 +227,8 @@ $rule singleton(OUTPUT{n,it},extInterfaceNameStr(X){n,it}
         xform.q.y = Qy ;
         xform.q.z = Qz ;
         xform.q.w = Alpha;
+                   
+        std::cout << "QUATTTTTTTTTTTT  - " << Loci::MPI_rank << "   " << Alpha << "    " << std::endl ;
 /*
  * loop over volume tags and set componentMotionData
  */
@@ -420,21 +236,22 @@ $rule singleton(OUTPUT{n,it},extInterfaceNameStr(X){n,it}
 /*
  * loop over volume tags
  */
-        for(int i=0;i<size;++i) {
-          string name;
-          Vol_tags[i].get_value(name) ;
+     //   for(int i=0;i<size;++i) {
+          string name = *$componentName_X;
+          
+          
+           std::cout << "TAGGGGGGGGGGGGG  - " << Loci::MPI_rank << "   " << "'"<<name<<"'" << "    " << std::endl ;
 
           (*$componentMotionData)[name] = xform;
+          
+          
+          std::cout << "LEAVING       - " << Loci::MPI_rank << "   " << std::endl ;
 
-        }
-      }
+
+   //     }
+    //  }
    };
   
-  
-
-
-
-
 /*
  * function loops over interfaces, find if there is associated tag 
  */

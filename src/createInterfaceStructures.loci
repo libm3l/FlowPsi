@@ -137,7 +137,7 @@ namespace flowPsi {
  */
       param<string> interfaceSet ;
       *interfaceSet = bname ;
-      string factname = "extInterfaceName(" + bname + ")" ;
+      string factname = "extInterfaceName(Main," + bname + ")" ;
       facts.create_fact(factname,interfaceSet) ;
 
       int Root_ind = 0;
@@ -145,17 +145,17 @@ namespace flowPsi {
       param<InterfStr_t> interfaceSet_str ;
       interfaceSet_str->INTF_comm = -1;
       interfaceSet_str->INTF_Root_ind = 0;
-      factname = "extInterfaceNameStr(" + bname + ")" ;
-      char *cptr;
-      cptr = &interfaceSet_str->INTF_Name[0];
-      for(int i=0; i<24; i++)
-          interfaceSet_str->INTF_Name[i] = '\0';
-      strcpy(cptr, bname.c_str());
+      factname = "extInterfaceNameStr(Main," + bname + ")" ;
+//       char *cptr;
+//       cptr = &interfaceSet_str->INTF_Name[0];
+//       for(int i=0; i<24; i++)
+//           interfaceSet_str->INTF_Name[i] = '\0';
+//       strcpy(cptr, bname.c_str());
 
       intf_number += 1;
       interfaceSet_str->INTF_Number = intf_number;
       interfaceSet_str->INTF_Activated = 0;
-      
+
       facts.create_fact(factname,interfaceSet_str) ;
 /*
  * create new extinterfaces facts ==================================================
@@ -315,7 +315,7 @@ namespace flowPsi {
 
         constraint bc_constraint ;
         *bc_constraint = intsurf;
-        std::string constraint_name = "ConstextInterfaceName(" + bname + ")" ;
+        std::string constraint_name = "ConstextInterfaceName(Main," + bname + ")" ;
         facts.create_fact(constraint_name,bc_constraint) ;
 
       }
