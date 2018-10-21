@@ -158,6 +158,85 @@ namespace flowPsi {
       
       
       
+/*
+ * loop over fact database with interfaces and find if it is there
+ */
+      comm_struct_t comm_str, *pcomm_str;
+      pcomm_str = &comm_str;
+
+      int comm_interface;
+      comm_interface = 0;
+/*
+ * set defaults
+ */      
+    //       std::cout << "ITIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII      - " <<$ncycle <<   "   "  <<  $$it <<std::endl ;
+
+
+           
+           
+           
+//       (*$extInterfaceNameStr(X,Y)).INTF_docommunicate = false;
+      string commtype;
+      Loci::options_list::arg_list Vol_tags, *pVol_tags;
+      pVol_tags = &Vol_tags;
+
+      if(Loci::MPI_rank==0) {
+        std::cout << "Looking for interface  - " <<  *$extInterfaceName(X,Y)  << std::endl ; 
+/*
+ * identify interface
+ */
+        if( ident_intf(pVol_tags, *$ext_interfaces, pcomm_str, *$extInterfaceName(X,Y))){
+/*
+ * check that type among allowed types of interfaces
+ */
+          lmsize_t clen = strlen(pcomm_str->type);
+          if( strncmp(pcomm_str->type, "prescribed_quaternion", clen) != 0 &&
+              strncmp(pcomm_str->type, "test_interface", clen) != 0 ){
+
+            std::cerr << "ERROR: uknown type of interface '" << pcomm_str->type << "', check settings in .vars file" << std::endl ;
+            exit(-1) ;
+
+          }
+/*
+ * set if to communicate
+ */
+//           if(pcomm_str->comm_freq < 0){
+//             if(  (*$$it % pcomm_str->comm_freq) == 0 )comm_interface = 1;
+//           }
+//           else{
+//             if ( (*$ncycle % pcomm_str->comm_freq) == 0 && (*$$it == 0) )  comm_interface = 1;;
+//           }
+        }
+        else{
+            std::cerr << "ERROR: did not find interface - " << *$extInterfaceName(X,Y)  << " - , check settings in .vars file" << std::endl ;
+            exit(-1) ;
+        }
+       }
+/* 
+ * broadcast comm_interface
+ */
+        MPI_Bcast(&comm_interface,1,MPI_INTEGER,0,MPI_COMM_WORLD) ;
+        if(comm_interface == 1){
+/*
+ * if comm_interface == 1 broadcast pcomm_str
+ */
+           MPI_Bcast(pcomm_str->type,80,MPI_CHAR,0,MPI_COMM_WORLD) ;
+           commtype = pcomm_str->type;
+
+            if(Loci::MPI_rank==0)   std::cout << "communication  - " << commtype  << " and char " << pcomm_str->type << endl ;
+
+           if(commtype.compare("prescribed_quaternion") == 0){
+    //           $extInterfaceNameStr(X,Y).INTF_docommunicate = true;
+           } 
+           else if(commtype.compare("test_interface") == 0 ){
+     //          $extInterfaceNameStr(X,Y).INTF_docommunicate = true;
+           }
+           else{
+              std::cerr << "ERROR: did not find communication type - " << commtype  << " - , check settings in .vars file" << std::endl ;
+              exit(-1) ;
+           }
+
+        }
       
       
       
@@ -173,18 +252,12 @@ namespace flowPsi {
  * get simulation time
  */
         real t = *$stime + *$dtmax ;
-        string Vol_tag ="";
-        string commtype;
 
         lmdouble_t RotCX, RotCY,  RotCZ;
         lmdouble_t TransX, TransY, TransZ;
         lmdouble_t Alpha, Qx, Qy, Qz;
         lmdouble_t ForceX, ForceY, ForceZ;
 
-        comm_struct_t comm_str, *pcomm_str;
-        pcomm_str = &comm_str;
-        Loci::options_list::arg_list Vol_tags, *pVol_tags;
-        pVol_tags = &Vol_tags;
         
         Loci::options_list::arg_list list ;
         options_list::arg_list value_list ;
