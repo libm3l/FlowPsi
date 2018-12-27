@@ -118,25 +118,25 @@ namespace flowPsi {
  *
  * Prescribed Quaternion interface
  */
-  $rule singleton(OUTPUT<-ncycle,
-    extInterfaceNameStr(X,Y),extInterfaceName(X,Y),ext_interfaces),
-    constraint(ConstextInterfaceName(X,Y)),conditional(docom),
-    parametric(extInterfaceName(X,Y)){
-
-       if( $extInterfaceNameStr(X,Y).INTF_docommunicate){
-           std::cout << "COMMMMMMMMMMMMMMMMMMMMMMMM  - " << $extInterfaceName(X,Y)  << "    " << std::endl ;
-       }
-  }
+//   $rule singleton(OUTPUT<-ncycle,
+//     extInterfaceNameStr(X,Y),extInterfaceName(X,Y),ext_interfaces),
+//     constraint(ConstextInterfaceName(X,Y)),conditional(docom),
+//     parametric(extInterfaceName(X,Y)){
+// 
+//        if( $extInterfaceNameStr(X,Y).INTF_docommunicate){
+//            std::cout << "COMMMMMMMMMMMMMMMMMMMMMMMM  - " << $extInterfaceName(X,Y)  << "    " << std::endl ;
+//        }
+//   }
 
   
   
-    $rule singleton(OUTPUT<-ncycle,
+    $rule singleton(OUTPUT<-ncycle,volumeTag(X),
     extInterfaceNameStr(X,Y),extInterfaceName(X,Y),ext_interfaces),
-    constraint(ConstextInterfaceName(X,Y)),conditional(docom),
+    constraint(ConstextInterfaceName(X,Y),volumeTag(X)),conditional(docom),
     parametric(extInterfaceNameStr(X,Y)){
     
        if( $extInterfaceNameStr(X,Y).INTF_docommunicate){
-           std::cout << "COMM1111111111111111  - " << $extInterfaceName(X,Y)  << "    " << ($extInterfaceNameStr(X,Y)).INTF_docommunicate<< std::endl ;
+           std::cout << "COMM1111111111111111  - " << $extInterfaceName(X,Y)  << "    " << ($extInterfaceNameStr(X,Y)).INTF_docommunicate<<  " Volume tag: " << $volumeTag(X) <<  ::endl ;
        }
   }
 
@@ -158,16 +158,16 @@ namespace flowPsi {
   }
 
    $rule apply(componentMotionData<-ncycle, stime, dtmax,ext_interfaces,extInterfaceNameStr(X,Y),
-                 componentName_X,extInterfaceName(X,Y))[Loci::NullOp], 
+                 componentName_X,extInterfaceName(X,Y),volumeTag(X))[Loci::NullOp], 
                  parametric(extInterfaceName(X,Y)),
-                 constraint(ConstextInterfaceName(X,Y)), 
+                 constraint(ConstextInterfaceName(X,Y),volumeTag(X)), 
                  conditional(docom),
                  prelude{
 
 /*
  * if interface is "active" communicate
  */
-      std::cout << "COAPLYYYYYYYYYYYYY  - " << $extInterfaceName(X,Y)  << "    " << std::endl ;
+      std::cout << "COAPLYYYYYYYYYYYYY  - " << $extInterfaceName(X,Y)  << "    " << $volumeTag(X) <<std::endl ;
       
       
       int len = (*$extInterfaceNameStr(X,Y)).INTF_domsize;
