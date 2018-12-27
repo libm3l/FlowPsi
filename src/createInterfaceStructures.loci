@@ -88,7 +88,7 @@ namespace flowPsi {
     if(Loci::MPI_rank == 0){
        std::cout << "    " << endl ;
        std::cout << "ext_interfaces: " << endl ;
-       std::cout << "----------- " << endl ;}
+       std::cout << "---------------------" << endl ;}
 
     options_list::option_namelist nl = int_info->getOptionNameList() ;
     options_list::option_namelist::iterator li;  
@@ -297,13 +297,10 @@ namespace flowPsi {
        free(loc_proc);
 /*
  * this is a hack because Loci at the moment does not seem to allow 
- * having MPI_Comm as a part of compound data type not part of the facts
+ * having MPI_Comm as a part of compound data type nor part of the facts
  */
-
       interfaceSet_str->INTF_comm  = MPI_Comm_c2f(new_comm);
       interfaceSet_str->INTF_Root_ind  = Root_ind;
-
-
 /*
  * add all intsurf to a newly created constraint ConstextInterfaceName_X
  */
@@ -326,7 +323,154 @@ namespace flowPsi {
     free(proc_glob_arr);
     return error ;
   };
+  
+  
+  
+  
+  
+/*
+ * function loops over interfaces, find if there is associated tag 
+ */
+     bool ident_intf(Loci::options_list::arg_list *pVol_tags, Loci::options_list ext_interfaces, comm_struct_t *pcomm_str, string name){
+/*
+ * get pointer on interfaces in facts 
+ */
+      param<options_list> int_info ;
+      int_info = ext_interfaces;
 
+      options_list::option_namelist nl = int_info->getOptionNameList() ;
+      options_list::option_namelist::iterator li;
+      
+      const lmchar_t *cp;
+      lmsize_t clen;
+/*
+ * set li to the beginning of list of interfaces
+ */
+      li = nl.begin();
+      string bname; 
+/*
+ * set li to the beginning of interface list
+ */
+      for(li=nl.begin();li!=nl.end();++li) {
+/*
+ * this is name of interface
+ */
+        bname = *li ;
+/*
+ * if not requested interface, skip the rest of the loop
+ */
+        if(*li != name)continue;
+
+        cp = bname.c_str();
+        clen = strlen(cp);
+        strncpy(pcomm_str->intf_name, cp, clen);
+        pcomm_str->intf_name[clen] = '\0';
+
+        Loci::option_value_type vt = int_info->getOptionValueType(bname);
+        Loci::option_values ov = int_info->getOption(bname) ;
+        options_list::arg_list value_list ;
+        string name ;
+/*
+ * get options in intf
+ */
+      param<options_list> bc_info;
+      switch(vt) {
+      case Loci::NAME :
+        ov.get_value(name) ;
+        bc_info->setOption(bname,name) ;
+        break ;
+      case Loci::FUNCTION:
+        ov.get_value(name) ;
+        ov.get_value(value_list) ;
+        bc_info->setOption(bname,name,value_list) ;
+        break ;
+      default:
+        cerr << "setup_interface can not interpret value assigned to " << bname 
+             << " in ext_interfaces" << endl ;
+        exit(-1) ;
+      }
+/*
+ * parse options
+ */
+      options_list ol ;
+      ol.Input(value_list) ;
+/*
+ * at the moment bcv is going to be intfr_local or intrf_global
+ */
+      Loci::variable bcv(name) ;
+/*
+ * loop through options 
+ */
+      options_list::option_namelist nlb = ol.getOptionNameList() ;
+      Loci::option_values oss;
+
+      double param;
+      string type,tag,I_channel, O_channel, intf_name,IP, BCs, I_channel_name, O_channel_name;
+
+      options_list::option_namelist::iterator lii;
+      for(lii=nlb.begin();lii!=nlb.end();++lii){ 
+
+        if( *lii == "boundary_conditions" ){
+            oss = ol.getOption(*lii) ;
+            ol.getOption(*lii,BCs);
+        }
+        else if(*lii == "I_channel" ){
+            bzero(pcomm_str->I_channel,80);
+            ol.getOption(*lii,I_channel_name) ;
+            cp =  I_channel_name.c_str();
+            clen = strlen(cp);
+            strncpy(pcomm_str->I_channel, cp, clen);
+            pcomm_str->I_channel[clen] = '\0';
+        }
+        else if(*lii == "O_channel" ){
+            bzero(pcomm_str->O_channel,80);
+	        ol.getOption(*lii,O_channel_name) ;
+            cp =  O_channel_name.c_str();
+            clen = strlen(cp);
+            strncpy(pcomm_str->O_channel, cp, clen);
+            pcomm_str->O_channel[clen] = '\0';
+        }
+        else if(*lii == "Volume_tags" ){
+            oss = ol.getOption(*lii) ;
+	        ol.getOption(*lii,*pVol_tags) ;
+//            std::cout << "IDENTIFY   - " << *lii  << "    " << std::endl ;
+//            std::cout << "IDENTIFY tags  - " << *pVol_tags  << "    " << std::endl ;
+        }
+        else if(*lii == "type" ){
+            bzero(pcomm_str->type,80);
+            ol.getOption(*lii,type) ;
+            cp =  type.c_str();
+            clen = strlen(cp);
+            strncpy(pcomm_str->type, cp, clen);
+            pcomm_str->type[clen] = '\0';
+        }
+        else if(*lii == "IP" ){
+            bzero(pcomm_str->IP,80);
+            ol.getOption(*lii,IP) ;
+            cp =  IP.c_str();
+            clen = strlen(cp);
+            strncpy(pcomm_str->IP, cp, clen);
+            pcomm_str->IP[clen] = '\0';  
+        }
+      }
+/*
+ * get value of comm_freq from interface
+ */
+      ol.getOptionUnits("comm_freq","",param);
+      pcomm_str->comm_freq = (int)param;
+/*
+ * get port number
+ */
+      ol.getOptionUnits("portno","",param);
+      pcomm_str->portno = (int)param;
+
+      return true;  /* specified interface found, return*/
+
+  } 
+  
+  return false;  /* put this statement here to avoid having warning message during compillation*/
+
+ };
 }
 
 
