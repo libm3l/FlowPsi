@@ -65,6 +65,10 @@ using std::cerr ;
  */
 
 namespace flowPsi { 
+    
+      bool ident_intf(Loci::options_list::arg_list *pVol_tags, Loci::options_list ext_interfaces, 
+                      comm_struct_t *pcomm_str, string name, string type);
+
 /*
  * loop through list of interfaces and parse parameters
  */
@@ -331,7 +335,8 @@ namespace flowPsi {
 /*
  * function loops over interfaces, find if there is associated tag 
  */
-     bool ident_intf(Loci::options_list::arg_list *pVol_tags, Loci::options_list ext_interfaces, comm_struct_t *pcomm_str, string name){
+     bool ident_intf(Loci::options_list::arg_list *pVol_tags, Loci::options_list ext_interfaces, 
+                     comm_struct_t *pcomm_str, string name, string type){
 /*
  * get pointer on interfaces in facts 
  */
@@ -343,11 +348,13 @@ namespace flowPsi {
       
       const lmchar_t *cp;
       lmsize_t clen;
+      int found;
 /*
  * set li to the beginning of list of interfaces
  */
       li = nl.begin();
       string bname; 
+      found = 0;
 /*
  * set li to the beginning of interface list
  */
@@ -360,6 +367,8 @@ namespace flowPsi {
  * if not requested interface, skip the rest of the loop
  */
         if(*li != name)continue;
+        
+        found = 1;
 
         cp = bname.c_str();
         clen = strlen(cp);
@@ -443,6 +452,8 @@ namespace flowPsi {
             clen = strlen(cp);
             strncpy(pcomm_str->type, cp, clen);
             pcomm_str->type[clen] = '\0';
+            
+            if(pcomm_str->type != type)found = 0;
         }
         else if(*lii == "IP" ){
             bzero(pcomm_str->IP,80);
@@ -464,7 +475,12 @@ namespace flowPsi {
       ol.getOptionUnits("portno","",param);
       pcomm_str->portno = (int)param;
 
-      return true;  /* specified interface found, return*/
+      if(found == 0){
+         return true;  /* specified interface not found, return*/
+      }
+      else{
+         return true;  /* specified interface found, return*/
+      }
 
   } 
   

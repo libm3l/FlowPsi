@@ -14,6 +14,7 @@ typedef struct InterfStr{
   int INTF_Number;      /* number of interface in order as they are processed, start from 1 */
   int INTF_Activated;   /* =0 interface not active   =1 interface active */
   int INTF_domsize;     /* size of interface data set on partitiin */
+  int INTF_type     ;     /* integer defining interface type */
   Array<char,24> INTF_Name;  /* interface name */
   bool INTF_docommunicate;
 }InterfStr_t;
@@ -31,6 +32,7 @@ namespace Loci {
         LOCI_INSERT_TYPE(cmpd, InterfStr_t, INTF_Name);
         LOCI_INSERT_TYPE(cmpd, InterfStr_t, INTF_domsize);
         LOCI_INSERT_TYPE(cmpd, InterfStr_t, INTF_docommunicate);
+        LOCI_INSERT_TYPE(cmpd, InterfStr_t, INTF_type);
         return DatatypeP(cmpd);
       }
     };

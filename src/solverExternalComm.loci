@@ -85,7 +85,8 @@ namespace flowPsi {
 
  // $type intf param<int>;
 
-  bool ident_intf(Loci::options_list::arg_list *pVol_tags, Loci::options_list ext_interfaces, comm_struct_t *pcomm_str, string name);
+   bool ident_intf(Loci::options_list::arg_list *pVol_tags, Loci::options_list ext_interfaces, 
+                      comm_struct_t *pcomm_str, string name, string type);
   $rule optional(ext_interfaces) {}
 /*
  * componentExternal is set always when interface calls for external communication
@@ -189,7 +190,7 @@ namespace flowPsi {
 /*
  * identify interface
  */
-        if( ident_intf(pVol_tags, *$ext_interfaces, pcomm_str, *$extInterfaceName(X,Y))){
+        if( ident_intf(pVol_tags, *$ext_interfaces, pcomm_str, *$extInterfaceName(X,Y), "prescribed_quaternion")){
 /*
  * check that type among allowed types of interfaces
  */
@@ -271,7 +272,7 @@ namespace flowPsi {
 /*
  * communicate, if interface found, execute it, all checks were done before this rule
  */
-           if( ident_intf(pVol_tags, *$ext_interfaces, pcomm_str,*$extInterfaceName(X,Y))){
+           if(ident_intf(pVol_tags, *$ext_interfaces, pcomm_str,*$extInterfaceName(X,Y), "prescribed_quaternion")){
 /*
  * this is rigid body motion interface, sends away forces and gets back quaternion, translation and 
  * center of rotation
@@ -304,8 +305,6 @@ namespace flowPsi {
         xform.q.y = Qy ;
         xform.q.z = Qz ;
         xform.q.w = Alpha;
-                   
-//         std::cout << "QUATTTTTTTTTTTT  - " << Loci::MPI_rank << "   " << Alpha << "    " << std::endl ;
 /*
  * loop over volume tags and set componentMotionData
  */
