@@ -138,6 +138,8 @@ namespace flowPsi {
     // print out cfl when we are dumping an output file (ncyc % print_freq) == 0
     // and we are on the first newton iteration
     $docomm{n,it} = ($ncycle{n} % 1) == 0 && ($$it{n,it} %1) ;
+          std::cout << " In doooooooooooooooooooooooooooo     - " << $docomm{n,it} <<std::endl ;
+
   }
 
    $rule apply(componentMotionData<-ncycle, stime, dtmax,ext_interfaces,extInterfaceNameStr(X,Y),
@@ -147,12 +149,11 @@ namespace flowPsi {
                  conditional(docom),
 //                  conditional(extInterfaceNameStr(X,Y).INTF_docommunicate),
                  prelude{
-
 /*
  * if interface is "active" communicate
  */
     if(Loci::MPI_rank==0) 
-      std::cout << "COAPLYYYYYYYYYYYYY  - " << $extInterfaceName(X,Y)  << "    " << $volumeTag(X) <<std::endl ;
+      std::cout << "COAPLYYYYYYYYYYYYY  - " << $extInterfaceName(X,Y)  << "    " << $volumeTag(X) <<  "  BOOL:  " << (*$extInterfaceNameStr(X,Y)).INTF_docommunicate << "   NCYCLE: " << *$ncycle   << std::endl ;
       
       
       int len = (*$extInterfaceNameStr(X,Y)).INTF_domsize;
@@ -160,9 +161,6 @@ namespace flowPsi {
 //       for(int i=0; i < len;i++){
 //                 std::cout << "COOOOOOOOORDS  " << $localvec[i] << "    " << std::endl ;
 //       }
-
-      
-      
 /*
  * loop over fact database with interfaces and find if it is there
  */
@@ -175,11 +173,6 @@ namespace flowPsi {
  * set defaults
  */      
     //       std::cout << "ITIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII      - " <<$ncycle <<   "   "  <<  $$it <<std::endl ;
-
-
-           
-           
-           
 //       (*$extInterfaceNameStr(X,Y)).INTF_docommunicate = false;
       string commtype;
       Loci::options_list::arg_list Vol_tags, *pVol_tags;
@@ -242,11 +235,6 @@ namespace flowPsi {
            }
 
         }
-      
-      
-      
-      
-      
 
 
   //    if( (*$extInterfaceNameStr(X,Y)).INTF_docommunicate){    
@@ -263,7 +251,6 @@ namespace flowPsi {
         lmdouble_t Alpha, Qx, Qy, Qz;
         lmdouble_t ForceX, ForceY, ForceZ;
 
-        
         Loci::options_list::arg_list list ;
         options_list::arg_list value_list ;
         componentXform xform ;
@@ -312,19 +299,11 @@ namespace flowPsi {
 /*
  * loop over volume tags
  */
-     //   for(int i=0;i<size;++i) {
+//        for(int i=0;i<size;++i) {
           string name = *$componentName_X;
-          
-          
-//            std::cout << "TAGGGGGGGGGGGGG  - " << Loci::MPI_rank << "   " << "'"<<name<<"'" << "    " << std::endl ;
-
+              std::cout << "TAGGGGGGGGGGGGG  - " << Loci::MPI_rank << "   " << "'"<<name<<"'" << "    " << std::endl ;
           (*$componentMotionData)[name] = xform;
-          
-          
-//           std::cout << "LEAVING       - " << Loci::MPI_rank << "   " << std::endl ;
-
-
-   //     }
+//       }
     //  }
    };
    
