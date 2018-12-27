@@ -76,6 +76,10 @@ $type extInterfaceName(X,Y) param<string>;
 $type ConstextInterfaceName(X,Y) constraint;
 $type extInterfaceNameStr(X,Y)  param<InterfStr_t>;
 $type componentName_X blackbox<string> ;
+// $type localvec store<Loci::vector3d > ;
+
+$type localvec store<Loci::vector3d<Loci::real_t> > ;
+
 
 namespace flowPsi { 
 
@@ -118,7 +122,7 @@ namespace flowPsi {
     extInterfaceNameStr(X,Y),extInterfaceName(X,Y),ext_interfaces),
     constraint(ConstextInterfaceName(X,Y)),conditional(docom),
     parametric(extInterfaceName(X,Y)){
-    
+
        if( $extInterfaceNameStr(X,Y).INTF_docommunicate){
            std::cout << "COMMMMMMMMMMMMMMMMMMMMMMMM  - " << $extInterfaceName(X,Y)  << "    " << std::endl ;
        }
@@ -142,12 +146,23 @@ namespace flowPsi {
 //         std::cout << "Bogus2222222 rule ----------------------------------  - " << *$extInterfaceName(X,Y) << std::endl ;
 //       };
 
+  $type docommnit param<bool> ;
+  $type docomm{n,it} param<bool> ;
 
-     $rule apply(componentMotionData<-ncycle, stime, dtmax,ext_interfaces,extInterfaceNameStr(X,Y),componentName_X,
-               extInterfaceName(X,Y))[Loci::NullOp], parametric(extInterfaceName(X,Y)),
-               constraint(ConstextInterfaceName(X,Y)), 
-               conditional(docom),
-               prelude{
+  
+  $rule singleton(docomm{n,it}<-ncycle{n},print_freq,$it{n,it}) {
+    //the condition for dumping out cfl information
+    // print out cfl when we are dumping an output file (ncyc % print_freq) == 0
+    // and we are on the first newton iteration
+    $docomm{n,it} = ($ncycle{n} % 1) == 0 && ($$it{n,it} %1) ;
+  }
+
+   $rule apply(componentMotionData<-ncycle, stime, dtmax,ext_interfaces,extInterfaceNameStr(X,Y),
+                 componentName_X,extInterfaceName(X,Y))[Loci::NullOp], 
+                 parametric(extInterfaceName(X,Y)),
+                 constraint(ConstextInterfaceName(X,Y)), 
+                 conditional(docom),
+                 prelude{
 
 /*
  * if interface is "active" communicate
@@ -155,7 +170,12 @@ namespace flowPsi {
       std::cout << "COAPLYYYYYYYYYYYYY  - " << $extInterfaceName(X,Y)  << "    " << std::endl ;
       
       
+      int len = (*$extInterfaceNameStr(X,Y)).INTF_domsize;
       
+//       for(int i=0; i < len;i++){
+//                 std::cout << "COOOOOOOOORDS  " << $localvec[i] << "    " << std::endl ;
+//       }
+
       
       
 /*
@@ -324,6 +344,27 @@ namespace flowPsi {
    //     }
     //  }
    };
+   
+   
+    $rule pointwise(localvec<-ncycle,facecenter),
+     constraint(ConstextInterfaceName(X,Y)),parametric(extInterfaceName(X,Y))
+     {
+/*
+ * get number of points on boundaries in interface
+ */         
+         std::cout << "asigning        - " << Loci::MPI_rank << "   " << std::endl ;
+
+        $localvec = $facecenter;
+        };
+   
+//    $rule pointwise(OUTPUT<-ncycle,temperature_f, u_f,facecenter),
+//     constraint(ConstextInterfaceName(X,Y)),parametric(extInterfaceName(X,Y))
+//     {
+// /*
+//  * get number of points on boundaries in interface
+//  */
+//      cout << "RANK " << Loci::MPI_rank << " Cycle " << " INTF is "<<   $ncycle << "  " <<  $temperature_f << "  " << $facecenter<< endl;
+//     };
   
 /*
  * function loops over interfaces, find if there is associated tag 

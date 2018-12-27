@@ -28,3 +28,14 @@ Once the process is finished, kill lsipdx co-sumulation engine
 
    to get normal force vs. angle of attack
 
+
+
+
+/home/jka/Cprograms/Sources/lsipdx/Source/Server_Main.out  --port 31000 --input_file Definition_File --show
+
+
+
+
+
+
+LD_LIBRARY_PATH=/home/jka/OSS_CFD/FlowPsi/turbulence/KOmega/ mpirun -np 4 /home/jka/OSS_CFD/FlowPsi/bin/flowpsi NACAViscous_USTD_3BW

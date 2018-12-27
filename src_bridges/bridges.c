@@ -256,7 +256,8 @@ lmint_t bridge_prescribed_quaternion(lmdouble_t time,
 /*
  * print data on screen
  */
-        if(m3l_Cat(Gnode, "--all", "-P", "-L",  "*",   (char *)NULL) != 0)
+//     if(m3l_Cat(Gnode, "--all", "-P", "-L",  "*",   (char *)NULL) != 0)
+    if(m3l_Cat(Gnode, "--all", "-P", "-L",  "*",   (char *)NULL) != 0)
  	  Error("CatData");
 /*
  * find Quaternion - rotation vector and copy the values to FlowPsi allocated memory

@@ -50,7 +50,7 @@ EMPTYLS = $(shell find $(LSIPDXPATH) \( -name liblsipdx.so -o -iname lsipdx.h -o
 OBJS=$(FILES:%.c=%.o)
 
 #CC = $(CPP)
-CC = mpic++
+CC = mpicc
 CFLAGS = -fbounds-check -fstack-check -g 
 LFLAGS = -fbounds-check -fstack-check -g 
 
