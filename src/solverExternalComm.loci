@@ -37,6 +37,8 @@
  *
  * 
  */
+#include "libm3l.h"
+#include "lsipdx.h"
 
 #include <Loci.h>
 #include <stdio.h>
@@ -78,22 +80,52 @@ $type extInterfaceNameStr(X,Y)  param<InterfStr_t>;
 $type componentName_X blackbox<string> ;
 // $type localvec store<Loci::vector3d > ;
 
+$type componentExternalRigid_X Constraint ;
+$type componentExternalElastic_X Constraint ;
+$type componentExternalMotion_X Constraint ;
+
 $type localvec store<Loci::vector3d<Loci::real_t> > ;
+
+node_t *Gnode=NULL;
 
 
 namespace flowPsi { 
 
- // $type intf param<int>;
-
    bool ident_intf(Loci::options_list::arg_list *pVol_tags, Loci::options_list ext_interfaces, 
                       comm_struct_t *pcomm_str, string name, string type);
-  $rule optional(ext_interfaces) {}
+   
+   $rule optional(ext_interfaces) {}
+  
+  $type numDeformNodes                   		param<size_t>;
+  $type InterfaceIO  blackbox<int>; 
+  
+  $rule unit( numDeformNodes ),
+		constraint( UNIVERSE ) {
+	$numDeformNodes = 0;
+}
+ 
+  $rule unit(InterfaceIO <- numDeformNodes),
+	option(disable_threading),constraint( UNIVERSE ),
+    prelude {  
+     
+         node_t *TmpNode=NULL;
+         
+         if(Loci::MPI_rank==0){
+        
+          std::cout << "CREATING GNODE===================================================================== "<<  ::endl ;
+ 
+	      if(  (Gnode = m3l_Mklist("Interfaces", "DIR", 0, 0, (node_t **)NULL, (const char *)NULL, (const char *)NULL, (char *)NULL)) == 0)
+		    Perror("m3l_Mklist");
+          
+          if(  (TmpNode = m3l_Mklist("Interface_1", "DIR", 0, 0, &Gnode, "/Interfaces", "./", (char *)NULL)) == 0)
+		  Perror("m3l_Mklist");
+        }
+                    
+    };
 /*
  * componentExternal is set always when interface calls for external communication
  * it is set in gridComponents.loci
- */
-  $type $componentExternalRigid_X Constraint ;
-  
+ */  
  $type componentName_X blackbox<string> ;
 /*
  * values of the componentName_X which is the same as volumeTag,
@@ -146,7 +178,7 @@ namespace flowPsi {
  * rigid body motion interface
  */
    $rule apply(componentMotionData<-ncycle, stime, dtmax,ext_interfaces,extInterfaceNameStr(X,Y),
-                 componentName_X,extInterfaceName(X,Y),volumeTag(X))[Loci::NullOp], 
+                 componentName_X,extInterfaceName(X,Y),volumeTag(X),InterfaceIO)[Loci::NullOp], 
                  parametric(extInterfaceName(X,Y)),
                  constraint(ConstextInterfaceName(X,Y),volumeTag(X),componentExternalRigid_X), 
                  conditional(docom),
@@ -157,6 +189,8 @@ namespace flowPsi {
     if(Loci::MPI_rank==0) 
       std::cout << "COAPLYYYYYYYYYYYYY  - " << $extInterfaceName(X,Y)  << "    " << $volumeTag(X) <<  "  BOOL:  " << (*$extInterfaceNameStr(X,Y)).INTF_docommunicate << "   NCYCLE: " << *$ncycle   << std::endl ;
       
+      if(Loci::MPI_rank==0) 
+         m3l_Cat(Gnode, "--all", "-L", "-P", "*",   (lmchar_t *)NULL);
       
       int len = (*$extInterfaceNameStr(X,Y)).INTF_domsize;
       
@@ -316,6 +350,130 @@ namespace flowPsi {
    };
    
    
+   
+
+/*
+ * elastic body motion interface
+ * ====================================================================================
+ */
+   $rule apply(componentMotionData<-ncycle, stime, dtmax,ext_interfaces,extInterfaceNameStr(X,Y),
+                 componentName_X,extInterfaceName(X,Y),volumeTag(X))[Loci::NullOp], 
+                 parametric(extInterfaceName(X,Y)),
+                 constraint(ConstextInterfaceName(X,Y),volumeTag(X),componentExternalElastic_X), 
+                 conditional(docom),
+                 prelude{
+/*
+ * if interface is "active" communicate
+ */
+    if(Loci::MPI_rank==0) 
+      std::cout << "COAPLYYYYYYYYYYYYY  - " << $extInterfaceName(X,Y)  << "    " << $volumeTag(X) <<  "  BOOL:  " << (*$extInterfaceNameStr(X,Y)).INTF_docommunicate << "   NCYCLE: " << *$ncycle   << std::endl ;
+      
+      int len = (*$extInterfaceNameStr(X,Y)).INTF_domsize;
+/*
+ * loop over fact database with interfaces and find if it is there
+ */
+      comm_struct_t comm_str, *pcomm_str;
+      pcomm_str = &comm_str;
+
+      int comm_interface;
+      comm_interface = 1;
+/*
+ * set defaults
+ */      
+    //       (*$extInterfaceNameStr(X,Y)).INTF_docommunicate = false;
+      string commtype;
+      Loci::options_list::arg_list Vol_tags, *pVol_tags;
+      pVol_tags = &Vol_tags;
+/* 
+ * broadcast comm_interface
+ */
+        MPI_Bcast(&comm_interface,1,MPI_INTEGER,0,MPI_COMM_WORLD) ;
+        if(comm_interface == 1){
+/*
+ * if comm_interface == 1 broadcast pcomm_str
+ */
+           MPI_Bcast(pcomm_str->type,80,MPI_CHAR,0,MPI_COMM_WORLD) ;
+           commtype = pcomm_str->type;
+
+            if(Loci::MPI_rank==0)   std::cout << "communication  - " << commtype  << " and char " << pcomm_str->type << endl ;
+
+           if(commtype.compare("aeroelasticity") == 0){
+    //           $extInterfaceNameStr(X,Y).INTF_docommunicate = true;
+           } 
+           else{
+              std::cerr << "ERROR: did not find communication type - " << commtype  << " - , check settings in .vars file" << std::endl ;
+              exit(-1) ;
+           }
+
+        }
+
+
+  //    if( (*$extInterfaceNameStr(X,Y)).INTF_docommunicate){    
+
+        vect3d cg = vect3d (1.0,1.0,1.0) ;
+        vect3d cg_new;
+/*
+ * get simulation time
+ */
+        real t = *$stime + *$dtmax ;
+
+
+        Loci::options_list::arg_list list ;
+        options_list::arg_list value_list ;
+        componentXform xform ;
+
+        if(Loci::MPI_rank==0) {
+/*
+ * communicate, if interface found, execute it, all checks were done before this rule
+ */
+           if(ident_intf(pVol_tags, *$ext_interfaces, pcomm_str,*$extInterfaceName(X,Y), "aeroelasticity")){
+/*
+ * this is rigid body motion interface, sends away forces and gets back quaternion, translation and 
+ * center of rotation
+ */
+//                bridge_prescribed_quaternion(t, ForceX, ForceY, ForceZ, &Alpha, &Qx, &Qy, &Qz,
+//                    &TransX, &TransY, &TransZ, &RotCX, &RotCY, &RotCZ, pcomm_str);
+            }
+        }
+   };
+   
+/*
+ * allocate array with data which will be sent/received trough lsipdx socket
+ * the array will be allocated on MPI_Rank == 0 (later it will be changed ito 
+ * IO partition index)
+ */
+// $rule unit(nodeCollection <- bufferSize),
+// 	option(disable_threading),constraint( componentExternalElastic_X ),
+// 				prelude { 
+// 
+// 	if(Loci::MPI_rank == 0) {
+// 
+// 		if ( cfd_data.node_ids.empty() ) {
+// 			cout << "Allocating memory for node IDs.\n";
+// 			cfd_data.node_ids.resize(*$bufferSize);
+// 		}
+// 
+// 		if ( cfd_data.node_coords.empty() ) {
+// 			cout << "Allocating memory for node coordinates.\n";
+// 			cfd_data.node_coords.resize(*$bufferSize,vector<double>(3));
+// 
+// 		}
+// 
+// 		if ( cfd_data.disp.empty() ) {
+// 			cout << "Allocating memory for node displacements.\n";
+// 			cfd_data.disp.resize(*$bufferSize,vector<double>(3));
+// 		}
+// 
+// 	}  
+// };
+   
+/*
+ * elastic body motion interface
+ * ====================================================================================
+ */
+
+
+
     $rule pointwise(localvec<-ncycle,facecenter),
      constraint(ConstextInterfaceName(X,Y)),parametric(extInterfaceName(X,Y))
      {
@@ -347,7 +505,7 @@ namespace flowPsi {
 
 
   $rule singleton(XmotionData(X)<-dtmax,stime), 
-    constraint($componentExternalRigid_X),parametric(volumeTag(X)){
+    constraint(componentExternalRigid_X),parametric(volumeTag(X)){
     if(Loci::MPI_rank==0) {
       cerr << " " << endl ;
       cerr << "ERROR: Current version of flowPsi not compiled with libm3l and lsidpx support" << endl ;
