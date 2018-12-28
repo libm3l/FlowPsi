@@ -97,7 +97,9 @@ namespace flowPsi {
     $componentMotionTypes->insert(string("rotation")) ;
     $componentMotionTypes->insert(string("servo")) ;
     $componentMotionTypes->insert(string("prescribed")) ;
-    $componentMotionTypes->insert(string("external")) ;
+    $componentMotionTypes->insert(string("external_rigid")) ;
+    $componentMotionTypes->insert(string("external_elastic")) ;
+    $componentMotionTypes->insert(string("external_rigid_elastic")) ;
     $componentMotionTypes->insert(string("stationary")) ;
   } ;    
 /*
@@ -113,20 +115,20 @@ namespace flowPsi {
  * componentExternalMotion is set when component motion is set to external
  * some of the external communication does not necessarily need mesh motion
  */
-  $type componentExternal_X Constraint ;
+  $type componentExternalRigid_X Constraint ;
   $type componentExternalMotion_X Constraint ;
 /*
  * set what type of motion
  */
   $rule constraint(componentServo_X,componentRotation_X,componentPrescribed_X,
-       componentStationary_X,componentExternal_X,componentExternalMotion_X<-
+       componentStationary_X,componentExternalRigid_X,componentExternalMotion_X<-
        volumeTag(X),componentMotion,componentMotionTypes),
 
     parametric(volumeTag(X)) {
     string tag = $volumeTag(X) ;
     $componentRotation_X = EMPTY ;
     $componentPrescribed_X = EMPTY ;
-    $componentExternal_X = EMPTY ;
+    $componentExternalRigid_X = EMPTY ;
     $componentExternalMotion_X = EMPTY ;
     $componentStationary_X = EMPTY ;
     $componentServo_X = EMPTY ;
@@ -146,14 +148,14 @@ namespace flowPsi {
         $componentServo_X = ~EMPTY ;
       } else if(name == "prescribed") {
         $componentPrescribed_X = ~EMPTY ;
-      } else if(name == "external") {
+      } else if(name == "external_rigid") {
 /*
  * if componentMotion specified as external 
  * set mesh motion to external and set flag that there is 
- * external sovler communication (flag componentExternal).
+ * external solver communication (flag componentExternal).
  * This flag is used in solverExternalComm.loci
  */
-        $componentExternal_X = ~EMPTY ;
+        $componentExternalRigid_X = ~EMPTY ;
         $componentExternalMotion_X= ~EMPTY ;
       } else if(name == "stationary") {
         $componentStationary_X = ~EMPTY ;

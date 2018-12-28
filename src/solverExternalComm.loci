@@ -92,12 +92,12 @@ namespace flowPsi {
  * componentExternal is set always when interface calls for external communication
  * it is set in gridComponents.loci
  */
-  $type componentExternal_X Constraint ;
+  $type $componentExternalRigid_X Constraint ;
   
  $type componentName_X blackbox<string> ;
 /*
  * values of the componentName_X which is the same as volumeTag,
- * and is with the componentExternal_X which indicates the tag communicates 
+ * and is with the $componentExternalRigid_X which indicates the tag communicates 
  * externally set in gridComponent.loci
  */
 
@@ -148,7 +148,7 @@ namespace flowPsi {
    $rule apply(componentMotionData<-ncycle, stime, dtmax,ext_interfaces,extInterfaceNameStr(X,Y),
                  componentName_X,extInterfaceName(X,Y),volumeTag(X))[Loci::NullOp], 
                  parametric(extInterfaceName(X,Y)),
-                 constraint(ConstextInterfaceName(X,Y),volumeTag(X),componentExternal_X), 
+                 constraint(ConstextInterfaceName(X,Y),volumeTag(X),componentExternalRigid_X), 
                  conditional(docom),
                  prelude{
 /*
@@ -347,7 +347,7 @@ namespace flowPsi {
 
 
   $rule singleton(XmotionData(X)<-dtmax,stime), 
-    constraint(componentExternal_X),parametric(volumeTag(X)){
+    constraint($componentExternalRigid_X),parametric(volumeTag(X)){
     if(Loci::MPI_rank==0) {
       cerr << " " << endl ;
       cerr << "ERROR: Current version of flowPsi not compiled with libm3l and lsidpx support" << endl ;
