@@ -189,7 +189,7 @@ namespace flowPsi {
       std::cout << "COAPLYYYYYYYYYYYYY  - " << $extInterfaceName(X,Y)  << "    " << $volumeTag(X) <<  "  BOOL:  " << (*$extInterfaceNameStr(X,Y)).INTF_docommunicate << "   NCYCLE: " << *$ncycle   << std::endl ;
       
       if(Loci::MPI_rank==0) 
-         m3l_Cat(Gnode, "--all", "-L", "-P", "*",   (lmchar_t *)NULL);
+         m3l_Cat(Gnode, "--detailed", "-L", "-P", "*",   (lmchar_t *)NULL);
       
       int len = (*$extInterfaceNameStr(X,Y)).INTF_domsize;
       
