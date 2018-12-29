@@ -66,9 +66,8 @@ using std::cerr ;
 
 namespace flowPsi { 
     
-      bool ident_intf(Loci::options_list::arg_list *pVol_tags, Loci::options_list ext_interfaces, 
-                      comm_struct_t *pcomm_str, string name, string type);
-
+     bool ident_intf(Loci::options_list::arg_list *pVol_tags, Loci::options_list ext_interfaces, 
+             comm_struct_t *pcomm_str, string name, string type);
 /*
  * loop through list of interfaces and parse parameters
  */
@@ -131,11 +130,13 @@ namespace flowPsi {
           cerr << "error allocating proc_arr array " << endl ;
       if(  (proc_glob_arr = (int *) malloc(procs * sizeof(int))) == NULL)
           cerr << "error allocating proc_glob_arr array " << endl ;
-
+/*
+ * set sizes of data to 0 and on root partition to -1
+ */
       for(int i=0; i<procs; i++)
           proc_arr[i] = 0;
       
-      if(rank == 0)proc_arr[0] = 1;
+      if(rank == 0)proc_arr[0] = -1;
 /*
  * create new extinterfaces facts 
  */
@@ -234,7 +235,7 @@ namespace flowPsi {
                 Loci::entitySet dom = entitySet(sp->domain()) ;
                 int np  = dom.size();
     //            std::cout << val << " "<< rank <<"  " << np << endl ;
-                if(np > 0) proc_arr[rank] = 1;
+                if(np > 0) proc_arr[rank] = np;
                 if(rank == 0 && np > 0)Root_ind = 1;
 
               }
@@ -263,10 +264,12 @@ namespace flowPsi {
  * fill proc_arr with ranks
  */
         MPI_Allreduce(proc_arr,proc_glob_arr,procs,MPI_INT,MPI_SUM,MPI_COMM_WORLD);
-
+/*
+ * get total number of processors containing interface (root partition always included
+ */
         int gproc = 0;
         for(int i=0; i<procs; i++){
-           if(proc_glob_arr[i] > 0){
+           if(proc_glob_arr[i] > 0 || proc_glob_arr[i] < 0){
              gproc += 1;
            } 
         }
@@ -275,10 +278,12 @@ namespace flowPsi {
 
         if(  (loc_proc = (int *) malloc(gproc * sizeof(int))) == NULL)
           cerr << "error allocating loc_proc array " << endl ;
-         
+/*
+ * get number of processors containing interface
+ */         
         gproc = 0;
         for(int i=0; i<procs; i++){
-           if(proc_glob_arr[i] > 0){
+           if(proc_glob_arr[i] > 0 || proc_glob_arr[i] < 0){
              loc_proc[gproc] = i;
              gproc += 1;
            } 
@@ -305,6 +310,18 @@ namespace flowPsi {
  */
       interfaceSet_str->INTF_comm  = MPI_Comm_c2f(new_comm);
       interfaceSet_str->INTF_Root_ind  = Root_ind;
+/*
+ * count total number of elements on patition
+ */
+      gproc = 0;
+      for(int i=0; i<procs; i++){
+         if(proc_glob_arr[i] > 0){
+             gproc += proc_glob_arr[i] ;
+         } 
+      }
+      interfaceSet_str-> INTF_totdomsize = gproc;
+      
+     printf(" Total number of elements is %d\n", interfaceSet_str-> INTF_totdomsize);
 /*
  * add all intsurf to a newly created constraint ConstextInterfaceName_X
  */
