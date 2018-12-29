@@ -67,13 +67,18 @@ using std::cerr ;
 namespace flowPsi { 
     
      bool ident_intf(Loci::options_list::arg_list *pVol_tags, Loci::options_list ext_interfaces, 
-             comm_struct_t *pcomm_str, string name, string type);
+             comm_struct_t *pcomm_str, string name, string typexternal);
 /*
  * loop through list of interfaces and parse parameters
  */
     bool get_interface_info(fact_db &facts){      
     bool error = false ;
     int *proc_arr, *proc_glob_arr;
+    node_t *TmpNode=NULL, *IntfNode=NULL;
+    lmsize_t dim[2]; 
+    lmsize_t clen;
+    string type;
+    const char *cp;
     
     param<options_list> bc_info, int_info ;
 /*
@@ -89,6 +94,12 @@ namespace flowPsi {
     error = true ;
 
     if(Loci::MPI_rank == 0){
+/*
+ * create structure for interfaces data
+ */
+       if(  (Gnode = m3l_Mklist("Interfaces", "DIR", 0, 0, (node_t **)NULL, (const char *)NULL, (const char *)NULL, (char *)NULL)) == 0)
+		Perror("m3l_Mklist");
+            
        std::cout << "    " << endl ;
        std::cout << "ext_interfaces: " << endl ;
        std::cout << "---------------------" << endl ;}
@@ -121,8 +132,13 @@ namespace flowPsi {
 /*
  * print interface name
  */
-      if(Loci::MPI_rank == 0)
+      if(Loci::MPI_rank == 0){
         std::cout << "Interface name:  " << bname << endl ;
+      
+       const char *cstr = bname.c_str();
+        if(  (IntfNode = m3l_Mklist(cstr, "DIR", 0, 0, &Gnode, "/Interfaces", "./", (char *)NULL)) == 0)
+		  Perror("m3l_Mklist");
+      }
 /*
  * allocate temporary arrays  (maybe something like std::vector<int> proc_arr(procs) ; would me more C++ like)
  */      
@@ -243,6 +259,14 @@ namespace flowPsi {
               interfaceSet_str->INTF_domsize = dom.size();
 
            }
+//            else if(*lii == "type" ){
+//                bzero(type,80);
+//                ol.getOption(*lii,type) ;
+//                cp =  type.c_str();
+//                clen = strlen(cp);
+//                strncpy(type, cp, clen);
+//                type[clen] = '\0';
+//            }
         }
 /*
  * if option == comm_freq, get the number
@@ -320,8 +344,7 @@ namespace flowPsi {
          } 
       }
       interfaceSet_str-> INTF_totdomsize = gproc;
-      
-     printf(" Total number of elements is %d\n", interfaceSet_str-> INTF_totdomsize);
+      if(Loci::MPI_rank == 0)std::cout << "Total number of elements is " << interfaceSet_str-> INTF_totdomsize<< endl ;
 /*
  * add all intsurf to a newly created constraint ConstextInterfaceName_X
  */
@@ -339,6 +362,9 @@ namespace flowPsi {
       }
     if(Loci::MPI_rank == 0)
        std::cout << "    " << endl ;
+/*
+ * add data based on type of interface
+ */
     
     free(proc_arr);
     free(proc_glob_arr);
@@ -353,7 +379,7 @@ namespace flowPsi {
  * function loops over interfaces, find if there is associated tag 
  */
      bool ident_intf(Loci::options_list::arg_list *pVol_tags, Loci::options_list ext_interfaces, 
-                     comm_struct_t *pcomm_str, string name, string type){
+                     comm_struct_t *pcomm_str, string name, string typexternal){
 /*
  * get pointer on interfaces in facts 
  */
@@ -431,7 +457,7 @@ namespace flowPsi {
       Loci::option_values oss;
 
       double param;
-      string type,tag,I_channel, O_channel, intf_name,IP, BCs, I_channel_name, O_channel_name;
+      string type, tag,I_channel, O_channel, intf_name,IP, BCs, I_channel_name, O_channel_name;
 
       options_list::option_namelist::iterator lii;
       for(lii=nlb.begin();lii!=nlb.end();++lii){ 
@@ -470,7 +496,7 @@ namespace flowPsi {
             strncpy(pcomm_str->type, cp, clen);
             pcomm_str->type[clen] = '\0';
             
-            if(pcomm_str->type != type)found = 0;
+            if(pcomm_str->type != typexternal)found = 0;
         }
         else if(*lii == "IP" ){
             bzero(pcomm_str->IP,80);

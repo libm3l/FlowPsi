@@ -86,8 +86,7 @@ $type componentExternalMotion_X Constraint ;
 
 $type localvec store<Loci::vector3d<Loci::real_t> > ;
 
-node_t *Gnode=NULL;
-
+node_t *Gnode;
 
 namespace flowPsi { 
 
@@ -114,11 +113,11 @@ namespace flowPsi {
         
           std::cout << "CREATING GNODE===================================================================== "<<  ::endl ;
  
-	      if(  (Gnode = m3l_Mklist("Interfaces", "DIR", 0, 0, (node_t **)NULL, (const char *)NULL, (const char *)NULL, (char *)NULL)) == 0)
-		    Perror("m3l_Mklist");
+// 	      if(  (Gnode = m3l_Mklist("Interfaces", "DIR", 0, 0, (node_t **)NULL, (const char *)NULL, (const char *)NULL, (char *)NULL)) == 0)
+// 		    Perror("m3l_Mklist");
           
-          if(  (TmpNode = m3l_Mklist("Interface_1", "DIR", 0, 0, &Gnode, "/Interfaces", "./", (char *)NULL)) == 0)
-		  Perror("m3l_Mklist");
+//           if(  (TmpNode = m3l_Mklist("IIII", "DIR", 0, 0, &Gnode, "/Interfaces", "./", (char *)NULL)) == 0)
+// 		  Perror("m3l_Mklist");
         }
                     
     };

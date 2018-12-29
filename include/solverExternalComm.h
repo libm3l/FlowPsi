@@ -9,7 +9,7 @@ namespace flowPsi {
   bool get_interface_info(fact_db &facts);
 }
 
-// node_t *Gnode=NULL;
+extern node_t *Gnode;
 
 typedef struct InterfStr{
   int INTF_comm;        /*   communicator */
