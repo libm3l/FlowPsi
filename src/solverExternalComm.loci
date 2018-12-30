@@ -488,11 +488,34 @@ template<class T> void scatterVectorE(std::vector<T> &p0v,
 /*
  * if interface is "active" communicate
  */
+    int n;
+    find_t *Founds=NULL;
+    node_t *IntfNode;
+    char buffer [80];
+    
     if(Loci::MPI_rank==0) 
       std::cout << "COAPLYYYYYYYYYYYYY- AEROELS  - " << $extInterfaceName(X,Y)  << "    " << $volumeTag(X) <<  "  BOOL:  " << (*$extInterfaceNameStr(X,Y)).INTF_docommunicate << "   NCYCLE: " << *$ncycle   << std::endl ;
     
      if(Loci::MPI_rank==0) 
          m3l_Cat(Gnode, "--detailed", "-L", "-P", "*",   (lmchar_t *)NULL);
+/*
+ * find interface with file Name with name *$extInterfaceName(X,Y) in it
+ */
+       string iii1 =  *$extInterfaceName(X,Y) ;
+       const char *srt = iii1.c_str(); 
+       n=sprintf (buffer, "/*/SV_Name=%s", srt);
+/*
+ * locate interface, clean allocated memory
+ */      
+      if( (Founds = m3l_Locate(Gnode, "/Interfaces/Interface", buffer,  (lmchar_t *)NULL)) != NULL){
+          
+          IntfNode = m3l_get_Found_node(Founds, 0);
+          m3l_DestroyFound(&Founds);
+
+      }
+      else{
+          Perror("Did not find aeroleastic interface");
+      }
       
       int len = (*$extInterfaceNameStr(X,Y)).INTF_domsize;
 /*
