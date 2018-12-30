@@ -91,8 +91,116 @@ namespace flowPsi {
 
    bool ident_intf(Loci::options_list::arg_list *pVol_tags, Loci::options_list ext_interfaces, 
                       comm_struct_t *pcomm_str, string name, string type);
-   
+      
    $rule optional(ext_interfaces) {}
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+    
+template<class T> void gatherVectorE(std::vector<T> &p0v, std::vector<T> &v, MPI_Comm comm) {
+	int rank = 0 ;
+	MPI_Comm_rank(comm,&rank) ;
+	int procs = 1 ;
+	MPI_Comm_size(comm,&procs) ;
+
+	// Gather sizes
+	int local_size = v.size() ;
+	std::vector<int> recv_sizes(procs) ;
+	MPI_Gather(&local_size,1,MPI_INT,
+			&recv_sizes[0],1,MPI_INT,0,comm) ;
+
+	// Allocate receive array
+	int tot_size = recv_sizes[0] ;
+	for(int i=1;i<procs;++i) {
+		tot_size += recv_sizes[i] ;
+	}
+	if(tot_size != int(p0v.size())) {
+		std::vector<T> tmp(tot_size) ;
+		p0v.swap(tmp) ;
+	}
+
+	// Compute sizes in bytes
+	const int bsz = sizeof(T) ;
+	for(int i=0;i<procs;++i)
+		recv_sizes[i] *= bsz ;
+
+	// Bookkeeping for gatherv call
+	std::vector<int> displs(procs) ;
+	displs[0] = 0 ;
+	for(int i=1;i<procs;++i)
+		displs[i] = displs[i-1]+recv_sizes[i-1] ;
+
+	// Gather data
+	MPI_Gatherv(&v[0],local_size*bsz,MPI_BYTE,
+			&p0v[0],&recv_sizes[0],&displs[0],MPI_BYTE,
+			0, comm) ;
+}
+// Reverse of gather vector.  Assumes vectors are preallocated with
+// sizes each processor will receive.
+template<class T> void scatterVectorE(std::vector<T> &p0v,
+		std::vector<T> &v,
+		MPI_Comm comm) {
+	int rank = 0 ;
+	MPI_Comm_rank(comm,&rank) ;
+	int procs = 1 ;
+	MPI_Comm_size(comm,&procs) ;
+
+	// Gather sizes
+	int local_size = v.size() ;
+	std::vector<int> send_sizes(procs) ;
+	MPI_Gather(&local_size,1,MPI_INT,
+			&send_sizes[0],1,MPI_INT,0,comm) ;
+
+	// Allocate receive array
+	int tot_size = send_sizes[0] ;
+	for(int i=1;i<procs;++i) {
+		tot_size += send_sizes[i] ;
+	}
+	if(tot_size != int(p0v.size())) {
+		std::cerr << "incompatible sizes of vectors in scatterVector: Total receive vector sizes " << tot_size << ", Send vector size: " << p0v.size() << "\n" ;
+		Loci::Abort() ;
+	}
+
+	// Compute sizes in bytes
+	const int bsz = sizeof(T) ;
+	for(int i=0;i<procs;++i)
+		send_sizes[i] *= bsz ;
+
+	// Bookkeeping for gatherv call
+	std::vector<int> displs(procs) ;
+	displs[0] = 0 ;
+	for(int i=1;i<procs;++i)
+		displs[i] = displs[i-1]+send_sizes[i-1] ;
+
+	// Scatter data
+	MPI_Scatterv(&p0v[0],&send_sizes[0],&displs[0],MPI_BYTE,
+			&v[0],local_size*bsz,MPI_BYTE,
+			0, comm) ;
+}
+
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
   
   $type numDeformNodes                   		param<size_t>;
   $type InterfaceIO  blackbox<int>; 
@@ -372,7 +480,7 @@ namespace flowPsi {
  */
    $rule apply(componentMotionData<-ncycle, stime, dtmax,ext_interfaces,extInterfaceNameStr(X,Y),
                  componentName_X,extInterfaceName(X,Y),volumeTag(X),ConstextInterfaceName(X,Y),
-                 face2node, pos)[Loci::NullOp], 
+                 face2node, pos,facecenter,temperature_f,gagePressure_f)[Loci::NullOp], 
                  parametric(extInterfaceName(X,Y)),
                  constraint(ConstextInterfaceName(X,Y),volumeTag(X),componentExternalElastic_X), 
                  conditional(docom),
@@ -397,6 +505,11 @@ namespace flowPsi {
 /*
  * set defaults
  */      
+/*
+ * get simulation time
+ */
+        real t = *$stime + *$dtmax ;
+
     //       (*$extInterfaceNameStr(X,Y)).INTF_docommunicate = false;
       string commtype;
       Loci::options_list::arg_list Vol_tags, *pVol_tags;
@@ -423,9 +536,7 @@ namespace flowPsi {
             std::cerr << "ERROR: did not find interface - " << *$extInterfaceName(X,Y)  << " - , check settings in .vars file" << std::endl ;
             exit(-1) ;
         }
-       }      
-      
-      
+       }
 /* 
  * broadcast comm_interface
  */
@@ -465,33 +576,34 @@ namespace flowPsi {
         
 //         Loci::entitySet dom = entitySet(seq) ;
         
-//         FORALL(intsurf,ii) {
+//         sleep(Loci::MPI_rank);
+   
+        int cnt = 0 ; 
+        vector<vect3d> pos_loc(len) ;    
+        
+        FORALL(intsurf,ii) {
 //           vect3d p1 = $pos[$face2node[ii][0]] ;
-//           std::cout << p1 << endl ;
-//         } ENDFORALL ;
-//         
-         std::cout << "__________UUUUUUUUUiiiiiiiiii___________  - " << intsurf.size() << endl ;
-        
-//         std::cout << "LEN   - " << len << endl ;
-//         
-//         for(int fc = 0 ; fc < len; fc++)
-//                  cout <<  $facecenter[fc] << endl;
-
-  //    if( (*$extInterfaceNameStr(X,Y)).INTF_docommunicate){    
-
-        vect3d cg = vect3d (1.0,1.0,1.0) ;
-        vect3d cg_new;
-/*
- * get simulation time
- */
-        real t = *$stime + *$dtmax ;
+//           vect3d p2 = $pos[$face2node[ii][1]] ;
+//           vect3d p3 = $pos[$face2node[ii][2]] ;
+//           vect3d p4 = $pos[$face2node[ii][3]] ;
+          
+          vect3d p5     = $facecenter[ii] ;
+          pos_loc[cnt]  = $facecenter[ii] ;
+		  cnt++ ;
+//           std::cout << p5 << "  " <<  $gagePressure_f[ii] <<endl ;
 
 
-        Loci::options_list::arg_list list ;
-        options_list::arg_list value_list ;
-        componentXform xform ;
-        
-        sleep(5);
+        } ENDFORALL ;         
+         
+       	vector<vect3d> pos_glob ;
+    	gatherVectorE(pos_glob,pos_loc,MPI_COMM_WORLD) ;
+	// sanity check
+	    if(Loci::MPI_rank == 0) {
+            
+          for(int i = 0 ; i< pos_glob.size(); i++)
+              std::cout << "Gather " << pos_glob[i] <<endl ;
+		
+	   }
 
         if(Loci::MPI_rank==0) {
 /*
@@ -526,14 +638,15 @@ namespace flowPsi {
         $localvec = $facecenter;
         };
    
-//    $rule pointwise(OUTPUT<-ncycle,temperature_f, u_f,facecenter),
-//     constraint(ConstextInterfaceName(X,Y)),parametric(extInterfaceName(X,Y))
-//     {
-// /*
-//  * get number of points on boundaries in interface
-//  */
-//      cout << "RANK " << Loci::MPI_rank << " Cycle " << " INTF is "<<   $ncycle << "  " <<  $temperature_f << "  " << $facecenter<< endl;
-//     };
+   $rule pointwise(OUTPUT<-ncycle,temperature_f, u_f,facecenter),
+    constraint(ConstextInterfaceName(X,Y)),parametric(extInterfaceName(X,Y))
+    {
+/*
+ * get number of points on boundaries in interface
+ */
+     cout << "RANK " << Loci::MPI_rank << " Cycle " << " INTF is "<<   $ncycle << "  " <<  $temperature_f << "  " << $facecenter<< endl;
+    };
+    
 
 }
 
