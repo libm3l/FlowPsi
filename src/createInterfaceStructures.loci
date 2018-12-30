@@ -75,12 +75,13 @@ namespace flowPsi {
     bool get_interface_info(fact_db &facts){      
     bool error = false ;
     int *proc_arr, *proc_glob_arr, gproc;
-    node_t *TmpNode=NULL, *IntfNode=NULL, *DataNode=NULL;
+    node_t *TmpNode=NULL, *IntfNode=NULL, *DataNode=NULL, *LDataNode=NULL;
     lmsize_t dim[2],i; 
     lmsize_t clen;
     string type;
     const char *cp;
     string bname;
+    int locdomsize;
     
     param<options_list> bc_info, int_info ;
 /*
@@ -96,15 +97,16 @@ namespace flowPsi {
     error = true ;
 
     if(Loci::MPI_rank == 0){
-/*
- * create structure for interfaces data
- */
-       if(  (Gnode = m3l_Mklist("Interfaces", "DIR", 0, 0, (node_t **)NULL, (const char *)NULL, (const char *)NULL, (char *)NULL)) == 0)
-		Perror("m3l_Mklist");
             
        std::cout << "    " << endl ;
        std::cout << "ext_interfaces: " << endl ;
        std::cout << "---------------------" << endl ;}
+
+/*
+ * create structure for interfaces data
+ */
+    if(  (Gnode = m3l_Mklist("Interfaces", "DIR", 0, 0, (node_t **)NULL, (const char *)NULL, (const char *)NULL, (char *)NULL)) == 0)
+	  Perror("m3l_Mklist");
 
     options_list::option_namelist nl = int_info->getOptionNameList() ;
     options_list::option_namelist::iterator li;  
@@ -134,24 +136,26 @@ namespace flowPsi {
 /*
  * print interface name
  */
-      if(Loci::MPI_rank == 0){
+      if(Loci::MPI_rank == 0)
         std::cout << "Interface name:  " << bname << endl ;
 /*
  * add interface to Interfaces, make global_data DIR and add name
  */
         const char *cstr = bname.c_str();
         clen = strlen(cstr);
+        
         if(  (IntfNode = m3l_Mklist("Interface", "DIR", 0, 0, &Gnode, "/Interfaces", "./", (char *)NULL)) == 0)
 		  Perror("m3l_Mklist");
         if(  (DataNode = m3l_Mklist("global_data", "DIR", 0, 0, &IntfNode, "/Interface", "./", (char *)NULL)) == 0)
 		  Perror("m3l_Mklist");
+        if(  (LDataNode = m3l_Mklist("local_data", "DIR", 0, 0, &IntfNode, "/Interface", "./", (char *)NULL)) == 0)
+		  Perror("m3l_Mklist");
+        
         dim[0] = clen;
         if(  (TmpNode = m3l_Mklist("Name", "C", 1, dim, &IntfNode, "/Interface", "./", (char *)NULL)) == 0)
 		   Error("socket_FlowPsi2simulink: m3l_Mklist");
         strncpy(TmpNode->data.c, cstr, clen);
         TmpNode->data.c[clen]='\0';
-
-     }
 /*
  * allocate temporary arrays  (maybe something like std::vector<int> proc_arr(procs) ; would me more C++ like)
  */      
@@ -269,6 +273,7 @@ namespace flowPsi {
               }
               Loci::entitySet dom = entitySet(intsurf) ;
               interfaceSet_str->INTF_domsize = dom.size();
+              locdomsize = dom.size();
 
            }
            else if(*lii == "type" ){
@@ -376,7 +381,7 @@ namespace flowPsi {
         facts.create_fact(constraint_name,bc_constraint) ;
 
       }
-    if(Loci::MPI_rank == 0){
+    if(Loci::MPI_rank == 0)
        std::cout << "    " << endl ;
 /*
  * add data based on type of interface
@@ -386,29 +391,33 @@ namespace flowPsi {
  * aeroelastic interface
  * add forces and displacements
  */        
-	     dim[0] = gproc;
+         dim[0] = locdomsize;
          dim[1] = 3;
+
 /*
  * create and store double array of 6 with name ForcesMoments in CFD_2_SIM
  */
-	     if(  (TmpNode = m3l_Mklist("Forces", "D", 2, dim, &DataNode, "./global_data", "./", (char *)NULL)) == 0)
-		   Error("socket_FlowPsi2simulink: m3l_Mklist");
-	     if(  (TmpNode = m3l_Mklist("disps", "D", 2, dim, &DataNode, "./global_data", "./", (char *)NULL)) == 0)
-		   Error("socket_FlowPsi2simulink: m3l_Mklist");
-         
-//          dim[0] = 1;
-//          if(  (TmpNode = m3l_Mklist("Ntria", "ST", 1, dim, &DataNode, "./global_data", "./", (char *)NULL)) == 0)
-// 		   Error("socket_FlowPsi2simulink: m3l_Mklist");
-//          TmpNode->data.st[0] = tri_sum;
-//          if(  (TmpNode = m3l_Mklist("Nquad", "ST", 1, dim, &DataNode, "./global_data", "./", (char *)NULL)) == 0)
-// 		   Error("socket_FlowPsi2simulink: m3l_Mklist");
-//          TmpNode->data.st[0] = qua_sum;
-//          if(  (TmpNode = m3l_Mklist("Ngen", "ST", 1, dim, &DataNode, "./global_data", "./", (char *)NULL)) == 0)
-// 		   Error("socket_FlowPsi2simulink: m3l_Mklist");
-//          TmpNode->data.st[0] = gen_sum;
+  	     if(  (TmpNode = m3l_Mklist("Forces", "D", 2, dim, &LDataNode, "./local_data", "./", (char *)NULL)) == 0)
+  		    Error("socket_FlowPsi2simulink: m3l_Mklist");
+	     if(  (TmpNode = m3l_Mklist("disps", "D", 2, dim, &LDataNode, "./local_data", "./", (char *)NULL)) == 0)
+		     Error("socket_FlowPsi2simulink: m3l_Mklist");
+           
+         if(Loci::MPI_rank == 0){
+             
+            dim[0] = gproc;
+            dim[1] = 3;
+
+/*
+ * create and store double array of 6 with name ForcesMoments in CFD_2_SIM
+ */
+  	       if(  (TmpNode = m3l_Mklist("Forces", "D", 2, dim, &DataNode, "./global_data", "./", (char *)NULL)) == 0)
+  		     Error("socket_FlowPsi2simulink: m3l_Mklist");
+	       if(  (TmpNode = m3l_Mklist("disps", "D", 2, dim, &DataNode, "./global_data", "./", (char *)NULL)) == 0)
+		     Error("socket_FlowPsi2simulink: m3l_Mklist");
+         }
+
        }
     
-    }
     
     free(proc_arr);
     free(proc_glob_arr);

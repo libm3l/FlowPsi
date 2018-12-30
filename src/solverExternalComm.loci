@@ -490,6 +490,9 @@ template<class T> void scatterVectorE(std::vector<T> &p0v,
  */
     if(Loci::MPI_rank==0) 
       std::cout << "COAPLYYYYYYYYYYYYY- AEROELS  - " << $extInterfaceName(X,Y)  << "    " << $volumeTag(X) <<  "  BOOL:  " << (*$extInterfaceNameStr(X,Y)).INTF_docommunicate << "   NCYCLE: " << *$ncycle   << std::endl ;
+    
+     if(Loci::MPI_rank==0) 
+         m3l_Cat(Gnode, "--detailed", "-L", "-P", "*",   (lmchar_t *)NULL);
       
       int len = (*$extInterfaceNameStr(X,Y)).INTF_domsize;
 /*
@@ -597,11 +600,11 @@ template<class T> void scatterVectorE(std::vector<T> &p0v,
          
        	vector<vect3d> pos_glob ;
     	gatherVectorE(pos_glob,pos_loc,MPI_COMM_WORLD) ;
-	// sanity check
+
 	    if(Loci::MPI_rank == 0) {
             
-          for(int i = 0 ; i< pos_glob.size(); i++)
-              std::cout << "Gather " << pos_glob[i] <<endl ;
+//           for(int i = 0 ; i< pos_glob.size(); i++)
+//               std::cout << "Gather " << pos_glob[i] <<endl ;
 		
 	   }
 
@@ -638,14 +641,14 @@ template<class T> void scatterVectorE(std::vector<T> &p0v,
         $localvec = $facecenter;
         };
    
-   $rule pointwise(OUTPUT<-ncycle,temperature_f, u_f,facecenter),
-    constraint(ConstextInterfaceName(X,Y)),parametric(extInterfaceName(X,Y))
-    {
-/*
- * get number of points on boundaries in interface
- */
-     cout << "RANK " << Loci::MPI_rank << " Cycle " << " INTF is "<<   $ncycle << "  " <<  $temperature_f << "  " << $facecenter<< endl;
-    };
+//    $rule pointwise(OUTPUT<-ncycle,temperature_f, u_f,facecenter),
+//     constraint(ConstextInterfaceName(X,Y)),parametric(extInterfaceName(X,Y))
+//     {
+// /*
+//  * get number of points on boundaries in interface
+//  */
+//      cout << "RANK " << Loci::MPI_rank << " Cycle " << " INTF is "<<   $ncycle << "  " <<  $temperature_f << "  " << $facecenter<< endl;
+//     };
     
 
 }
