@@ -1,4 +1,4 @@
-//#############################################################################
+// externa//#############################################################################
 //#
 //# Copyright 2015, Mississippi State University
 //#
@@ -158,7 +158,7 @@ namespace flowPsi {
  * external solver communication (flag componentExternal).
  * This flag is used in solverExternalComm.loci
  */
-        $componentExternalRigid_X = ~EMPTY ;
+        $componentExternalRigid_X  = ~EMPTY ;
         $componentExternalMotion_X= ~EMPTY ;
       } else if(name == "external_elastic") {
 /*

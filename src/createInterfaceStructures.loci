@@ -56,6 +56,7 @@ $include "flowPsi.lh"
 #include <GLoci.h>
 #endif
 
+
 using std::list ;
 using std::vector ;
 using std::endl ;
@@ -73,14 +74,13 @@ namespace flowPsi {
  */
     bool get_interface_info(fact_db &facts){      
     bool error = false ;
-    int *proc_arr, *proc_glob_arr;
+    int *proc_arr, *proc_glob_arr, gproc;
     node_t *TmpNode=NULL, *IntfNode=NULL, *DataNode=NULL;
     lmsize_t dim[2],i; 
     lmsize_t clen;
     string type;
     const char *cp;
     string bname;
-    int gproc;
     
     param<options_list> bc_info, int_info ;
 /*
@@ -263,7 +263,6 @@ namespace flowPsi {
  */
                 Loci::entitySet dom = entitySet(sp->domain()) ;
                 int np  = dom.size();
-    //            std::cout << val << " "<< rank <<"  " << np << endl ;
                 if(np > 0) proc_arr[rank] = np;
                 if(rank == 0 && np > 0)Root_ind = 1;
 
@@ -360,15 +359,20 @@ namespace flowPsi {
 /*
  * add all intsurf to a newly created constraint ConstextInterfaceName_X
  */
-        intsurf = all_collect_entitySet(intsurf) ;
+        constraint bc_constraint ;
+        *bc_constraint = intsurf;
+        std::string constraint_name = "LocConstextInterfaceName(Main," + bname + ")" ;
+        facts.create_fact(constraint_name,bc_constraint) ;
+
+        entitySet intsurfall = all_collect_entitySet(intsurf) ;
 /*
  * do some stdout write out
  */
-        if(Loci::MPI_rank == 0)std::cout << bname << " " << intsurf << endl ;
+        if(Loci::MPI_rank == 0)std::cout << bname << " " << intsurfall << endl ;
 
-        constraint bc_constraint ;
-        *bc_constraint = intsurf;
-        std::string constraint_name = "ConstextInterfaceName(Main," + bname + ")" ;
+        bc_constraint ;
+        *bc_constraint = intsurfall;
+        constraint_name = "ConstextInterfaceName(Main," + bname + ")" ;
         facts.create_fact(constraint_name,bc_constraint) ;
 
       }
@@ -377,7 +381,6 @@ namespace flowPsi {
 /*
  * add data based on type of interface
  */
-
        if(type == "aeroelasticity"){
 /*
  * aeroelastic interface
@@ -392,6 +395,17 @@ namespace flowPsi {
 		   Error("socket_FlowPsi2simulink: m3l_Mklist");
 	     if(  (TmpNode = m3l_Mklist("disps", "D", 2, dim, &DataNode, "./global_data", "./", (char *)NULL)) == 0)
 		   Error("socket_FlowPsi2simulink: m3l_Mklist");
+         
+//          dim[0] = 1;
+//          if(  (TmpNode = m3l_Mklist("Ntria", "ST", 1, dim, &DataNode, "./global_data", "./", (char *)NULL)) == 0)
+// 		   Error("socket_FlowPsi2simulink: m3l_Mklist");
+//          TmpNode->data.st[0] = tri_sum;
+//          if(  (TmpNode = m3l_Mklist("Nquad", "ST", 1, dim, &DataNode, "./global_data", "./", (char *)NULL)) == 0)
+// 		   Error("socket_FlowPsi2simulink: m3l_Mklist");
+//          TmpNode->data.st[0] = qua_sum;
+//          if(  (TmpNode = m3l_Mklist("Ngen", "ST", 1, dim, &DataNode, "./global_data", "./", (char *)NULL)) == 0)
+// 		   Error("socket_FlowPsi2simulink: m3l_Mklist");
+//          TmpNode->data.st[0] = gen_sum;
        }
     
     }
