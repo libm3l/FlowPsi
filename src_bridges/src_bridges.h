@@ -66,12 +66,16 @@ extern CPP_C lmint_t bridge_prescribed_quaternion(lmdouble_t, lmdouble_t, lmdoub
 				  lmdouble_t *, lmdouble_t *, lmdouble_t *,
 				  lmdouble_t *, lmdouble_t *, lmdouble_t *, comm_struct_t *);
 
+extern CPP_C node_t *bridge_aeroelastic(node_t *, comm_struct_t *);
+
 #endif
 #else
 
-extern CPP_C lmint_t bridge_prescribed_quaternion(double, double, double, double,
+extern CPP_C int bridge_prescribed_quaternion(double, double, double, double,
 				  double *, double *, double *, double *,
 				  double *, double *, double *,
 				  double *, double *, double *, comm_struct_t *);
+
+extern CPP_C int *bridge_aeroelastic(int *, comm_struct_t *);
 #endif
 

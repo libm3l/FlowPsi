@@ -118,8 +118,7 @@ template<class T> void gatherVectorE(std::vector<T> &p0v, std::vector<T> &v, MPI
 	// Gather sizes
 	int local_size = v.size() ;
 	std::vector<int> recv_sizes(procs) ;
-	MPI_Gather(&local_size,1,MPI_INT,
-			&recv_sizes[0],1,MPI_INT,0,comm) ;
+	MPI_Gather(&local_size,1,MPI_INT, &recv_sizes[0],1,MPI_INT,0,comm) ;
 
 	// Allocate receive array
 	int tot_size = recv_sizes[0] ;
@@ -490,7 +489,7 @@ template<class T> void scatterVectorE(std::vector<T> &p0v,
  */
     int n;
     find_t *Founds=NULL;
-    node_t *IntfNode;
+    node_t *IntfNode, *Snode;
     char buffer [80];
     
     if(Loci::MPI_rank==0) 
@@ -613,10 +612,10 @@ template<class T> void scatterVectorE(std::vector<T> &p0v,
 //           vect3d p3 = $pos[$face2node[ii][2]] ;
 //           vect3d p4 = $pos[$face2node[ii][3]] ;
           
-          vect3d p5     = $facecenter[ii] ;
+          vect3d p5      = $facecenter[ii] ;
           pos_loc[cnt]  = $facecenter[ii] ;
 		  cnt++ ;
-//           std::cout << p5 << "  " <<  $gagePressure_f[ii] <<endl ;
+//            std::cout << p5 << "  " <<  $temperature_f[ii] <<endl ;
 
 
         } ENDFORALL ;         
@@ -640,8 +639,10 @@ template<class T> void scatterVectorE(std::vector<T> &p0v,
  * this is rigid body motion interface, sends away forces and gets back quaternion, translation and 
  * center of rotation
  */
-//                bridge_prescribed_quaternion(t, ForceX, ForceY, ForceZ, &Alpha, &Qx, &Qy, &Qz,
-//                    &TransX, &TransY, &TransZ, &RotCX, &RotCY, &RotCZ, pcomm_str);
+              Snode = bridge_aeroelastic(IntfNode, pcomm_str);
+              
+              	if(m3l_Umount(&Snode) != 1)
+		          Perror("socket_FlowPsi2simulink: m3l_Umount");
             }
         }
    };
