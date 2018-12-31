@@ -196,26 +196,26 @@ template<class T> void scatterVectorE(std::vector<T> &p0v,
 	$numDeformNodes = 0;
 }
  
-  $rule unit(InterfaceIO <- numDeformNodes),
+  $rule unit(InterfaceIO <- numDeformNodes, face2node),
 // 	option(disable_threading),constraint( ConstextInterfaceName(X,Y) ),
 	option(disable_threading),constraint( UNIVERSE),
     prelude {  
      
 //          node_t *TmpNode=NULL;
-        
-//             Loci::entitySet dom = entitySet(seq) ;
-//         	int ntri = 0 ;
-// 	        int nqua = 0 ;
-// 	        int ngen = 0 ; // TODO: Add support for arbitrary-sized faces
-//          	FORALL(dom, ii) {
-// 		      if ($face2node[ii].size() == 3)
-// 			    ntri++ ;
-// 		    else if ($face2node[ii].size() == 4)
-// 			   nqua++ ;
-// 		    else
-// 			   ngen++ ;
-// 	      } ENDFORALL ;
-//           
+        /*
+            Loci::entitySet dom = entitySet(seq) ;
+        	int ntri = 0 ;
+	        int nqua = 0 ;
+	        int ngen = 0 ; // TODO: Add support for arbitrary-sized faces
+         	FORALL(dom, ii) {
+		      if ($face2node[ii].size() == 3)
+			    ntri++ ;
+		    else if ($face2node[ii].size() == 4)
+			   nqua++ ;
+		    else
+			   ngen++ ;
+	      } ENDFORALL ;*/
+          
 //           printf(" COUNT -----------------   %d   %d   %d   %d  \n", Loci::MPI_rank,ntri, nqua, ngen);
          
          if(Loci::MPI_rank==0){
@@ -487,8 +487,9 @@ template<class T> void scatterVectorE(std::vector<T> &p0v,
 /*
  * find interface with file Name with name *$extInterfaceName(X,Y) in it
  */
-       string iii1 =  *$extInterfaceName(X,Y) ;
-       const char *srt = iii1.c_str(); 
+       string str_intfname =  *$extInterfaceName(X,Y) ;
+       string str_voltagname =  *$volumeTag(X) ;
+       const char *srt = str_intfname.c_str(); 
        n=sprintf (buffer, "/*/SV_Name=%s", srt);
 /*
  * locate interface, clean allocated memory
@@ -573,13 +574,13 @@ template<class T> void scatterVectorE(std::vector<T> &p0v,
         }
         
         len = (*$extInterfaceNameStr(X,Y)).INTF_domsize;
-        
-        string blabla = "LocConstextInterfaceName(Main,Interface_3)"; 
+
+        string IntfName = "LocConstextInterfaceName("+str_voltagname+","+str_intfname+")"; 
         Loci::fact_db::distribute_infoP df = 0;         
         if(facts->is_distributed_start())
 	      df = facts->get_distribute_info();
 
-        sp = facts->get_variable(blabla) ;
+        sp = facts->get_variable(IntfName) ;
         Loci::entitySet intsurf = entitySet(sp->domain()) ;
          
         if(df!=0) {
