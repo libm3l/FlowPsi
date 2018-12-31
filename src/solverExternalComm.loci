@@ -195,28 +195,45 @@ template<class T> void scatterVectorE(std::vector<T> &p0v,
 		constraint( UNIVERSE ) {
 	$numDeformNodes = 0;
 }
- 
-  $rule unit(InterfaceIO <- numDeformNodes, face2node),
-// 	option(disable_threading),constraint( ConstextInterfaceName(X,Y) ),
-	option(disable_threading),constraint( UNIVERSE),
+/*
+ * count number of elements 
+ */
+  $rule unit(InterfaceIO <- numDeformNodes,face2node, volumeTag(X), extInterfaceName(X,Y) ),
+	option(disable_threading),constraint( ConstextInterfaceName(X,Y),volumeTag(X)),parametric(extInterfaceName(X,Y)),
     prelude {  
      
 //          node_t *TmpNode=NULL;
-        /*
-            Loci::entitySet dom = entitySet(seq) ;
-        	int ntri = 0 ;
-	        int nqua = 0 ;
-	        int ngen = 0 ; // TODO: Add support for arbitrary-sized faces
-         	FORALL(dom, ii) {
-		      if ($face2node[ii].size() == 3)
-			    ntri++ ;
+         Loci::storeRepP sp;
+         Loci::fact_db* facts = Loci::exec_current_fact_db ;
+
+         string str_intfname =  *$extInterfaceName(X,Y) ;
+         string str_voltagname =  *$volumeTag(X) ;
+        
+         string IntfName = "LocConstextInterfaceName("+str_voltagname+","+str_intfname+")"; 
+         Loci::fact_db::distribute_infoP df = 0;         
+         if(facts->is_distributed_start())
+	       df = facts->get_distribute_info();
+
+         sp = facts->get_variable(IntfName) ;
+         Loci::entitySet dom = entitySet(sp->domain()) ;
+         
+         if(df!=0) {
+	       dom &= df->my_entities ;
+         }
+
+         int ntri = 0 ;
+	     int nqua = 0 ;
+	     int ngen = 0 ; // TODO: Add support for arbitrary-sized faces
+         FORALL(dom, ii) {
+		    if ($face2node[ii].size() == 3)
+		      ntri++ ;
 		    else if ($face2node[ii].size() == 4)
 			   nqua++ ;
 		    else
 			   ngen++ ;
-	      } ENDFORALL ;*/
+	      } ENDFORALL ;
           
-//           printf(" COUNT -----------------   %d   %d   %d   %d  \n", Loci::MPI_rank,ntri, nqua, ngen);
+          printf(" COUNT -----------------   %d   %d   %d   %d  \n", Loci::MPI_rank,ntri, nqua, ngen);
          
          if(Loci::MPI_rank==0){
         
@@ -228,9 +245,27 @@ template<class T> void scatterVectorE(std::vector<T> &p0v,
 //           if(  (TmpNode = m3l_Mklist("IIII", "DIR", 0, 0, &Gnode, "/Interfaces", "./", (char *)NULL)) == 0)
 // 		  Perror("m3l_Mklist");
         }
-                    
     };
+    
+    
+    
+      $rule unit(InterfaceIO <- numDeformNodes),
+	option(disable_threading),constraint( UNIVERSE ),
+    prelude {  
+        
+          std::cout << "CREATING GNODE===================================================================== "<<  ::endl ;
+ 
+// 	      if(  (Gnode = m3l_Mklist("Interfaces", "DIR", 0, 0, (node_t **)NULL, (const char *)NULL, (const char *)NULL, (char *)NULL)) == 0)
+// 		    Perror("m3l_Mklist");
+          
+//           if(  (TmpNode = m3l_Mklist("IIII", "DIR", 0, 0, &Gnode, "/Interfaces", "./", (char *)NULL)) == 0)
+// 		  Perror("m3l_Mklist");
+        
+    };
+    
+    
 /*
+ * 
  * componentExternal is set always when interface calls for external communication
  * it is set in gridComponents.loci
  */  
@@ -286,7 +321,7 @@ template<class T> void scatterVectorE(std::vector<T> &p0v,
  * rigid body motion interface
  */
    $rule apply(componentMotionData<-ncycle, stime, dtmax,ext_interfaces,extInterfaceNameStr(X,Y),
-                 componentName_X,extInterfaceName(X,Y),volumeTag(X),InterfaceIO)[Loci::NullOp], 
+                 componentName_X,extInterfaceName(X,Y),volumeTag(X))[Loci::NullOp], 
                  parametric(extInterfaceName(X,Y)),
                  constraint(ConstextInterfaceName(X,Y),volumeTag(X),componentExternalRigid_X), 
                  conditional(docom),
@@ -378,7 +413,6 @@ template<class T> void scatterVectorE(std::vector<T> &p0v,
            }
 
         }
-
 
   //    if( (*$extInterfaceNameStr(X,Y)).INTF_docommunicate){    
 
@@ -586,7 +620,6 @@ template<class T> void scatterVectorE(std::vector<T> &p0v,
         if(df!=0) {
 	       intsurf &= df->my_entities ;
         }
-        
 //         Loci::entitySet dom = entitySet(seq) ;
         
 //         sleep(Loci::MPI_rank);
@@ -600,29 +633,29 @@ template<class T> void scatterVectorE(std::vector<T> &p0v,
 //           vect3d p3 = $pos[$face2node[ii][2]] ;
 //           vect3d p4 = $pos[$face2node[ii][3]] ;
           
-          vect3d p5      = $facecenter[ii] ;
-          pos_loc[cnt]  = $facecenter[ii] ;
-		  cnt++ ;
+            vect3d p5      = $facecenter[ii] ;
+            pos_loc[cnt]  = $facecenter[ii] ;
+		    cnt++ ;
 //            std::cout << p5 << "  " <<  $temperature_f[ii] <<endl ;
 
 
-        } ENDFORALL ;         
+        }ENDFORALL ;         
          
        	vector<vect3d> pos_glob ;
-    	gatherVectorE(pos_glob,pos_loc,MPI_COMM_WORLD) ;
-
-	    if(Loci::MPI_rank == 0) {
-            
-//           for(int i = 0 ; i< pos_glob.size(); i++)
-//               std::cout << "Gather " << pos_glob[i] <<endl ;
-		
-	   }
+        
+        MPI_Comm comm  = MPI_Comm_f2c((*$extInterfaceNameStr(X,Y)).INTF_comm);
+    	gatherVectorE(pos_glob,pos_loc,comm) ;
+//     	gatherVectorE(pos_glob,pos_loc,MPI_COMM_WORLD) ;
 
         if(Loci::MPI_rank==0) {
+            
+          for(int i = 0 ; i< pos_glob.size(); i++)
+              std::cout << pos_glob[i] <<endl ;
+		
 /*
  * communicate, if interface found, execute it, all checks were done before this rule
  */
-           if(ident_intf(pVol_tags, *$ext_interfaces, pcomm_str,*$extInterfaceName(X,Y), "aeroelasticity")){
+//            if(ident_intf(pVol_tags, *$ext_interfaces, pcomm_str,*$extInterfaceName(X,Y), "aeroelasticity")){
 /*
  * this is rigid body motion interface, sends away forces and gets back quaternion, translation and 
  * center of rotation
@@ -631,7 +664,7 @@ template<class T> void scatterVectorE(std::vector<T> &p0v,
               
               	if(m3l_Umount(&Snode) != 1)
 		          Perror("socket_FlowPsi2simulink: m3l_Umount");
-            }
+//             }
         }
    };
    
@@ -642,18 +675,18 @@ template<class T> void scatterVectorE(std::vector<T> &p0v,
 
 
 
-    $rule pointwise(localvec<-ncycle,facecenter),
-     constraint(ConstextInterfaceName(X,Y)),parametric(extInterfaceName(X,Y))
-     {
-/*
- * get number of points on boundaries in interface
- */         
-         std::cout << "asigning        - " << Loci::MPI_rank << "   " << std::endl ;
-
-        $localvec = $facecenter;
-        };
+//     $rule pointwise(localvec<-ncycle,facecenter),
+//      constraint(ConstextInterfaceName(X,Y)),parametric(extInterfaceName(X,Y))
+//      {
+// /*
+//  * get number of points on boundaries in interface
+//  */         
+//          std::cout << "asigning        - " << Loci::MPI_rank << "   " << std::endl ;
+// 
+//         $localvec = $facecenter;
+//         };
    
-//    $rule pointwise(OUTPUT<-ncycle,temperature_f, u_f,facecenter),
+//    $rule pointwise(OUTPUT<-ncycle,temperature_f, u_f,facecenter,gagePressure_f),
 //     constraint(ConstextInterfaceName(X,Y)),parametric(extInterfaceName(X,Y))
 //     {
 // /*
