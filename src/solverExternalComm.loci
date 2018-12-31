@@ -94,33 +94,24 @@ namespace flowPsi {
       
    $rule optional(ext_interfaces) {}
    
-   
-   
-   
-   
-   
-   
-   
-   
-   
-   
-   
-   
-   
-   
+/*
+ * these are gather and scatter routines programmed by ATA in vogdeform.loci
+ */
     
 template<class T> void gatherVectorE(std::vector<T> &p0v, std::vector<T> &v, MPI_Comm comm) {
 	int rank = 0 ;
 	MPI_Comm_rank(comm,&rank) ;
 	int procs = 1 ;
 	MPI_Comm_size(comm,&procs) ;
-
-	// Gather sizes
+/*
+ * gather sizes of vectors on root partition
+ */
 	int local_size = v.size() ;
 	std::vector<int> recv_sizes(procs) ;
 	MPI_Gather(&local_size,1,MPI_INT, &recv_sizes[0],1,MPI_INT,0,comm) ;
-
-	// Allocate receive array
+/*
+ * allocate receive array with concncanated data
+ */
 	int tot_size = recv_sizes[0] ;
 	for(int i=1;i<procs;++i) {
 		tot_size += recv_sizes[i] ;
@@ -129,25 +120,29 @@ template<class T> void gatherVectorE(std::vector<T> &p0v, std::vector<T> &v, MPI
 		std::vector<T> tmp(tot_size) ;
 		p0v.swap(tmp) ;
 	}
-
-	// Compute sizes in bytes
+/*
+ * get sizes in bytes
+ */
 	const int bsz = sizeof(T) ;
 	for(int i=0;i<procs;++i)
 		recv_sizes[i] *= bsz ;
-
-	// Bookkeeping for gatherv call
+/*
+ * get vector of displacements
+ */
 	std::vector<int> displs(procs) ;
 	displs[0] = 0 ;
 	for(int i=1;i<procs;++i)
 		displs[i] = displs[i-1]+recv_sizes[i-1] ;
-
-	// Gather data
+/*
+ * gather data
+ */
 	MPI_Gatherv(&v[0],local_size*bsz,MPI_BYTE,
 			&p0v[0],&recv_sizes[0],&displs[0],MPI_BYTE,
 			0, comm) ;
 }
-// Reverse of gather vector.  Assumes vectors are preallocated with
-// sizes each processor will receive.
+/*
+ * scatter data
+ */
 template<class T> void scatterVectorE(std::vector<T> &p0v,
 		std::vector<T> &v,
 		MPI_Comm comm) {
@@ -155,14 +150,16 @@ template<class T> void scatterVectorE(std::vector<T> &p0v,
 	MPI_Comm_rank(comm,&rank) ;
 	int procs = 1 ;
 	MPI_Comm_size(comm,&procs) ;
-
-	// Gather sizes
+/*
+ * gather sizes of vectors on root partition
+ */
 	int local_size = v.size() ;
 	std::vector<int> send_sizes(procs) ;
 	MPI_Gather(&local_size,1,MPI_INT,
 			&send_sizes[0],1,MPI_INT,0,comm) ;
-
-	// Allocate receive array
+/*
+ * allocate receive arrays
+ */
 	int tot_size = send_sizes[0] ;
 	for(int i=1;i<procs;++i) {
 		tot_size += send_sizes[i] ;
@@ -171,37 +168,27 @@ template<class T> void scatterVectorE(std::vector<T> &p0v,
 		std::cerr << "incompatible sizes of vectors in scatterVector: Total receive vector sizes " << tot_size << ", Send vector size: " << p0v.size() << "\n" ;
 		Loci::Abort() ;
 	}
-
-	// Compute sizes in bytes
+/*
+ * get sizes in bytes
+ */
 	const int bsz = sizeof(T) ;
 	for(int i=0;i<procs;++i)
 		send_sizes[i] *= bsz ;
-
-	// Bookkeeping for gatherv call
-	std::vector<int> displs(procs) ;
+/*
+ * get vector of displacements
+ */
+    std::vector<int> displs(procs) ;
 	displs[0] = 0 ;
 	for(int i=1;i<procs;++i)
 		displs[i] = displs[i-1]+send_sizes[i-1] ;
-
-	// Scatter data
+/*
+ * scatter data
+ */
 	MPI_Scatterv(&p0v[0],&send_sizes[0],&displs[0],MPI_BYTE,
-			&v[0],local_size*bsz,MPI_BYTE,
-			0, comm) ;
+			&v[0],local_size*bsz,MPI_BYTE,0, comm) ;
 }
-
-   
-   
-   
-   
-   
-   
-   
-   
-   
-   
-   
   
-  $type numDeformNodes                   		param<size_t>;
+  $type numDeformNodes   param<size_t>;
   $type InterfaceIO  blackbox<int>; 
   
   $rule unit( numDeformNodes ),
