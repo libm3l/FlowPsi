@@ -510,8 +510,9 @@ template<class T> void scatterVectorE(std::vector<T> &p0v,
  */
     int n;
     find_t *Founds=NULL;
-    node_t *IntfNode, *Snode;
+    node_t *IntfNode, *Snode, *local_data, *global_data;
     char buffer [80];
+    lmdouble_t *forces, *displacements, *forcesg, *displacementsg; 
     
     if(Loci::MPI_rank==0) 
       std::cout << "COAPLYYYYYYYYYYYYY- AEROELS  - " << $extInterfaceName(X,Y)  << "    " << $volumeTag(X) <<  "  BOOL:  " << (*$extInterfaceNameStr(X,Y)).INTF_docommunicate << "   NCYCLE: " << *$ncycle   << std::endl ;
@@ -537,8 +538,6 @@ template<class T> void scatterVectorE(std::vector<T> &p0v,
       else{
           Perror("Did not find aeroleastic interface");
       }
-      
-      int len = (*$extInterfaceNameStr(X,Y)).INTF_domsize;
 /*
  * loop over fact database with interfaces and find if it is there
  */
@@ -607,7 +606,7 @@ template<class T> void scatterVectorE(std::vector<T> &p0v,
 
         }
         
-        len = (*$extInterfaceNameStr(X,Y)).INTF_domsize;
+        int len = (*$extInterfaceNameStr(X,Y)).INTF_domsize;
 
         string IntfName = "LocConstextInterfaceName("+str_voltagname+","+str_intfname+")"; 
         Loci::fact_db::distribute_infoP df = 0;         
@@ -623,7 +622,51 @@ template<class T> void scatterVectorE(std::vector<T> &p0v,
 //         Loci::entitySet dom = entitySet(seq) ;
         
 //         sleep(Loci::MPI_rank);
-   
+
+/*
+ * find vector of local forces and displacements, on the root partition,find 
+ * global vectors too. Omit all checks, proper coding would require to so si
+ */
+        Founds = m3l_Locate(IntfNode, "./Interface/local_data", "/*/*",  (lmchar_t *)NULL);
+/*
+ */
+        local_data = m3l_get_Found_node(Founds, 0);
+        m3l_DestroyFound(&Founds);
+        
+        Founds = m3l_Locate(local_data, "./local_data/Forces", "/*/*",  (lmchar_t *)NULL);
+/*
+ */
+        forces =(lmdouble_t *)m3l_get_Found_node(Founds, 0);
+        m3l_DestroyFound(&Founds);
+        
+        Founds = m3l_Locate(local_data, "./local_data/disps", "/*/*",  (lmchar_t *)NULL);
+/*
+ */
+        displacements =(lmdouble_t *)m3l_get_Found_node(Founds, 0);
+        m3l_DestroyFound(&Founds);
+        
+        if(Loci::MPI_rank==0) {
+          Founds = m3l_Locate(IntfNode, "./Interface/global_data", "/*/*",  (lmchar_t *)NULL);
+/*
+ */
+          local_data = m3l_get_Found_node(Founds, 0);
+          m3l_DestroyFound(&Founds);
+        
+          Founds = m3l_Locate(local_data, "./global_data/Forces", "/*/*",  (lmchar_t *)NULL);
+/*
+ */
+          forcesg =(lmdouble_t *)m3l_get_Found_node(Founds, 0);
+          m3l_DestroyFound(&Founds);
+        
+          Founds = m3l_Locate(local_data, "./global_data/disps", "/*/*",  (lmchar_t *)NULL);
+/*
+ */
+          displacementsg =(lmdouble_t *)m3l_get_Found_node(Founds, 0);
+          m3l_DestroyFound(&Founds);
+            
+        }
+
+
         int cnt = 0 ; 
         vector<vect3d> pos_loc(len) ;    
         
@@ -632,12 +675,22 @@ template<class T> void scatterVectorE(std::vector<T> &p0v,
 //           vect3d p2 = $pos[$face2node[ii][1]] ;
 //           vect3d p3 = $pos[$face2node[ii][2]] ;
 //           vect3d p4 = $pos[$face2node[ii][3]] ;
-          
-            vect3d p5      = $facecenter[ii] ;
-            pos_loc[cnt]  = $facecenter[ii] ;
-		    cnt++ ;
-//            std::cout << p5 << "  " <<  $temperature_f[ii] <<endl ;
 
+            vect3d p5      = $facecenter[ii] ;
+            
+            int ind1 = m3l_get_2ind(ii,1,len,3);
+            int ind2 = m3l_get_2ind(ii,2,len,3);
+            int ind3 = m3l_get_2ind(ii,3,len,3);
+            
+            pos_loc[cnt]  = $facecenter[ii] ;
+            forces[ind1] = $facecenter[ii].x;
+            forces[ind2] = $facecenter[ii].y;
+            forces[ind2] = $facecenter[ii].z;
+
+		    cnt++ ;
+            
+//            std::cout << p5 << "  " <<  $temperature_f[ii] <<endl ;
+//            std::cout <<   $iflux[ii+0] << "  " << $iflux[ii+1] << "  " << $iflux[ii+2] <<endl ;
 
         }ENDFORALL ;         
          
@@ -649,8 +702,8 @@ template<class T> void scatterVectorE(std::vector<T> &p0v,
 
         if(Loci::MPI_rank==0) {
             
-          for(int i = 0 ; i< pos_glob.size(); i++)
-              std::cout << pos_glob[i] <<endl ;
+//           for(int i = 0 ; i< pos_glob.size(); i++)
+//               std::cout << pos_glob[i] <<endl ;
 		
 /*
  * communicate, if interface found, execute it, all checks were done before this rule
@@ -661,10 +714,9 @@ template<class T> void scatterVectorE(std::vector<T> &p0v,
  * center of rotation
  */
               Snode = bridge_aeroelastic(IntfNode, pcomm_str);
-              
-              	if(m3l_Umount(&Snode) != 1)
+
+              if(m3l_Umount(&Snode) != 1)
 		          Perror("socket_FlowPsi2simulink: m3l_Umount");
-//             }
         }
    };
    
