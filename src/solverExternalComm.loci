@@ -98,6 +98,32 @@ namespace flowPsi {
  * these are gather and scatter routines programmed by ATA in vogdeform.loci
  */
     
+    
+void  GatherDVecE(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
+	int procs = 1 ;
+	MPI_Comm_size(comm,&procs) ;
+/*
+ * gather sizes of vectors on root partition
+ */
+	std::vector<int> recv_sizes(procs) ;
+	MPI_Gather(&len,1,MPI_INT, &recv_sizes[0],1,MPI_INT,0,comm) ;
+/*
+ * get vector of displacements
+ */
+	std::vector<int> displs(procs) ;
+        
+	displs[0] = 0 ;
+	for(int i=1;i<procs;++i)
+		displs[i] = displs[i-1]+recv_sizes[i-1];
+/*
+ * gather data
+ */
+	MPI_Gatherv(&v[0],len,MPI_DOUBLE,&gv[0],&recv_sizes[0],&displs[0],MPI_DOUBLE,
+			0, comm) ;
+}
+
+
+
 template<class T> void gatherVectorE(std::vector<T> &p0v, std::vector<T> &v, MPI_Comm comm) {
 	int rank = 0 ;
 	MPI_Comm_rank(comm,&rank) ;
@@ -110,7 +136,7 @@ template<class T> void gatherVectorE(std::vector<T> &p0v, std::vector<T> &v, MPI
 	std::vector<int> recv_sizes(procs) ;
 	MPI_Gather(&local_size,1,MPI_INT, &recv_sizes[0],1,MPI_INT,0,comm) ;
 /*
- * allocate receive array with concncanated data
+ * allocate receive array with concenanated data
  */
 	int tot_size = recv_sizes[0] ;
 	for(int i=1;i<procs;++i) {
@@ -510,7 +536,7 @@ template<class T> void scatterVectorE(std::vector<T> &p0v,
  */
     int n;
     find_t *Founds=NULL;
-    node_t *IntfNode, *Snode, *local_data, *global_data;
+    node_t *IntfNode, *Snode, *local_data, *global_data, *FoundNode;
     char buffer [80];
     lmdouble_t *forces, *displacements, *forcesg, *displacementsg; 
     
@@ -635,14 +661,16 @@ template<class T> void scatterVectorE(std::vector<T> &p0v,
         
         Founds = m3l_Locate(local_data, "./local_data/Forces", "/*/*",  (lmchar_t *)NULL);
 /*
- */
-        forces =(lmdouble_t *)m3l_get_Found_node(Founds, 0);
+ */	
+        FoundNode = m3l_get_Found_node(Founds, 0);
+        forces =(lmdouble_t *)m3l_get_data_pointer(FoundNode);
         m3l_DestroyFound(&Founds);
         
         Founds = m3l_Locate(local_data, "./local_data/disps", "/*/*",  (lmchar_t *)NULL);
 /*
  */
-        displacements =(lmdouble_t *)m3l_get_Found_node(Founds, 0);
+        FoundNode = m3l_get_Found_node(Founds, 0);
+        displacements =(lmdouble_t *)m3l_get_data_pointer(FoundNode);
         m3l_DestroyFound(&Founds);
         
         if(Loci::MPI_rank==0) {
@@ -655,20 +683,27 @@ template<class T> void scatterVectorE(std::vector<T> &p0v,
           Founds = m3l_Locate(local_data, "./global_data/Forces", "/*/*",  (lmchar_t *)NULL);
 /*
  */
-          forcesg =(lmdouble_t *)m3l_get_Found_node(Founds, 0);
+          FoundNode = m3l_get_Found_node(Founds, 0);
+          forcesg =(lmdouble_t *)m3l_get_data_pointer(FoundNode);
+          m3l_DestroyFound(&Founds);
+//                     int tot_dim = m3l_get_List_totdim(FoundsFoundNode)) != 4)
+          
           m3l_DestroyFound(&Founds);
         
           Founds = m3l_Locate(local_data, "./global_data/disps", "/*/*",  (lmchar_t *)NULL);
 /*
  */
-          displacementsg =(lmdouble_t *)m3l_get_Found_node(Founds, 0);
+          FoundNode = m3l_get_Found_node(Founds, 0);
+          displacements =(lmdouble_t *)m3l_get_data_pointer(FoundNode);
           m3l_DestroyFound(&Founds);
             
         }
 
 
         int cnt = 0 ; 
-        vector<vect3d> pos_loc(len) ;    
+        vector<vect3d> pos_loc(len) ;  
+        int lenvec = len *3;
+
         
         FORALL(intsurf,ii) {
 //           vect3d p1 = $pos[$face2node[ii][0]] ;
@@ -678,15 +713,16 @@ template<class T> void scatterVectorE(std::vector<T> &p0v,
 
             vect3d p5      = $facecenter[ii] ;
             
-            int ind1 = m3l_get_2ind(ii,1,len,3);
-            int ind2 = m3l_get_2ind(ii,2,len,3);
-            int ind3 = m3l_get_2ind(ii,3,len,3);
+            int ind1 = m3l_get_2ind(cnt,0,len,3);
+            int ind2 = m3l_get_2ind(cnt,1,len,3);
+            int ind3 = m3l_get_2ind(cnt,2,len,3);
             
             pos_loc[cnt]  = $facecenter[ii] ;
+            
             forces[ind1] = $facecenter[ii].x;
             forces[ind2] = $facecenter[ii].y;
-            forces[ind2] = $facecenter[ii].z;
-
+            forces[ind3] = $facecenter[ii].z;
+            
 		    cnt++ ;
             
 //            std::cout << p5 << "  " <<  $temperature_f[ii] <<endl ;
@@ -698,13 +734,27 @@ template<class T> void scatterVectorE(std::vector<T> &p0v,
         
         MPI_Comm comm  = MPI_Comm_f2c((*$extInterfaceNameStr(X,Y)).INTF_comm);
     	gatherVectorE(pos_glob,pos_loc,comm) ;
-//     	gatherVectorE(pos_glob,pos_loc,MPI_COMM_WORLD) ;
+        
+         GatherDVecE(forcesg, forces, lenvec, comm);
 
-        if(Loci::MPI_rank==0) {
+         if(Loci::MPI_rank==0) {
             
-//           for(int i = 0 ; i< pos_glob.size(); i++)
-//               std::cout << pos_glob[i] <<endl ;
-		
+           for(lmsize_t i = 0 ; i< pos_glob.size(); i++){
+               std::cout << "POS "  << i << "  "<< pos_glob[i] <<endl ;
+           
+               int ind1 = m3l_get_2ind(i,0,len,3);
+               int ind2 = m3l_get_2ind(i,1,len,3);
+               int ind3 = m3l_get_2ind(i,2,len,3);
+               
+//                forcesg[ind1] = pos_glob[i].x;
+//                forcesg[ind2] = pos_glob[i].y;
+//                forcesg[ind3] = pos_glob[i].z;
+//                
+//                
+//            
+               std::cout << "PNE "  << i << "  "<< forcesg[ind1]  << " " << forcesg[ind2] << " " << forcesg[ind3]  <<endl ;
+               
+           }
 /*
  * communicate, if interface found, execute it, all checks were done before this rule
  */
@@ -718,6 +768,9 @@ template<class T> void scatterVectorE(std::vector<T> &p0v,
               if(m3l_Umount(&Snode) != 1)
 		          Perror("socket_FlowPsi2simulink: m3l_Umount");
         }
+        
+                       MPI_Barrier(comm);
+
    };
    
 /*
