@@ -98,10 +98,10 @@ namespace flowPsi {
     error = true ;
 
     if(Loci::MPI_rank == 0){
-            
        std::cout << "    " << endl ;
        std::cout << "ext_interfaces: " << endl ;
-       std::cout << "---------------------" << endl ;}
+       std::cout << "---------------------" << endl ;
+    }
 
 /*
  * create structure for interfaces data
@@ -139,8 +139,7 @@ namespace flowPsi {
 /*
  * print interface name
  */
-      if(Loci::MPI_rank == 0)
-        std::cout << "Interface name:  " << bname << endl ;
+      if(Loci::MPI_rank == 0) std::cout << "Interface name:  " << bname << endl ;
 /*
  * get options in interface
  */
@@ -211,7 +210,7 @@ namespace flowPsi {
          string val_tag;
          list_voltags[ivol].get_value(val_tag);
          
-         std::cout << "Processing tag "<<val_tag<<" from interface "<< bname <<endl ;
+         if(Loci::MPI_rank == 0) std::cout << "Processing tag "<<val_tag<<" from interface "<< bname <<endl ;
  /*
  * add interface to Interfaces, make global_data DIR and add name
  */
@@ -420,8 +419,7 @@ namespace flowPsi {
         constraint_name = "ConstextInterfaceName("+val_tag+"," + bname + ")" ;
         facts.create_fact(constraint_name,bc_constraint) ;
 
-        if(Loci::MPI_rank == 0)
-         std::cout << "    " << endl ;
+        if(Loci::MPI_rank == 0)std::cout << "    " << endl ;
 /*
  * add data based on type of interface
  */

@@ -426,7 +426,7 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
 /*
  * loop over volume tags and set componentMotionData
  */
-        int size = Vol_tags.size() ;
+//         int size = Vol_tags.size() ;
         string name, name1;
 /*
  * loop over volume tags
@@ -439,7 +439,7 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
 //          for(lii=nlb.begin();lii!=nlb.end();++lii){ 
 //            name1 = *lii;
            name = *$componentName_X;
-            std::cout << "TAGGGGGGGGGGGGG  - " << Loci::MPI_rank << "   " << "'"<<name1<<"    "<< name << " SIZE " << (*$extInterfaceNameStr(X,Y)).INTF_domsize<<std::endl ;
+//             std::cout << "TAGGGGGGGGGGGGG  - " << Loci::MPI_rank << "   " << "'"<<name1<<"    "<< name << " SIZE " << (*$extInterfaceNameStr(X,Y)).INTF_domsize<<std::endl ;
           (*$componentMotionData)[name] = xform;
 //         }  
     //  }
@@ -454,7 +454,7 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
  */
    $rule apply(componentMotionData<-ncycle, stime, dtmax,ext_interfaces,extInterfaceNameStr(X,Y),
                  componentName_X,extInterfaceName(X,Y),volumeTag(X),ConstextInterfaceName(X,Y),
-                 face2node, pos,facecenter,area,gagePressure_f)[Loci::NullOp], 
+                 face2node, pos,facecenter,area,gagePressure_f,iflux)[Loci::NullOp], 
                  parametric(extInterfaceName(X,Y)),
                  constraint(ConstextInterfaceName(X,Y),volumeTag(X),componentExternalElastic_X), 
                  conditional(docom),
@@ -594,7 +594,6 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
  */
         FoundNode = m3l_get_Found_node(Founds, 0);
         displacements =(lmdouble_t *)m3l_get_data_pointer(FoundNode);
-        int  tot_dim = m3l_get_List_totdim(FoundNode);
         
         m3l_DestroyFound(&Founds);
         
@@ -618,7 +617,6 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
           FoundNode = m3l_get_Found_node(Founds, 0);
           displacementsg =(lmdouble_t *)m3l_get_data_pointer(FoundNode);
           
-          int  tot_dim1 = m3l_get_List_totdim(FoundNode);
           m3l_DestroyFound(&Founds);
             
         }
@@ -626,6 +624,7 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
 
         int cnt = 0 ; 
         int lenvec = len *3;
+        int mi = 1;
 
         FORALL(intsurf,ii) {
 //           vect3d p1 = $pos[$face2node[ii][0]] ;
@@ -644,6 +643,11 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
             forces[ind1] = $gagePressure_f[ii] * $area[ii].n.x * $area[ii].sada;
             forces[ind2] = $gagePressure_f[ii] * $area[ii].n.y * $area[ii].sada;
             forces[ind3] = $gagePressure_f[ii] * $area[ii].n.z * $area[ii].sada; 
+            
+//              forces[ind1] = $iflux[ii].[mi+0];
+//              forces[ind2] = $iflux[ii].[mi+1];
+//              forces[ind3] = $iflux[ii].[mi+2];
+             
 		    cnt++ ;
 
         }ENDFORALL ;         
@@ -698,7 +702,7 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
 //         $localvec = $facecenter;
 //         };
    
-   $rule pointwise(OUTPUT<-temperature_f, u_f,facecenter,gagePressure_f),
+   $rule pointwise(OUTPUT<-temperature_f, u_f,facecenter,gagePressure_f,iflux),
     constraint(ConstextInterfaceName(X,Y)),parametric(extInterfaceName(X,Y))
     {
 /*
