@@ -83,6 +83,7 @@ $type componentExternalRigid_X Constraint ;
 $type componentExternalElastic_X Constraint ;
 $type componentExternalMotion_X Constraint ;
 
+$type volumeTag(X) param<string> ;
 $type localvec store<Loci::vector3d<Loci::real_t> > ;
 
 node_t *Gnode;
@@ -676,6 +677,8 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
  */        
         ScatterDVec(displacementsg, displacements, lenvec, comm);
         
+        
+        
    };
 /*
  * elastic body motion interface
@@ -703,6 +706,18 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
  */
 //      cout << "RANK " << Loci::MPI_rank << " Cycle " << " INTF is "<<   $ncycle << "  " <<  $temperature_f << "  " << $facecenter<< endl;
     };
+    
+//      $rule pointwise(temperature_f,gagePressure_f,u_f<-us,area,
+// 		  ci->(gagePressure,u),Twall,wallVelocity),
+//     constraint(viscousWall_BC) {
+//     // Wall tangential velocity
+//     const vect3d uwall = $wallVelocity ;
+//     $u_f = uwall-dot(uwall,$area.n)*$area.n + $us ;
+//     
+//     real pgb = $ci->$gagePressure ;
+//     $gagePressure_f = pgb ;
+//     $temperature_f = $Twall ;
+//   } 
     
 
 }
