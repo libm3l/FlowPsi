@@ -81,6 +81,8 @@ namespace flowPsi {
     string type;
     string bname;
     int locdomsize;
+    int size_voltags;
+    Loci::options_list::arg_list list_voltags ;
     
     param<options_list> bc_info, int_info ;
 /*
@@ -126,6 +128,9 @@ namespace flowPsi {
     MPI_Comm_rank(MPI_COMM_WORLD,&rank) ;
 
     for(li=nl.begin();li!=nl.end();++li) {
+/*
+ * loop over interfaces
+ */
       bname = *li ;
       Loci::option_value_type vt = int_info->getOptionValueType(bname);
       Loci::option_values ov = int_info->getOption(bname) ;
@@ -136,68 +141,6 @@ namespace flowPsi {
  */
       if(Loci::MPI_rank == 0)
         std::cout << "Interface name:  " << bname << endl ;
-/*
- * add interface to Interfaces, make global_data DIR and add name
- */
-        const char *cstr = bname.c_str();
-        clen = strlen(cstr);
-        
-        if(  (IntfNode = m3l_Mklist("Interface", "DIR", 0, 0, &Gnode, "/Interfaces", "./", (char *)NULL)) == 0)
-		  Perror("m3l_Mklist");
-        if(  (DataNode = m3l_Mklist("global_data", "DIR", 0, 0, &IntfNode, "/Interface", "./", (char *)NULL)) == 0)
-		  Perror("m3l_Mklist");
-        if(  (LDataNode = m3l_Mklist("local_data", "DIR", 0, 0, &IntfNode, "/Interface", "./", (char *)NULL)) == 0)
-		  Perror("m3l_Mklist");
-        
-        dim[0] = clen;
-        if(  (TmpNode = m3l_Mklist("Name", "C", 1, dim, &IntfNode, "/Interface", "./", (char *)NULL)) == 0)
-		   Error("socket_FlowPsi2simulink: m3l_Mklist");
-        strncpy(TmpNode->data.c, cstr, clen);
-        TmpNode->data.c[clen]='\0';
-/*
- * allocate temporary arrays  (maybe something like std::vector<int> proc_arr(procs) ; would me more C++ like)
- */      
-      if(  (proc_arr = (int *) malloc(procs * sizeof(int))) == NULL)
-          cerr << "error allocating proc_arr array " << endl ;
-      if(  (proc_glob_arr = (int *) malloc(procs * sizeof(int))) == NULL)
-          cerr << "error allocating proc_glob_arr array " << endl ;
-/*
- * set sizes of data to 0 and on root partition to -1
- */
-      for(int i=0; i<procs; i++)
-          proc_arr[i] = 0;
-      
-      if(rank == 0)proc_arr[0] = -1;
-/*
- * create new extinterfaces facts 
- */
-      param<string> interfaceSet ;
-      *interfaceSet = bname ;
-      string factname = "extInterfaceName(Main," + bname + ")" ;
-      facts.create_fact(factname,interfaceSet) ;
-
-      int Root_ind = 0;
-
-      param<InterfStr_t> interfaceSet_str ;
-      interfaceSet_str->INTF_comm = -1;
-      interfaceSet_str->INTF_Root_ind = 0;
-      factname = "extInterfaceNameStr(Main," + bname + ")" ;
-//       char *cptr;
-//       cptr = &interfaceSet_str->INTF_Name[0];
-//       for(int i=0; i<24; i++)
-//           interfaceSet_str->INTF_Name[i] = '\0';
-//       strcpy(cptr, bname.c_str());
-
-      intf_number += 1;
-      interfaceSet_str->INTF_Number = intf_number;
-      interfaceSet_str->INTF_Activated = 0;
-
-      facts.create_fact(factname,interfaceSet_str) ;
-/*
- * create new extinterfaces facts ==================================================
- */
-
-
 /*
  * get options in interface
  */
@@ -234,6 +177,102 @@ namespace flowPsi {
 
       options_list::option_namelist nlb = ol.getOptionNameList() ;
       options_list::option_namelist::iterator lii;
+/*
+ * loop over volume tags
+ */
+      for(lii=nlb.begin();lii!=nlb.end();++lii){
+        size_voltags = 0;
+/*
+ * if option is boundary condition which is a string array defined in [], get the name of each of them
+ */          
+        if( *lii == "Volume_tags" ){
+              ol.getOption(*lii,list_voltags) ;
+              size_voltags = list_voltags.size() ;
+
+              Loci::option_values oss = ol.getOption(*lii) ;
+              if(Loci::MPI_rank == 0){
+                 std::cout << "Volume tags(s) associated with interface "<<bname <<" : "<< oss << endl ;
+              }
+              break;
+          }
+      }
+/*
+ * if volume tags not found,, need to be specified in vars file, 
+ */
+      if(size_voltags == 0){
+            std::cerr << "Did not find Volume_tags item for iterface "<<bname << endl ;
+            std::cerr << "Check your vars file" << endl ;
+            exit(-1);
+      }
+      
+      
+      for(int ivol=0;ivol<size_voltags;++ivol) {
+          
+         string val_tag;
+         list_voltags[ivol].get_value(val_tag);
+         
+         std::cout << "Processing tag "<<val_tag<<" from interface "<< bname <<endl ;
+ /*
+ * add interface to Interfaces, make global_data DIR and add name
+ */
+        if(  (IntfNode = m3l_Mklist("Interface", "DIR", 0, 0, &Gnode, "/Interfaces", "./", (char *)NULL)) == 0)
+		  Perror("m3l_Mklist");
+        if(  (DataNode = m3l_Mklist("global_data", "DIR", 0, 0, &IntfNode, "/Interface", "./", (char *)NULL)) == 0)
+		  Perror("m3l_Mklist");
+        if(  (LDataNode = m3l_Mklist("local_data", "DIR", 0, 0, &IntfNode, "/Interface", "./", (char *)NULL)) == 0)
+		  Perror("m3l_Mklist");
+    
+        const char *cstr = bname.c_str();
+        clen = strlen(cstr);
+        dim[0] = clen;
+        if(  (TmpNode = m3l_Mklist("Name", "C", 1, dim, &IntfNode, "/Interface", "./", (char *)NULL)) == 0)
+		   Error("socket_FlowPsi2simulink: m3l_Mklist");
+        strncpy(TmpNode->data.c, cstr, clen);
+        TmpNode->data.c[clen]='\0';
+        
+        const char *cstrv = val_tag.c_str();
+        clen = strlen(cstrv);
+        dim[0] = clen;
+        if(  (TmpNode = m3l_Mklist("Volume_Tag", "C", 1, dim, &IntfNode, "/Interface", "./", (char *)NULL)) == 0)
+		   Error("socket_FlowPsi2simulink: m3l_Mklist");
+        strncpy(TmpNode->data.c, cstrv, clen);
+        TmpNode->data.c[clen]='\0';
+/*
+ * allocate temporary arrays  (maybe something like std::vector<int> proc_arr(procs) ; would me more C++ like)
+ */      
+      if(  (proc_arr = (int *) malloc(procs * sizeof(int))) == NULL)
+          cerr << "error allocating proc_arr array " << endl ;
+      if(  (proc_glob_arr = (int *) malloc(procs * sizeof(int))) == NULL)
+          cerr << "error allocating proc_glob_arr array " << endl ;
+/*
+ * set sizes of data to 0 and on root partition to -1
+ */
+      for(int i=0; i<procs; i++)
+          proc_arr[i] = 0;
+      
+      if(rank == 0)proc_arr[0] = -1;
+/*
+ * create new extinterfaces facts 
+ */
+      param<string> interfaceSet ;
+      *interfaceSet = bname ;
+//       string factname = "extInterfaceName(Main," + bname + ")" ;
+      string factname = "extInterfaceName("+val_tag+"," + bname + ")" ;
+      facts.create_fact(factname,interfaceSet) ;
+
+      int Root_ind = 0;
+
+      param<InterfStr_t> interfaceSet_str ;
+      interfaceSet_str->INTF_comm = -1;
+      interfaceSet_str->INTF_Root_ind = 0;
+//       factname = "extInterfaceNameStr(Main," + bname + ")" ;
+      factname = "extInterfaceNameStr("+val_tag+"," + bname + ")" ;
+      intf_number += 1;
+      interfaceSet_str->INTF_Number = intf_number;
+      interfaceSet_str->INTF_Activated = 0;
+
+      facts.create_fact(factname,interfaceSet_str) ;     
+      
       for(lii=nlb.begin();lii!=nlb.end();++lii){
 /*
  * if option is boundary condition which is a string array defined in [], get the name of each of them
@@ -276,10 +315,14 @@ namespace flowPsi {
            }
            else if(*lii == "type" ){
                ol.getOption(*lii,type) ;
-//                cp =  type.c_str();
-//                clen = strlen(cp);
-//                strncpy(type, cp, clen);
-//                type[clen] = '\0';
+               
+              const char *cstrt = bname.c_str();
+              clen = strlen(cstrt);
+              dim[0] = clen;
+              if(  (TmpNode = m3l_Mklist("Type", "C", 1, dim, &IntfNode, "/Interface", "./", (char *)NULL)) == 0)
+		        Error("socket_FlowPsi2simulink: m3l_Mklist");
+              strncpy(TmpNode->data.c, cstrt, clen);
+              TmpNode->data.c[clen]='\0';
            }
         }
 /*
@@ -374,12 +417,11 @@ namespace flowPsi {
         if(Loci::MPI_rank == 0)std::cout << bname << " " << intsurfall << endl ;
 
         *bc_constraint = intsurfall;
-        constraint_name = "ConstextInterfaceName(Main," + bname + ")" ;
+        constraint_name = "ConstextInterfaceName("+val_tag+"," + bname + ")" ;
         facts.create_fact(constraint_name,bc_constraint) ;
 
-      }
-    if(Loci::MPI_rank == 0)
-       std::cout << "    " << endl ;
+        if(Loci::MPI_rank == 0)
+         std::cout << "    " << endl ;
 /*
  * add data based on type of interface
  */
@@ -390,7 +432,6 @@ namespace flowPsi {
  */        
          dim[0] = locdomsize;
          dim[1] = 3;
-
 /*
  * create and store double array of 6 with name ForcesMoments in CFD_2_SIM
  */
@@ -403,7 +444,6 @@ namespace flowPsi {
              
             dim[0] = gproc;
             dim[1] = 3;
-
 /*
  * create and store double array of 6 with name ForcesMoments in CFD_2_SIM
  */
@@ -425,8 +465,13 @@ namespace flowPsi {
 /*
  * free memory
  */
-    free(proc_arr);
-    free(proc_glob_arr);
+       free(proc_arr);
+       free(proc_glob_arr);
+       
+      }
+    
+    }
+
     return error ;
   };
   
@@ -544,8 +589,6 @@ namespace flowPsi {
         else if(*lii == "Volume_tags" ){
             oss = ol.getOption(*lii) ;
 	        ol.getOption(*lii,*pVol_tags) ;
-//            std::cout << "IDENTIFY   - " << *lii  << "    " << std::endl ;
-//            std::cout << "IDENTIFY tags  - " << *pVol_tags  << "    " << std::endl ;
         }
         else if(*lii == "type" ){
             bzero(pcomm_str->type,80);
