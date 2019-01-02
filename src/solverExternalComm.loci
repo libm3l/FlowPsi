@@ -289,9 +289,7 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
       
       if(Loci::MPI_rank==0) 
          m3l_Cat(Gnode, "--detailed", "-L", "-P", "*",   (lmchar_t *)NULL);
-      
-      int len = (*$extInterfaceNameStr(X,Y)).INTF_domsize;
-      
+
 //       for(int i=0; i < len;i++){
 //                 std::cout << "COOOOOOOOORDS  " << $localvec[i] << "    " << std::endl ;
 //       }
@@ -455,7 +453,7 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
  */
    $rule apply(componentMotionData<-ncycle, stime, dtmax,ext_interfaces,extInterfaceNameStr(X,Y),
                  componentName_X,extInterfaceName(X,Y),volumeTag(X),ConstextInterfaceName(X,Y),
-                 face2node, pos,facecenter,temperature_f,gagePressure_f)[Loci::NullOp], 
+                 face2node, pos,facecenter,temperature_f,gagePressure_f,iflux)[Loci::NullOp], 
                  parametric(extInterfaceName(X,Y)),
                  constraint(ConstextInterfaceName(X,Y),volumeTag(X),componentExternalElastic_X), 
                  conditional(docom),
@@ -463,7 +461,6 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
 /*
  * if interface is "active" communicate
  */
-    int n;
     find_t *Founds=NULL;
     node_t *IntfNode, *Snode, *local_data, *global_data, *FoundNode;
     char buffer [80];
@@ -480,7 +477,7 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
        string str_intfname =  *$extInterfaceName(X,Y) ;
        string str_voltagname =  *$volumeTag(X) ;
        const char *srt = str_intfname.c_str(); 
-       n=sprintf (buffer, "/*/SV_Name=%s", srt);
+       sprintf (buffer, "/*/SV_Name=%s", srt);
 /*
  * locate interface, clean allocated memory
  */      
@@ -616,31 +613,25 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
 /*
  */
           FoundNode = m3l_get_Found_node(Founds, 0);
-          displacements =(lmdouble_t *)m3l_get_data_pointer(FoundNode);
+          displacementsg =(lmdouble_t *)m3l_get_data_pointer(FoundNode);
           m3l_DestroyFound(&Founds);
             
         }
 
 
         int cnt = 0 ; 
-//         vector<vect3d> pos_loc(len) ;  
         int lenvec = len *3;
 
-        
         FORALL(intsurf,ii) {
 //           vect3d p1 = $pos[$face2node[ii][0]] ;
 //           vect3d p2 = $pos[$face2node[ii][1]] ;
 //           vect3d p3 = $pos[$face2node[ii][2]] ;
 //           vect3d p4 = $pos[$face2node[ii][3]] ;
-
-            vect3d p5      = $facecenter[ii] ;
             
             int ind1 = m3l_get_2ind(cnt,0,len,3);
             int ind2 = m3l_get_2ind(cnt,1,len,3);
             int ind3 = m3l_get_2ind(cnt,2,len,3);
-            
-//             pos_loc[cnt]  = $facecenter[ii] ;
-            
+
             forces[ind1] = $facecenter[ii].x;
             forces[ind2] = $facecenter[ii].y;
             forces[ind3] = $facecenter[ii].z;
@@ -648,7 +639,7 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
 		    cnt++ ;
             
 //            std::cout << p5 << "  " <<  $temperature_f[ii] <<endl ;
-//            std::cout <<   $iflux[ii+0] << "  " << $iflux[ii+1] << "  " << $iflux[ii+2] <<endl ;
+//             std::cout <<   $iflux[ii+0] << "  " << $iflux[ii+1] << "  " << $iflux[ii+2] <<endl ;
 
         }ENDFORALL ;         
 /*
@@ -658,7 +649,6 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
         GatherDVec(forcesg, forces, lenvec, comm);
 
         if(Loci::MPI_rank==0) {
-            
              
            for(lmsize_t i = 0 ; i< (*$extInterfaceNameStr(X,Y)).INTF_totdomsize; i++){
            
@@ -680,8 +670,7 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
 /*
  * scatter data
  */        
-       ScatterDVec(forcesg, forces, lenvec, comm);
-
+       ScatterDVec(displacementsg, displacements, lenvec, comm);
         
    };
 /*

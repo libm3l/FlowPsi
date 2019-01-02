@@ -76,10 +76,9 @@ namespace flowPsi {
     bool error = false ;
     int *proc_arr, *proc_glob_arr, gproc;
     node_t *TmpNode=NULL, *IntfNode=NULL, *DataNode=NULL, *LDataNode=NULL;
-    lmsize_t dim[2],i; 
+    lmsize_t dim[2];
     lmsize_t clen;
     string type;
-    const char *cp;
     string bname;
     int locdomsize;
     
@@ -117,7 +116,6 @@ namespace flowPsi {
 /*
  * get number of interfaces 
  */
-    int nbif = nl.size();
     int intf_number = 0;
 /*
  * find number of MPI processes
@@ -375,7 +373,6 @@ namespace flowPsi {
  */
         if(Loci::MPI_rank == 0)std::cout << bname << " " << intsurfall << endl ;
 
-        bc_constraint ;
         *bc_constraint = intsurfall;
         constraint_name = "ConstextInterfaceName(Main," + bname + ")" ;
         facts.create_fact(constraint_name,bc_constraint) ;
@@ -419,11 +416,15 @@ namespace flowPsi {
            if(  (TmpNode = m3l_Mklist("size", "ST", 1, dim, &DataNode, "./global_data", "./", (char *)NULL)) == 0)
 		     Error("socket_FlowPsi2simulink: m3l_Mklist");
            TmpNode->data.st[0] = gproc;
+           if(  (TmpNode = m3l_Mklist("time", "D", 1, dim, &DataNode, "./global_data", "./", (char *)NULL)) == 0)
+		     Error("socket_FlowPsi2simulink: m3l_Mklist");
+           TmpNode->data.df[0] = 0;
          }
 
        }
-    
-    
+/*
+ * free memory
+ */
     free(proc_arr);
     free(proc_glob_arr);
     return error ;
