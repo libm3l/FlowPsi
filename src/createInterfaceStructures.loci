@@ -311,19 +311,19 @@ namespace flowPsi {
               interfaceSet_str->INTF_domsize = dom.size();
               locdomsize = dom.size();
 
-           }
-           else if(*lii == "type" ){
-               ol.getOption(*lii,type) ;
-               
-              const char *cstrt = bname.c_str();
-              clen = strlen(cstrt);
-              dim[0] = clen;
-              if(  (TmpNode = m3l_Mklist("Type", "C", 1, dim, &IntfNode, "/Interface", "./", (char *)NULL)) == 0)
-		        Error("socket_FlowPsi2simulink: m3l_Mklist");
-              strncpy(TmpNode->data.c, cstrt, clen);
-              TmpNode->data.c[clen]='\0';
-           }
         }
+        else if(*lii == "type" ){
+            
+            ol.getOption(*lii,type) ;
+            const char *cstrt = bname.c_str();
+            clen = strlen(cstrt);
+            dim[0] = clen;
+            if(  (TmpNode = m3l_Mklist("Type", "C", 1, dim, &IntfNode, "/Interface", "./", (char *)NULL)) == 0)
+		        Error("socket_FlowPsi2simulink: m3l_Mklist");
+            strncpy(TmpNode->data.c, cstrt, clen);
+            TmpNode->data.c[clen]='\0';
+        }
+      }
 /*
  * if option == comm_freq, get the number
  */
