@@ -453,7 +453,7 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
  */
    $rule apply(componentMotionData<-ncycle, stime, dtmax,ext_interfaces,extInterfaceNameStr(X,Y),
                  componentName_X,extInterfaceName(X,Y),volumeTag(X),ConstextInterfaceName(X,Y),
-                 face2node, pos,facecenter,area)[Loci::NullOp], 
+                 face2node, pos,facecenter,area,gagePressure_f)[Loci::NullOp], 
                  parametric(extInterfaceName(X,Y)),
                  constraint(ConstextInterfaceName(X,Y),volumeTag(X),componentExternalElastic_X), 
                  conditional(docom),
@@ -636,14 +636,14 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
             int ind2 = m3l_get_2ind(cnt,1,len,3);
             int ind3 = m3l_get_2ind(cnt,2,len,3);
 
-            forces[ind1] = $facecenter[ii].x;
-            forces[ind2] = $facecenter[ii].y;
-            forces[ind3] = $facecenter[ii].z;
+//             forces[ind1] = $facecenter[ii].x;
+//             forces[ind2] = $facecenter[ii].y;
+//             forces[ind3] = $facecenter[ii].z;
             
+            forces[ind1] = $gagePressure_f[ii] * $area[ii].n.x * $area[ii].sada;
+            forces[ind2] = $gagePressure_f[ii] * $area[ii].n.y * $area[ii].sada;
+            forces[ind3] = $gagePressure_f[ii] * $area[ii].n.z * $area[ii].sada; 
 		    cnt++ ;
-            
-//             std::cout << "AREA  " <<  $area[ii] <<endl ;
-//             std::cout <<   $iflux[ii+0] << "  " << $iflux[ii+1] << "  " << $iflux[ii+2] <<endl ;
 
         }ENDFORALL ;         
 /*
@@ -660,7 +660,7 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
                int ind2 = m3l_get_2ind(i,1,len,3);
                int ind3 = m3l_get_2ind(i,2,len,3);
           
-//                std::cout << "PNE "  << i << "  "<< forcesg[ind1]  << " " << forcesg[ind2] << " " << forcesg[ind3]  <<endl ;
+                std::cout << "PNE "  << i << "  "<< forcesg[ind1]  << " " << forcesg[ind2] << " " << forcesg[ind3]  <<endl ;
            }
 /*
  * this is rigid body motion interface, sends away forces and gets back quaternion, translation and 
@@ -695,14 +695,14 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
 //         $localvec = $facecenter;
 //         };
    
-//    $rule pointwise(OUTPUT<-ncycle,temperature_f, u_f,facecenter,gagePressure_f),
-//     constraint(ConstextInterfaceName(X,Y)),parametric(extInterfaceName(X,Y))
-//     {
-// /*
-//  * get number of points on boundaries in interface
-//  */
+   $rule pointwise(OUTPUT<-temperature_f, u_f,facecenter,gagePressure_f),
+    constraint(ConstextInterfaceName(X,Y)),parametric(extInterfaceName(X,Y))
+    {
+/*
+ * get number of points on boundaries in interface
+ */
 //      cout << "RANK " << Loci::MPI_rank << " Cycle " << " INTF is "<<   $ncycle << "  " <<  $temperature_f << "  " << $facecenter<< endl;
-//     };
+    };
     
 
 }
