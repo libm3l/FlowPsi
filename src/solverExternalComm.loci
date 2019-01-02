@@ -139,8 +139,8 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
 /*
  * scatter data
  */
-	MPI_Scatterv(&v[0],&part_sizes[0],&displs[0],MPI_DOUBLE,
-			&gv[0],len,MPI_DOUBLE,0, comm) ;
+	MPI_Scatterv(&gv[0],&part_sizes[0],&displs[0],MPI_DOUBLE,
+			&v[0],len,MPI_DOUBLE,0, comm) ;
 }
   
   $type numDeformNodes   param<size_t>;
@@ -453,7 +453,7 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
  */
    $rule apply(componentMotionData<-ncycle, stime, dtmax,ext_interfaces,extInterfaceNameStr(X,Y),
                  componentName_X,extInterfaceName(X,Y),volumeTag(X),ConstextInterfaceName(X,Y),
-                 face2node, pos,facecenter,temperature_f,gagePressure_f,iflux)[Loci::NullOp], 
+                 face2node, pos,facecenter,area)[Loci::NullOp], 
                  parametric(extInterfaceName(X,Y)),
                  constraint(ConstextInterfaceName(X,Y),volumeTag(X),componentExternalElastic_X), 
                  conditional(docom),
@@ -593,27 +593,31 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
  */
         FoundNode = m3l_get_Found_node(Founds, 0);
         displacements =(lmdouble_t *)m3l_get_data_pointer(FoundNode);
+        int  tot_dim = m3l_get_List_totdim(FoundNode);
+        
         m3l_DestroyFound(&Founds);
         
         if(Loci::MPI_rank==0) {
           Founds = m3l_Locate(IntfNode, "./Interface/global_data", "/*/*",  (lmchar_t *)NULL);
 /*
  */
-          local_data = m3l_get_Found_node(Founds, 0);
+          global_data = m3l_get_Found_node(Founds, 0);
           m3l_DestroyFound(&Founds);
         
-          Founds = m3l_Locate(local_data, "./global_data/Forces", "/*/*",  (lmchar_t *)NULL);
+          Founds = m3l_Locate(global_data, "./global_data/Forces", "/*/*",  (lmchar_t *)NULL);
 /*
  */
           FoundNode = m3l_get_Found_node(Founds, 0);
           forcesg =(lmdouble_t *)m3l_get_data_pointer(FoundNode);
           m3l_DestroyFound(&Founds);
 
-          Founds = m3l_Locate(local_data, "./global_data/disps", "/*/*",  (lmchar_t *)NULL);
+          Founds = m3l_Locate(global_data, "./global_data/disps", "/*/*",  (lmchar_t *)NULL);
 /*
  */
           FoundNode = m3l_get_Found_node(Founds, 0);
           displacementsg =(lmdouble_t *)m3l_get_data_pointer(FoundNode);
+          
+          int  tot_dim1 = m3l_get_List_totdim(FoundNode);
           m3l_DestroyFound(&Founds);
             
         }
@@ -638,7 +642,7 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
             
 		    cnt++ ;
             
-//            std::cout << p5 << "  " <<  $temperature_f[ii] <<endl ;
+//             std::cout << "AREA  " <<  $area[ii] <<endl ;
 //             std::cout <<   $iflux[ii+0] << "  " << $iflux[ii+1] << "  " << $iflux[ii+2] <<endl ;
 
         }ENDFORALL ;         
@@ -656,7 +660,7 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
                int ind2 = m3l_get_2ind(i,1,len,3);
                int ind3 = m3l_get_2ind(i,2,len,3);
           
-               std::cout << "PNE "  << i << "  "<< forcesg[ind1]  << " " << forcesg[ind2] << " " << forcesg[ind3]  <<endl ;
+//                std::cout << "PNE "  << i << "  "<< forcesg[ind1]  << " " << forcesg[ind2] << " " << forcesg[ind3]  <<endl ;
            }
 /*
  * this is rigid body motion interface, sends away forces and gets back quaternion, translation and 
@@ -670,7 +674,7 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
 /*
  * scatter data
  */        
-       ScatterDVec(displacementsg, displacements, lenvec, comm);
+        ScatterDVec(displacementsg, displacements, lenvec, comm);
         
    };
 /*
