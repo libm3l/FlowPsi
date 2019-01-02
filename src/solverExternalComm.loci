@@ -97,14 +97,14 @@ namespace flowPsi {
 /*
  * these are gather and scatter routines s
  */
-void  GatherDVecE(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
+void  GatherDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
 	int procs = 1 ;
 	MPI_Comm_size(comm,&procs) ;
 /*
  * gather sizes of vectors on root partition
  */
-	std::vector<int> recv_sizes(procs) ;
-	MPI_Gather(&len,1,MPI_INT, &recv_sizes[0],1,MPI_INT,0,comm) ;
+	std::vector<int> part_sizes(procs) ;
+	MPI_Gather(&len,1,MPI_INT, &part_sizes[0],1,MPI_INT,0,comm) ;
 /*
  * get vector of displacements
  */
@@ -112,60 +112,35 @@ void  GatherDVecE(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
         
 	displs[0] = 0 ;
 	for(int i=1;i<procs;++i)
-		displs[i] = displs[i-1]+recv_sizes[i-1];
+		displs[i] = displs[i-1]+part_sizes[i-1];
 /*
  * gather data
  */
-	MPI_Gatherv(&v[0],len,MPI_DOUBLE,&gv[0],&recv_sizes[0],&displs[0],MPI_DOUBLE,
+	MPI_Gatherv(&v[0],len,MPI_DOUBLE,&gv[0],&part_sizes[0],&displs[0],MPI_DOUBLE,
 			0, comm) ;
 }
 
-/*
- * scatter data
- */
-template<class T> void scatterVectorE(std::vector<T> &p0v,
-		std::vector<T> &v,
-		MPI_Comm comm) {
-	int rank = 0 ;
-	MPI_Comm_rank(comm,&rank) ;
+void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
 	int procs = 1 ;
 	MPI_Comm_size(comm,&procs) ;
 /*
  * gather sizes of vectors on root partition
  */
-	int local_size = v.size() ;
-	std::vector<int> send_sizes(procs) ;
-	MPI_Gather(&local_size,1,MPI_INT,
-			&send_sizes[0],1,MPI_INT,0,comm) ;
-/*
- * allocate receive arrays
- */
-	int tot_size = send_sizes[0] ;
-	for(int i=1;i<procs;++i) {
-		tot_size += send_sizes[i] ;
-	}
-	if(tot_size != int(p0v.size())) {
-		std::cerr << "incompatible sizes of vectors in scatterVector: Total receive vector sizes " << tot_size << ", Send vector size: " << p0v.size() << "\n" ;
-		Loci::Abort() ;
-	}
-/*
- * get sizes in bytes
- */
-	const int bsz = sizeof(T) ;
-	for(int i=0;i<procs;++i)
-		send_sizes[i] *= bsz ;
+	std::vector<int> part_sizes(procs) ;
+	MPI_Gather(&len,1,MPI_INT, &part_sizes[0],1,MPI_INT,0,comm) ;
 /*
  * get vector of displacements
  */
-    std::vector<int> displs(procs) ;
+	std::vector<int> displs(procs) ;
+        
 	displs[0] = 0 ;
 	for(int i=1;i<procs;++i)
-		displs[i] = displs[i-1]+send_sizes[i-1] ;
+		displs[i] = displs[i-1]+part_sizes[i-1];
 /*
  * scatter data
  */
-	MPI_Scatterv(&p0v[0],&send_sizes[0],&displs[0],MPI_BYTE,
-			&v[0],local_size*bsz,MPI_BYTE,0, comm) ;
+	MPI_Scatterv(&v[0],&part_sizes[0],&displs[0],MPI_DOUBLE,
+			&gv[0],len,MPI_DOUBLE,0, comm) ;
 }
   
   $type numDeformNodes   param<size_t>;
@@ -676,9 +651,11 @@ template<class T> void scatterVectorE(std::vector<T> &p0v,
 //            std::cout <<   $iflux[ii+0] << "  " << $iflux[ii+1] << "  " << $iflux[ii+2] <<endl ;
 
         }ENDFORALL ;         
-        
+/*
+ * gather data
+ */         
         MPI_Comm comm  = MPI_Comm_f2c((*$extInterfaceNameStr(X,Y)).INTF_comm);
-        GatherDVecE(forcesg, forces, lenvec, comm);
+        GatherDVec(forcesg, forces, lenvec, comm);
 
         if(Loci::MPI_rank==0) {
             
@@ -700,6 +677,12 @@ template<class T> void scatterVectorE(std::vector<T> &p0v,
            if(m3l_Umount(&Snode) != 1)
 		     Perror("solverExternalComm - aeroelastic: m3l_Umount");
         }
+/*
+ * scatter data
+ */        
+       ScatterDVec(forcesg, forces, lenvec, comm);
+
+        
    };
 /*
  * elastic body motion interface
