@@ -178,16 +178,13 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
 	       dom &= df->my_entities ;
          }
 
-         int ntri = 0 ;
-	     int nqua = 0 ;
-	     int ngen = 0 ; // TODO: Add support for arbitrary-sized faces
+         int ntrias = 0 ;
+	     int nquads = 0 ;
          FORALL(dom, ii) {
 		    if ($face2node[ii].size() == 3)
-		      ntri++ ;
+		      ntrias++ ;
 		    else if ($face2node[ii].size() == 4)
-			   nqua++ ;
-		    else
-			   ngen++ ;
+			   nquads++ ;
 	      } ENDFORALL ;
 /*
  * find interface with file Name with name *$extInterfaceName(X,Y) in it
@@ -213,10 +210,10 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
         dim[0] = 1;
         if(  (TmpNode = m3l_Mklist("Tria", "ST", 1, dim, &Pelems, "./Element_info", "./", (char *)NULL)) == 0)
 		  Error("socket_FlowPsi2simulink: m3l_Mklist");
-        TmpNode->data.st[0] = ntri;
+        TmpNode->data.st[0] = ntrias;
           if(  (TmpNode = m3l_Mklist("Quad", "ST", 1, dim, &Pelems, "./Element_info", "./", (char *)NULL)) == 0)
 		Error("socket_FlowPsi2simulink: m3l_Mklist");
-           TmpNode->data.st[0] = nqua;        
+           TmpNode->data.st[0] = nquads;        
         
     };
 /*
@@ -532,8 +529,6 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
  */
            MPI_Bcast(pcomm_str->type,80,MPI_CHAR,0,MPI_COMM_WORLD) ;
            commtype = pcomm_str->type;
-
-            if(Loci::MPI_rank==0)   std::cout << "communication  - " << commtype  << " and char " << pcomm_str->type << endl ;
 
            if(commtype.compare("aeroelasticity") == 0){
     //           $extInterfaceNameStr(X,Y).INTF_docommunicate = true;
