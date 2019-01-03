@@ -406,17 +406,7 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
 /*
  * loop over volume tags and set componentMotionData
  */
-//         int size = Vol_tags.size() ;
-        string name, name1;
-/*
- * loop over volume tags
- */
-       options_list ol ;
-       ol.Input(Vol_tags);
-       options_list::option_namelist nlb = ol.getOptionNameList() ; 
-       options_list::option_namelist::iterator lii;
-
-       name = *$componentName_X;
+       string name = *$componentName_X;
        (*$componentMotionData)[name] = xform;
    };
    
