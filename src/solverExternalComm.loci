@@ -86,6 +86,8 @@ $type componentExternalMotion_X Constraint ;
 $type volumeTag(X) param<string> ;
 $type localvec store<Loci::vector3d<Loci::real_t> > ;
 
+// $type faked_time param<flowPsi::real> ; 
+
 node_t *Gnode;
 
 namespace flowPsi { 
@@ -94,7 +96,6 @@ namespace flowPsi {
                       comm_struct_t *pcomm_str, string name, string type);
       
    $rule optional(ext_interfaces) {}
-   
 /*
  * these are gather and scatter routines s
  */
@@ -144,27 +145,27 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
 			&v[0],len,MPI_DOUBLE,0, comm) ;
 }
   
-  $type numDeformNodes   param<size_t>;
   $type InterfaceIO  blackbox<int>; 
-  
-  $rule unit( numDeformNodes ),
-		constraint( UNIVERSE ) {
-	$numDeformNodes = 0;
-}
 /*
  * count number of elements 
  */
-  $rule unit(InterfaceIO <- numDeformNodes,face2node, volumeTag(X), extInterfaceName(X,Y) ),
+  $rule unit(InterfaceIO <- face2node, volumeTag(X), extInterfaceName(X,Y) ),
 	option(disable_threading),constraint( ConstextInterfaceName(X,Y),volumeTag(X)),parametric(extInterfaceName(X,Y)),
     prelude {  
      
-//          node_t *TmpNode=NULL;
+         node_t *Pelems=NULL, *TmpNode=NULL, *IntfNode=NULL;
+         lmsize_t dim[1];
+         find_t *Founds=NULL;
+         lmchar_t buffer[80];
          Loci::storeRepP sp;
          Loci::fact_db* facts = Loci::exec_current_fact_db ;
 
          string str_intfname =  *$extInterfaceName(X,Y) ;
          string str_voltagname =  *$volumeTag(X) ;
         
+         if(Loci::MPI_rank==0)
+          std::cout << "Adding element info to Interface "<<  str_intfname <<endl ;        
+         
          string IntfName = "LocConstextInterfaceName("+str_voltagname+","+str_intfname+")"; 
          Loci::fact_db::distribute_infoP df = 0;         
          if(facts->is_distributed_start())
@@ -188,38 +189,36 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
 		    else
 			   ngen++ ;
 	      } ENDFORALL ;
+/*
+ * find interface with file Name with name *$extInterfaceName(X,Y) in it
+ */
+         const char *srt = str_intfname.c_str(); 
+         sprintf (buffer, "/*/SV_Name=%s", srt);
+/*
+ * locate interface, clean allocated memory
+ */      
+        if( (Founds = m3l_Locate(Gnode, "/Interfaces/Interface", buffer,  (lmchar_t *)NULL)) != NULL){
           
-          printf(" COUNT -----------------   %d   %d   %d   %d  \n", Loci::MPI_rank,ntri, nqua, ngen);
-         
-         if(Loci::MPI_rank==0){
-        
-          std::cout << "CREATING GNODE===================================================================== "<<  ::endl ;
- 
-// 	      if(  (Gnode = m3l_Mklist("Interfaces", "DIR", 0, 0, (node_t **)NULL, (const char *)NULL, (const char *)NULL, (char *)NULL)) == 0)
-// 		    Perror("m3l_Mklist");
-          
-//           if(  (TmpNode = m3l_Mklist("IIII", "DIR", 0, 0, &Gnode, "/Interfaces", "./", (char *)NULL)) == 0)
-// 		  Perror("m3l_Mklist");
+          IntfNode = m3l_get_Found_node(Founds, 0);
+          m3l_DestroyFound(&Founds);
+
         }
-    };
-    
-    
-    
-      $rule unit(InterfaceIO <- numDeformNodes),
-	option(disable_threading),constraint( UNIVERSE ),
-    prelude {  
+        else{
+          Perror("Did not find aeroleastic interface");
+        }
         
-          std::cout << "CREATING GNODE===================================================================== "<<  ::endl ;
- 
-// 	      if(  (Gnode = m3l_Mklist("Interfaces", "DIR", 0, 0, (node_t **)NULL, (const char *)NULL, (const char *)NULL, (char *)NULL)) == 0)
-// 		    Perror("m3l_Mklist");
+        if(  (Pelems = m3l_Mklist("Element_info", "DIR", 0, 0, &IntfNode, "/Interface", "./", (char *)NULL)) == 0)
+		    Perror("m3l_Mklist");
           
-//           if(  (TmpNode = m3l_Mklist("IIII", "DIR", 0, 0, &Gnode, "/Interfaces", "./", (char *)NULL)) == 0)
-// 		  Perror("m3l_Mklist");
+        dim[0] = 1;
+        if(  (TmpNode = m3l_Mklist("Tria", "ST", 1, dim, &Pelems, "./Element_info", "./", (char *)NULL)) == 0)
+		  Error("socket_FlowPsi2simulink: m3l_Mklist");
+        TmpNode->data.st[0] = ntri;
+          if(  (TmpNode = m3l_Mklist("Quad", "ST", 1, dim, &Pelems, "./Element_info", "./", (char *)NULL)) == 0)
+		Error("socket_FlowPsi2simulink: m3l_Mklist");
+           TmpNode->data.st[0] = nqua;        
         
     };
-    
-    
 /*
  * 
  * componentExternal is set always when interface calls for external communication
@@ -250,18 +249,8 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
  *
  * Prescribed Quaternion interface
  */
-//     $rule singleton(OUTPUT<-ncycle,volumeTag(X),
-//     extInterfaceNameStr(X,Y),extInterfaceName(X,Y),ext_interfaces),
-//     constraint(ConstextInterfaceName(X,Y),volumeTag(X)),conditional(docom),
-//     parametric(extInterfaceNameStr(X,Y)){
-//     
-//        if( $extInterfaceNameStr(X,Y).INTF_docommunicate){
-//            std::cout << "COMM1111111111111111  - " << $extInterfaceName(X,Y)  << "    " << ($extInterfaceNameStr(X,Y)).INTF_docommunicate<<  " Volume tag: " << $volumeTag(X) <<  ::endl ;
-//        }
-//   }
-
   $type docommnit param<bool> ;
-  $type docomm{n,it} param<bool> ;
+  $type docomm param<bool> ;
 
   
   $rule singleton(docomm{n,it}<-ncycle{n},print_freq,$it{n,it}) {
@@ -272,7 +261,8 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
           std::cout << " In doooooooooooooooooooooooooooo     - " << $docomm{n,it} <<std::endl ;
 
   }
-
+  
+  
 /*
  * rigid body motion interface
  */
@@ -285,15 +275,8 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
 /*
  * if interface is "active" communicate
  */
-    if(Loci::MPI_rank==0) 
-      std::cout << "COAPLYYYYYYYYYYYYY  - " << $extInterfaceName(X,Y)  << "    " << $volumeTag(X) <<  "  BOOL:  " << (*$extInterfaceNameStr(X,Y)).INTF_docommunicate << "   NCYCLE: " << *$ncycle   << std::endl ;
-      
       if(Loci::MPI_rank==0) 
          m3l_Cat(Gnode, "--detailed", "-L", "-P", "*",   (lmchar_t *)NULL);
-
-//       for(int i=0; i < len;i++){
-//                 std::cout << "COOOOOOOOORDS  " << $localvec[i] << "    " << std::endl ;
-//       }
 /*
  * loop over fact database with interfaces and find if it is there
  */
@@ -435,17 +418,19 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
        ol.Input(Vol_tags);
        options_list::option_namelist nlb = ol.getOptionNameList() ; 
        options_list::option_namelist::iterator lii;
-//       
-//          for(lii=nlb.begin();lii!=nlb.end();++lii){ 
-//            name1 = *lii;
-           name = *$componentName_X;
-//             std::cout << "TAGGGGGGGGGGGGG  - " << Loci::MPI_rank << "   " << "'"<<name1<<"    "<< name << " SIZE " << (*$extInterfaceNameStr(X,Y)).INTF_domsize<<std::endl ;
-          (*$componentMotionData)[name] = xform;
-//         }  
-    //  }
+
+       name = *$componentName_X;
+       (*$componentMotionData)[name] = xform;
    };
    
    
+//   $rule unit( faked_time), constraint( UNIVERSE){
+//  	$faked_time = 0;
+//   }
+//   
+//  $rule apply( faked_time<-ncycle,$it{n,it}  )[Loci::NullOp]{
+// 	$faked_time = 0;
+//   }
    
 
 /*
@@ -454,10 +439,11 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
  */
    $rule apply(componentMotionData<-ncycle, stime, dtmax,ext_interfaces,extInterfaceNameStr(X,Y),
                  componentName_X,extInterfaceName(X,Y),volumeTag(X),ConstextInterfaceName(X,Y),
-                 face2node, pos,facecenter,area,gagePressure_f,iflux)[Loci::NullOp], 
+                 face2node, pos,facecenter,area,gagePressure_f,InterfaceIO)[Loci::NullOp], 
                  parametric(extInterfaceName(X,Y)),
                  constraint(ConstextInterfaceName(X,Y),volumeTag(X),componentExternalElastic_X), 
                  conditional(docom),
+//                  conditional(docomm{n,it}),
                  prelude{
 /*
  * if interface is "active" communicate
@@ -559,7 +545,7 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
 
         }
         
-        int len = (*$extInterfaceNameStr(X,Y)).INTF_domsize;
+        lmsize_t len = (*$extInterfaceNameStr(X,Y)).INTF_domsize;
 
         string IntfName = "LocConstextInterfaceName("+str_voltagname+","+str_intfname+")"; 
         Loci::fact_db::distribute_infoP df = 0;         
@@ -644,7 +630,7 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
             forces[ind2] = $gagePressure_f[ii] * $area[ii].n.y * $area[ii].sada;
             forces[ind3] = $gagePressure_f[ii] * $area[ii].n.z * $area[ii].sada; 
             
-//              forces[ind1] = $iflux[ii].[mi+0];
+//               forces[ind1] = $iflux[ii,mi+0];
 //              forces[ind2] = $iflux[ii].[mi+1];
 //              forces[ind3] = $iflux[ii].[mi+2];
              
@@ -665,16 +651,18 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
                int ind2 = m3l_get_2ind(i,1,len,3);
                int ind3 = m3l_get_2ind(i,2,len,3);
           
-                std::cout << "PNE "  << i << "  "<< forcesg[ind1]  << " " << forcesg[ind2] << " " << forcesg[ind3]  <<endl ;
+//                 std::cout << "PNE "  << i << "  "<< forcesg[ind1]  << " " << forcesg[ind2] << " " << forcesg[ind3]  <<endl ;
            }
+           
+           std::cout << "CMMMMMMMMMMMMMMMMMMMMMM "  <<endl ;
 /*
  * this is rigid body motion interface, sends away forces and gets back quaternion, translation and 
  * center of rotation
  */
-           Snode = bridge_aeroelastic(IntfNode, pcomm_str);
-
-           if(m3l_Umount(&Snode) != 1)
-		     Perror("solverExternalComm - aeroelastic: m3l_Umount");
+//            Snode = bridge_aeroelastic(IntfNode, pcomm_str);
+// 
+//            if(m3l_Umount(&Snode) != 1)
+// 		     Perror("solverExternalComm - aeroelastic: m3l_Umount");
         }
 /*
  * scatter data
@@ -708,22 +696,10 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
 /*
  * get number of points on boundaries in interface
  */
-//      cout << "RANK " << Loci::MPI_rank << " Cycle " << " INTF is "<<   $ncycle << "  " <<  $temperature_f << "  " << $facecenter<< endl;
+//         cout << "RANK " << Loci::MPI_rank << " Cycle " << " INTF is "<<   $ncycle << "  " <<  $temperature_f << "  " << $facecenter<< endl;
+//         cout << "RANK " << Loci::MPI_rank << " Cycle " << " INTF is "<< $iflux << endl;
     };
     
-//      $rule pointwise(temperature_f,gagePressure_f,u_f<-us,area,
-// 		  ci->(gagePressure,u),Twall,wallVelocity),
-//     constraint(viscousWall_BC) {
-//     // Wall tangential velocity
-//     const vect3d uwall = $wallVelocity ;
-//     $u_f = uwall-dot(uwall,$area.n)*$area.n + $us ;
-//     
-//     real pgb = $ci->$gagePressure ;
-//     $gagePressure_f = pgb ;
-//     $temperature_f = $Twall ;
-//   } 
-    
-
 }
 
 
