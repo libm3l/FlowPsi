@@ -426,7 +426,7 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
  */
    $rule apply(componentMotionData<-ncycle, stime, dtmax,ext_interfaces,extInterfaceNameStr(X,Y),
                  componentName_X,extInterfaceName(X,Y),volumeTag(X),ConstextInterfaceName(X,Y),
-                 face2node, pos,facecenter,area,gagePressure_f,InterfaceIO)[Loci::NullOp], 
+                 face2node, pos,facecenter,InterfaceIO,iflux)[Loci::NullOp], 
                  parametric(extInterfaceName(X,Y)),
                  constraint(ConstextInterfaceName(X,Y),volumeTag(X),componentExternalElastic_X), 
                  conditional(docom),
@@ -473,15 +473,11 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
       int comm_interface;
       comm_interface = 1;
       Loci::storeRepP sp;
-      Loci::fact_db* facts = Loci::exec_current_fact_db ;
-/*
- * set defaults
- */      
+      Loci::fact_db* facts = Loci::exec_current_fact_db ;     
 /*
  * get simulation time
  */
         real t = *$stime + *$dtmax ;
-
     //       (*$extInterfaceNameStr(X,Y)).INTF_docommunicate = false;
       string commtype;
       Loci::options_list::arg_list Vol_tags, *pVol_tags;
@@ -603,23 +599,23 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
 //           vect3d p3 = $pos[$face2node[ii][2]] ;
 //           vect3d p4 = $pos[$face2node[ii][3]] ;
             
-            int ind1 = m3l_get_2ind(cnt,0,len,3);
-            int ind2 = m3l_get_2ind(cnt,1,len,3);
-            int ind3 = m3l_get_2ind(cnt,2,len,3);
+           int ind1 = m3l_get_2ind(cnt,0,len,3);
+           int ind2 = m3l_get_2ind(cnt,1,len,3);
+           int ind3 = m3l_get_2ind(cnt,2,len,3);
 
 //             forces[ind1] = $facecenter[ii].x;
 //             forces[ind2] = $facecenter[ii].y;
 //             forces[ind3] = $facecenter[ii].z;
             
-            forces[ind1] = $gagePressure_f[ii] * $area[ii].n.x * $area[ii].sada;
-            forces[ind2] = $gagePressure_f[ii] * $area[ii].n.y * $area[ii].sada;
-            forces[ind3] = $gagePressure_f[ii] * $area[ii].n.z * $area[ii].sada; 
+//            forces[ind1] = $gagePressure_f[ii] * $area[ii].n.x * $area[ii].sada;
+//            forces[ind2] = $gagePressure_f[ii] * $area[ii].n.y * $area[ii].sada;
+//            forces[ind3] = $gagePressure_f[ii] * $area[ii].n.z * $area[ii].sada; 
             
-//               forces[ind1] = $iflux[ii,mi+0];
-//              forces[ind2] = $iflux[ii].[mi+1];
-//              forces[ind3] = $iflux[ii].[mi+2];
-             
-		    cnt++ ;
+           forces[ind1] = $iflux[ii][mi+0];
+           forces[ind2] = $iflux[ii][mi+1];
+           forces[ind3] = $iflux[ii][mi+2];
+
+		   cnt++ ;
 
         }ENDFORALL ;         
 /*
@@ -636,7 +632,7 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
                int ind2 = m3l_get_2ind(i,1,len,3);
                int ind3 = m3l_get_2ind(i,2,len,3);
           
-//                 std::cout << "PNE "  << i << "  "<< forcesg[ind1]  << " " << forcesg[ind2] << " " << forcesg[ind3]  <<endl ;
+                std::cout << "PNE "  << i << "  "<< forcesg[ind1]  << " " << forcesg[ind2] << " " << forcesg[ind3]  <<endl ;
            }
            
            std::cout << "CMMMMMMMMMMMMMMMMMMMMMM "  <<endl ;
@@ -653,8 +649,6 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
  * scatter data
  */        
         ScatterDVec(displacementsg, displacements, lenvec, comm);
-        
-        
         
    };
 /*
