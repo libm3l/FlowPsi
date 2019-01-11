@@ -82,6 +82,7 @@ $type componentName_X blackbox<string> ;
 $type componentExternalRigid_X Constraint ;
 $type componentExternalElastic_X Constraint ;
 $type componentExternalMotion_X Constraint ;
+$type componentExternalRigidElastic_X Constraint ;
 
 $type volumeTag(X) param<string> ;
 $type localvec store<Loci::vector3d<Loci::real_t> > ;
@@ -520,7 +521,7 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
     //           $extInterfaceNameStr(X,Y).INTF_docommunicate = true;
            } 
            else{
-              std::cerr << "ERROR: did not find communication type (3) - " << commtype  << " - , check settings in .vars file" << std::endl ;
+              std::cerr << "ERROR: did not find communication type (3-12) - " << commtype  << " - , check settings in .vars file" << std::endl ;
               exit(-1) ;
            }
 
@@ -632,7 +633,7 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
                int ind2 = m3l_get_2ind(i,1,len,3);
                int ind3 = m3l_get_2ind(i,2,len,3);
           
-                std::cout << "PNE "  << i << "  "<< forcesg[ind1]  << " " << forcesg[ind2] << " " << forcesg[ind3]  <<endl ;
+//                 std::cout << "PNE "  << i << "  "<< forcesg[ind1]  << " " << forcesg[ind2] << " " << forcesg[ind3]  <<endl ;
            }
            
            std::cout << "CMMMMMMMMMMMMMMMMMMMMMM "  <<endl ;
@@ -648,8 +649,259 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
 /*
  * scatter data
  */        
-        ScatterDVec(displacementsg, displacements, lenvec, comm);
+        ScatterDVec(displacementsg, displacements, lenvec, comm); 
         
+        componentXform xform ;
+
+        string name = *$componentName_X;
+       (*$componentMotionData)[name] = xform;
+        
+   };
+   
+   
+   
+   
+
+/*
+ * rigid-elastic body motion interface (expot forces,get back rogid body motion)
+ * ====================================================================================
+ */
+   $rule apply(componentMotionData<-ncycle, stime, dtmax,ext_interfaces,extInterfaceNameStr(X,Y),
+                 componentName_X,extInterfaceName(X,Y),volumeTag(X),ConstextInterfaceName(X,Y),
+                 face2node, pos,facecenter,InterfaceIO,iflux)[Loci::NullOp], 
+                 parametric(extInterfaceName(X,Y)),
+                 constraint(ConstextInterfaceName(X,Y),volumeTag(X),componentExternalRigidElastic_X), 
+                 conditional(docom),
+                 prelude{
+/*
+ * if interface is "active" communicate
+ */
+    find_t *Founds=NULL;
+    node_t *IntfNode, *Snode, *local_data, *global_data, *FoundNode;
+    char buffer [80];
+    lmdouble_t *forces, *forcesg; 
+    
+    real t = *$stime + *$dtmax ;
+
+    lmdouble_t RotCX, RotCY,  RotCZ;
+    lmdouble_t TransX, TransY, TransZ;
+    lmdouble_t Alpha, Qx, Qy, Qz;
+    lmdouble_t ForceX, ForceY, ForceZ;
+    componentXform xform ;
+    
+    if(Loci::MPI_rank==0) 
+      std::cout << "COAPLYYHHHHHHHHHHHHH - AEROELS  - " << $extInterfaceName(X,Y)  << "    " << $volumeTag(X) <<  "  BOOL:  " << (*$extInterfaceNameStr(X,Y)).INTF_docommunicate << "   NCYCLE: " << *$ncycle   << std::endl ;
+    
+     if(Loci::MPI_rank==0) 
+         m3l_Cat(Gnode, "--detailed", "-L", "-P", "*",   (lmchar_t *)NULL);
+/*
+ * find interface with file Name with name *$extInterfaceName(X,Y) in it
+ */
+       string str_intfname =  *$extInterfaceName(X,Y) ;
+       string str_voltagname =  *$volumeTag(X) ;
+       const char *srt = str_intfname.c_str(); 
+       sprintf (buffer, "/*/SV_Name=%s", srt);
+/*
+ * locate interface, clean allocated memory
+ */      
+      if( (Founds = m3l_Locate(Gnode, "/Interfaces/Interface", buffer,  (lmchar_t *)NULL)) != NULL){
+          
+          IntfNode = m3l_get_Found_node(Founds, 0);
+          m3l_DestroyFound(&Founds);
+
+      }
+      else{
+          Perror("Did not find aeroleastic interface");
+      }
+/*
+ * loop over fact database with interfaces and find if it is there
+ */
+      comm_struct_t comm_str, *pcomm_str;
+      pcomm_str = &comm_str;
+
+      int comm_interface;
+      comm_interface = 1;
+      Loci::storeRepP sp;
+      Loci::fact_db* facts = Loci::exec_current_fact_db ;     
+/*
+ * get simulation time
+ */
+    //       (*$extInterfaceNameStr(X,Y)).INTF_docommunicate = false;
+      string commtype;
+      Loci::options_list::arg_list Vol_tags, *pVol_tags;
+      pVol_tags = &Vol_tags;
+      
+      if(Loci::MPI_rank==0) {
+        std::cout << "Looking for interface  - " <<  *$extInterfaceName(X,Y)  << std::endl ; 
+/*
+ * identify interface
+ */
+        if( ident_intf(pVol_tags, *$ext_interfaces, pcomm_str, *$extInterfaceName(X,Y), "aeroelasticity_rigid")){
+/*
+ * check that type among allowed types of interfaces
+ */
+          lmsize_t clen = strlen(pcomm_str->type);
+          if(strncmp(pcomm_str->type, "aeroelasticity_rigid", clen) != 0 ){
+
+            std::cerr << "ERROR: unknown type of interface (3-2) '" << pcomm_str->type << "', check settings in .vars file" << std::endl ;
+            exit(-1) ;
+
+          }
+        }
+        else{
+            std::cerr << "ERROR: did not find interface - " << *$extInterfaceName(X,Y)  << " - , check settings in .vars file" << std::endl ;
+            exit(-1) ;
+        }
+       }
+/* 
+ * broadcast comm_interface
+ */
+        MPI_Bcast(&comm_interface,1,MPI_INTEGER,0,MPI_COMM_WORLD) ;
+//         if(comm_interface == 1){
+// /*
+//  * if comm_interface == 1 broadcast pcomm_str
+//  */
+//            MPI_Bcast(pcomm_str->type,80,MPI_CHAR,0,MPI_COMM_WORLD) ;
+//            commtype = pcomm_str->type;
+// 
+//            if(commtype.compare("aeroelasticity_rigid") == 0){
+//     //           $extInterfaceNameStr(X,Y).INTF_docommunicate = true;
+//            } 
+//            else{
+//               std::cerr << "ERROR: did not find communication type (3) - " << commtype  << " - , check settings in .vars file" << std::endl ;
+//               exit(-1) ;
+//            }
+// 
+//         }
+//         
+        lmsize_t len = (*$extInterfaceNameStr(X,Y)).INTF_domsize;
+
+        string IntfName = "LocConstextInterfaceName("+str_voltagname+","+str_intfname+")"; 
+        Loci::fact_db::distribute_infoP df = 0;         
+        if(facts->is_distributed_start())
+	      df = facts->get_distribute_info();
+
+        sp = facts->get_variable(IntfName) ;
+        Loci::entitySet intsurf = entitySet(sp->domain()) ;
+         
+        if(df!=0) {
+	       intsurf &= df->my_entities ;
+        }
+/*
+ * find vector of local forces and displacements, on the root partition,find 
+ * global vectors too. Omit all checks, proper coding would require to so si
+ */
+        Founds = m3l_Locate(IntfNode, "./Interface/local_data", "/*/*",  (lmchar_t *)NULL);
+/*
+ */
+        local_data = m3l_get_Found_node(Founds, 0);
+        m3l_DestroyFound(&Founds);
+        
+        Founds = m3l_Locate(local_data, "./local_data/Forces", "/*/*",  (lmchar_t *)NULL);
+/*
+ */	
+        FoundNode = m3l_get_Found_node(Founds, 0);
+        forces =(lmdouble_t *)m3l_get_data_pointer(FoundNode);
+        m3l_DestroyFound(&Founds);
+        
+        if(Loci::MPI_rank==0) {
+          Founds = m3l_Locate(IntfNode, "./Interface/global_data", "/*/*",  (lmchar_t *)NULL);
+/*
+ */
+          global_data = m3l_get_Found_node(Founds, 0);
+          m3l_DestroyFound(&Founds);
+        
+          Founds = m3l_Locate(global_data, "./global_data/Forces", "/*/*",  (lmchar_t *)NULL);
+/*
+ */
+          FoundNode = m3l_get_Found_node(Founds, 0);
+          forcesg =(lmdouble_t *)m3l_get_data_pointer(FoundNode);
+          m3l_DestroyFound(&Founds);
+          m3l_DestroyFound(&Founds);
+            
+        }
+
+
+        int cnt = 0 ; 
+        int lenvec = len *3;
+        int mi = 1;
+
+        FORALL(intsurf,ii) {
+            
+           int ind1 = m3l_get_2ind(cnt,0,len,3);
+           int ind2 = m3l_get_2ind(cnt,1,len,3);
+           int ind3 = m3l_get_2ind(cnt,2,len,3);
+            
+           forces[ind1] = $iflux[ii][mi+0];
+           forces[ind2] = $iflux[ii][mi+1];
+           forces[ind3] = $iflux[ii][mi+2];
+
+		   cnt++ ;
+
+        }ENDFORALL ;         
+/*
+ * gather data
+ */         
+        MPI_Comm comm  = MPI_Comm_f2c((*$extInterfaceNameStr(X,Y)).INTF_comm);
+        GatherDVec(forcesg, forces, lenvec, comm);
+// 
+        if(Loci::MPI_rank==0) {
+//            
+            std::cout << "CMMMMMMMMMMMMMMMMMMMMMM - RE"  <<endl ;
+/*
+ * this is rigid body motion interface, sends away forces and gets back quaternion, translation and 
+ * center of rotation
+ */
+//            Snode = bridge_aeroelastic(IntfNode, pcomm_str);
+// 
+//            if(m3l_Umount(&Snode) != 1)
+// 		     Perror("solverExternalComm - aeroelastic: m3l_Umount");
+
+           TransX = 0;
+           TransY = 0;
+           TransZ = 0;
+           
+           RotCX = 0.25;
+           RotCY = 0.;
+           RotCZ = 0.;
+           
+           Alpha = 0;
+           Qx = 0;
+           Qy = 1;
+           Qz = 0;
+              
+         }
+/*
+ * broadcast and save in XmotionData structure
+ */
+        MPI_Bcast(&TransX,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
+        MPI_Bcast(&TransY,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
+        MPI_Bcast(&TransZ,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
+        MPI_Bcast(&RotCX,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
+        MPI_Bcast(&RotCY,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
+        MPI_Bcast(&RotCZ,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
+        MPI_Bcast(&Alpha,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
+        MPI_Bcast(&Qx,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
+        MPI_Bcast(&Qy,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
+        MPI_Bcast(&Qz,1,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
+        
+        vect3d cg = vect3d (1.0,1.0,1.0) ;
+        vect3d cg_new;
+        
+        cg         = vect3d(RotCX, RotCY, RotCZ);
+        cg_new = vect3d(TransX, TransY, TransZ);
+        cg_new = cg + cg_new;
+
+        xform.cg = cg;
+        xform.new_cg = cg_new ;
+        xform.q.x = Qx ;
+        xform.q.y = Qy ;
+        xform.q.z = Qz ;
+        xform.q.w = Alpha;
+
+        string name = *$componentName_X;
+       (*$componentMotionData)[name] = xform;
+//         
    };
 /*
  * elastic body motion interface
@@ -679,8 +931,14 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
 //         cout << "RANK " << Loci::MPI_rank << " Cycle " << " INTF is "<< $iflux << endl;
     };
     
+    
+//    $type boundaryName(X) param<string>  ;    
+//    $rule pointwise(OUTPUT{n=0}<-boundaryName(X)),parametric(boundaryName(X)),
+//     prelude {
+//        std::cout << "bcnammmmmmmmmm "  <<  *$boundaryName(X)  <<endl ;
+//   } ;
+    
 }
-
 
 #else
 /*

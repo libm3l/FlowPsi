@@ -117,13 +117,14 @@ namespace flowPsi {
  */
   $type componentExternalRigid_X Constraint ;
   $type componentExternalElastic_X Constraint ;
+  $type componentExternalRigidElastic_X Constraint;
   $type componentExternalMotion_X Constraint ;
 /*
  * set what type of motion
  */
   $rule constraint(componentServo_X,componentRotation_X,componentPrescribed_X,
        componentStationary_X,componentExternalRigid_X,componentExternalElastic_X,
-       componentExternalMotion_X<-
+       componentExternalMotion_X,componentExternalRigidElastic_X<-
        volumeTag(X),componentMotion,componentMotionTypes),
 
     parametric(volumeTag(X)) {
@@ -131,6 +132,7 @@ namespace flowPsi {
     $componentRotation_X = EMPTY ;
     $componentPrescribed_X = EMPTY ;
     $componentExternalRigid_X = EMPTY ;
+    $componentExternalRigidElastic_X = EMPTY ;
     $componentExternalElastic_X = EMPTY ;
     $componentExternalMotion_X = EMPTY ;
     $componentStationary_X = EMPTY ;
@@ -176,8 +178,9 @@ namespace flowPsi {
  * external solver communication (flag componentExternal).
  * This flag is used in solverExternalComm.loci
  */
-        $componentExternalRigid_X = ~EMPTY ;
-        $componentExternalElastic_X = ~EMPTY ;
+//         $componentExternalRigid_X = ~EMPTY ;
+//         $componentExternalElastic_X = ~EMPTY ;
+        $componentExternalRigidElastic_X = ~EMPTY ;
         $componentExternalMotion_X= ~EMPTY ;
       } else if(name == "stationary") {
         $componentStationary_X = ~EMPTY ;
