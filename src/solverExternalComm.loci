@@ -679,7 +679,7 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
     find_t *Founds=NULL;
     node_t *IntfNode, *Snode, *local_data, *global_data, *FoundNode;
     char buffer [80];
-    lmdouble_t *forces, *forcesg; 
+    lmdouble_t *forces, *forcesg, *g_time; 
     
     real t = *$stime + *$dtmax ;
 
@@ -817,8 +817,15 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
           FoundNode = m3l_get_Found_node(Founds, 0);
           forcesg =(lmdouble_t *)m3l_get_data_pointer(FoundNode);
           m3l_DestroyFound(&Founds);
+
+          Founds = m3l_Locate(global_data, "./global_data/time", "/*/*",  (lmchar_t *)NULL);
+/*
+ */
+          FoundNode = m3l_get_Found_node(Founds, 0);
+          g_time =(lmdouble_t *)m3l_get_data_pointer(FoundNode);
           m3l_DestroyFound(&Founds);
-            
+          
+          *g_time = *$stime + *$dtmax ;
         }
 
 
