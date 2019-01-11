@@ -600,9 +600,9 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
 //           vect3d p3 = $pos[$face2node[ii][2]] ;
 //           vect3d p4 = $pos[$face2node[ii][3]] ;
             
-           int ind1 = m3l_get_2ind(cnt,0,len,3);
-           int ind2 = m3l_get_2ind(cnt,1,len,3);
-           int ind3 = m3l_get_2ind(cnt,2,len,3);
+           int ind1 = m3l_get_2ind(cnt,0,3);
+           int ind2 = m3l_get_2ind(cnt,1,3);
+           int ind3 = m3l_get_2ind(cnt,2,3);
 
 //             forces[ind1] = $facecenter[ii].x;
 //             forces[ind2] = $facecenter[ii].y;
@@ -615,11 +615,6 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
            forces[ind1] = $iflux[ii][mi+0];
            forces[ind2] = $iflux[ii][mi+1];
            forces[ind3] = $iflux[ii][mi+2];
-           
-           if ($face2node[ii].size() == 4){
-              int ind4 = m3l_get_2ind(cnt,3,len,3);
-              forces[ind4] = $iflux[ii][mi+2];
-           }
 
 		   cnt++ ;
 
@@ -634,15 +629,11 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
              
            for(lmsize_t i = 0 ; i< (*$extInterfaceNameStr(X,Y)).INTF_totdomsize; i++){
            
-               int ind1 = m3l_get_2ind(i,0,len,3);
-               int ind2 = m3l_get_2ind(i,1,len,3);
-               int ind3 = m3l_get_2ind(i,2,len,3);
-               
-               if ($face2node[ii].size() == 4){
-                 int ind4 = m3l_get_2ind(cnt,3,len,3);
-               }
+               int ind1 = m3l_get_2ind(i,0,3);
+               int ind2 = m3l_get_2ind(i,1,3);
+               int ind3 = m3l_get_2ind(i,2,3);
           
-//                 std::cout << "PNE "  << i << "  "<< forcesg[ind1]  << " " << forcesg[ind2] << " " << forcesg[ind3]  <<endl ;
+                std::cout << "PNE "  << i << "  "<< forcesg[ind1]  << " " << forcesg[ind2] << " " << forcesg[ind3]  <<endl ;
            }
            
            std::cout << "CMMMMMMMMMMMMMMMMMMMMMM "  <<endl ;
@@ -837,18 +828,13 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
 
         FORALL(intsurf,ii) {
             
-           int ind1 = m3l_get_2ind(cnt,0,len,3);
-           int ind2 = m3l_get_2ind(cnt,1,len,3);
-           int ind3 = m3l_get_2ind(cnt,2,len,3);
+           int ind1 = m3l_get_2ind(cnt,0,3);
+           int ind2 = m3l_get_2ind(cnt,1,3);
+           int ind3 = m3l_get_2ind(cnt,2,3);
             
            forces[ind1] = $iflux[ii][mi+0];
            forces[ind2] = $iflux[ii][mi+1];
            forces[ind3] = $iflux[ii][mi+2];
-           
-           if ($face2node[ii].size() == 4){
-              int ind4 = m3l_get_2ind(cnt,3,len,3);
-              forces[ind4] = $iflux[ii][mi+2];
-           }
 
 		   cnt++ ;
 
