@@ -615,6 +615,11 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
            forces[ind1] = $iflux[ii][mi+0];
            forces[ind2] = $iflux[ii][mi+1];
            forces[ind3] = $iflux[ii][mi+2];
+           
+           if ($face2node[ii].size() == 4){
+              int ind4 = m3l_get_2ind(cnt,3,len,3);
+              forces[ind4] = $iflux[ii][mi+2];
+           }
 
 		   cnt++ ;
 
@@ -632,6 +637,10 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
                int ind1 = m3l_get_2ind(i,0,len,3);
                int ind2 = m3l_get_2ind(i,1,len,3);
                int ind3 = m3l_get_2ind(i,2,len,3);
+               
+               if ($face2node[ii].size() == 4){
+                 int ind4 = m3l_get_2ind(cnt,3,len,3);
+               }
           
 //                 std::cout << "PNE "  << i << "  "<< forcesg[ind1]  << " " << forcesg[ind2] << " " << forcesg[ind3]  <<endl ;
            }
@@ -719,8 +728,8 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
       comm_struct_t comm_str, *pcomm_str;
       pcomm_str = &comm_str;
 
-      int comm_interface;
-      comm_interface = 1;
+//       int comm_interface;
+//       comm_interface = 1;
       Loci::storeRepP sp;
       Loci::fact_db* facts = Loci::exec_current_fact_db ;     
 /*
@@ -756,7 +765,7 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
 /* 
  * broadcast comm_interface
  */
-        MPI_Bcast(&comm_interface,1,MPI_INTEGER,0,MPI_COMM_WORLD) ;
+//         MPI_Bcast(&comm_interface,1,MPI_INTEGER,0,MPI_COMM_WORLD) ;
 //         if(comm_interface == 1){
 // /*
 //  * if comm_interface == 1 broadcast pcomm_str
@@ -835,6 +844,11 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
            forces[ind1] = $iflux[ii][mi+0];
            forces[ind2] = $iflux[ii][mi+1];
            forces[ind3] = $iflux[ii][mi+2];
+           
+           if ($face2node[ii].size() == 4){
+              int ind4 = m3l_get_2ind(cnt,3,len,3);
+              forces[ind4] = $iflux[ii][mi+2];
+           }
 
 		   cnt++ ;
 

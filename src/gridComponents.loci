@@ -390,39 +390,6 @@ namespace flowPsi {
     string name = *$componentName_X ;
     (*$componentMotionData)[name] = xform ;
   } ;
-/* 
- * set componentMotionData for external motion
- *
- * External manuever rule (Patch 8d0d548f81f)
- * set values in componentMotionData when externally prescribed motion
- * the new values area stored in componentXform XmotionData
- * which is set in solverExtrnalComm.loci
- */
-//  $rule apply(componentMotionData<-XmotionData(X),componentName_X)[Loci::NullOp],
-//   $rule apply(componentMotionData<-componentName_X)[Loci::NullOp],
-//     constraint(componentExternalMotion_X),parametric(volumeTag(X)), prelude{
-// 
-//     string name = *$componentName_X ;
-// 
-// #ifdef LIBM3LSIPDX
-//   //  (*$componentMotionData)[name] = *$XmotionData(X) ;  
-// 
-//     std::cout << "Bogus rule ----------------------------------  - " << name  << "    " << std::endl ;
-// 
-// #else
-//     if(Loci::MPI_rank==0) {
-//       cerr << " " << endl ;
-//       cerr << "ERROR: in rule: componentMotionData<-XmotionData(X),componentName_X" << endl ;
-//       cerr << "Current version of flowPsi not compiled with libm3l and lsidpx support" << endl ;
-//       cerr << "componentMotion: external not supported" << endl ;
-//       cerr << "Exiting ...  " << endl ;
-//     }
-//     exit(-1) ;
-// #endif
-//   } ;
-
-
-
 
   $type ServoPositionInfo blackbox<map<string,real> > ;
 
