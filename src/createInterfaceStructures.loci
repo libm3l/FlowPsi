@@ -483,10 +483,14 @@ namespace flowPsi {
   	       if(  (TmpNode = m3l_Mklist("Forces", "D", 2, dim, &DataNode, "./global_data", "./", (char *)NULL)) == 0)
   		     Error("socket_FlowPsi2simulink: m3l_Mklist");
            
+//    	       if(  (TmpNode = m3l_Mklist("global_index", "ST", 1, dim, &DataNode, "./global_data", "./", (char *)NULL)) == 0)
+//   		     Error("socket_FlowPsi2simulink: m3l_Mklist");          
+           
            dim[0] = 1;
            if(  (TmpNode = m3l_Mklist("size", "ST", 1, dim, &DataNode, "./global_data", "./", (char *)NULL)) == 0)
 		     Error("socket_FlowPsi2simulink: m3l_Mklist");
            TmpNode->data.st[0] = gproc;
+           
            if(  (TmpNode = m3l_Mklist("time", "D", 1, dim, &DataNode, "./global_data", "./", (char *)NULL)) == 0)
 		     Error("socket_FlowPsi2simulink: m3l_Mklist");
            TmpNode->data.df[0] = 0;

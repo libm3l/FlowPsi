@@ -689,9 +689,6 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
     lmdouble_t ForceX, ForceY, ForceZ;
     componentXform xform ;
     
-    if(Loci::MPI_rank==0) 
-      std::cout << "COAPLYYHHHHHHHHHHHHH - AEROELS  - " << $extInterfaceName(X,Y)  << "    " << $volumeTag(X) <<  "  BOOL:  " << (*$extInterfaceNameStr(X,Y)).INTF_docommunicate << "   NCYCLE: " << *$ncycle   << std::endl ;
-    
      if(Loci::MPI_rank==0) 
          m3l_Cat(Gnode, "--detailed", "-L", "-P", "*",   (lmchar_t *)NULL);
 /*
@@ -730,6 +727,7 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
       string commtype;
       Loci::options_list::arg_list Vol_tags, *pVol_tags;
       pVol_tags = &Vol_tags;
+  	  Map l2g ;
       
       if(Loci::MPI_rank==0) {
         std::cout << "Looking for interface  - " <<  *$extInterfaceName(X,Y)  << std::endl ; 
@@ -786,6 +784,7 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
          
         if(df!=0) {
 	       intsurf &= df->my_entities ;
+//            l2g = df->l2g.Rep() ;
         }
 /*
  * find vector of local forces and displacements, on the root partition,find 
@@ -844,6 +843,14 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
            forces[ind3] = $iflux[ii][mi+2];
 
 		   cnt++ ;
+           
+//           vect3d p1 = $pos[$face2node[ii][0]] ;
+//           vect3d p2 = $pos[$face2node[ii][1]] ;
+//           vect3d p3 = $pos[$face2node[ii][2]] ;
+//           vect3d p4 = $pos[$face2node[ii][3]] ;
+           
+//         std::cout << "IIIIIIIII - RE"  << $face2node[ii][0]  << " " << $face2node[ii][1]  << " "<< $face2node[ii][2]  << " "<< $face2node[ii][3]  << " "<< l2g[ii] <<endl ;
+
 
         }ENDFORALL ;         
 /*
@@ -876,7 +883,6 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
            Qx = 0;
            Qy = 1;
            Qz = 0;
-              
          }
 /*
  * broadcast and save in XmotionData structure
