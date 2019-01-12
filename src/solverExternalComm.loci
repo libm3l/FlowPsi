@@ -146,77 +146,77 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
 			&v[0],len,MPI_DOUBLE,0, comm) ;
 }
   
-  $type InterfaceIO  blackbox<int>; 
+//   $type InterfaceIO  blackbox<int>; 
 /*
  * count number of elements 
  */
-  $rule unit(InterfaceIO <- face2node, volumeTag(X), extInterfaceName(X,Y) ),
-	option(disable_threading),constraint( ConstextInterfaceName(X,Y),volumeTag(X)),parametric(extInterfaceName(X,Y)),
-    prelude {  
-     
-         node_t *Pelems=NULL, *TmpNode=NULL, *IntfNode=NULL;
-         lmsize_t dim[1];
-         find_t *Founds=NULL;
-         lmchar_t buffer[80];
-         Loci::storeRepP sp;
-         Loci::fact_db* facts = Loci::exec_current_fact_db ;
-
-         string str_intfname =  *$extInterfaceName(X,Y) ;
-         string str_voltagname =  *$volumeTag(X) ;
-        
-         if(Loci::MPI_rank==0)
-          std::cout << "Adding element info to Interface "<<  str_intfname <<endl ;        
-         
-         string IntfName = "LocConstextInterfaceName("+str_voltagname+","+str_intfname+")"; 
-         Loci::fact_db::distribute_infoP df = 0;         
-         if(facts->is_distributed_start())
-	       df = facts->get_distribute_info();
-
-         sp = facts->get_variable(IntfName) ;
-         Loci::entitySet dom = entitySet(sp->domain()) ;
-         
-         if(df!=0) {
-	       dom &= df->my_entities ;
-         }
-
-         int ntrias = 0 ;
-	     int nquads = 0 ;
-         FORALL(dom, ii) {
-		    if ($face2node[ii].size() == 3)
-		      ntrias++ ;
-		    else if ($face2node[ii].size() == 4)
-			   nquads++ ;
-	      } ENDFORALL ;
-/*
- * find interface with file Name with name *$extInterfaceName(X,Y) in it
- */
-         const char *srt = str_intfname.c_str(); 
-         sprintf (buffer, "/*/SV_Name=%s", srt);
-/*
- * locate interface, clean allocated memory
- */      
-        if( (Founds = m3l_Locate(Gnode, "/Interfaces/Interface", buffer,  (lmchar_t *)NULL)) != NULL){
-          
-          IntfNode = m3l_get_Found_node(Founds, 0);
-          m3l_DestroyFound(&Founds);
-
-        }
-        else{
-          Perror("Did not find aeroleastic interface");
-        }
-        
-        if(  (Pelems = m3l_Mklist("Element_info", "DIR", 0, 0, &IntfNode, "/Interface", "./", (char *)NULL)) == 0)
-		    Perror("m3l_Mklist");
-          
-        dim[0] = 1;
-        if(  (TmpNode = m3l_Mklist("Tria", "ST", 1, dim, &Pelems, "./Element_info", "./", (char *)NULL)) == 0)
-		  Error("socket_FlowPsi2simulink: m3l_Mklist");
-        TmpNode->data.st[0] = ntrias;
-          if(  (TmpNode = m3l_Mklist("Quad", "ST", 1, dim, &Pelems, "./Element_info", "./", (char *)NULL)) == 0)
-		Error("socket_FlowPsi2simulink: m3l_Mklist");
-           TmpNode->data.st[0] = nquads;        
-        
-    };
+//   $rule unit(InterfaceIO <- face2node, volumeTag(X), extInterfaceName(X,Y) ),
+// 	option(disable_threading),constraint( ConstextInterfaceName(X,Y),volumeTag(X)),parametric(extInterfaceName(X,Y)),
+//     prelude {  
+//      
+//          node_t *Pelems=NULL, *TmpNode=NULL, *IntfNode=NULL;
+//          lmsize_t dim[1];
+//          find_t *Founds=NULL;
+//          lmchar_t buffer[80];
+//          Loci::storeRepP sp;
+//          Loci::fact_db* facts = Loci::exec_current_fact_db ;
+// 
+//          string str_intfname =  *$extInterfaceName(X,Y) ;
+//          string str_voltagname =  *$volumeTag(X) ;
+//         
+//          if(Loci::MPI_rank==0)
+//           std::cout << "Adding element info to Interface "<<  str_intfname <<endl ;        
+//          
+//          string IntfName = "LocConstextInterfaceName("+str_voltagname+","+str_intfname+")"; 
+//          Loci::fact_db::distribute_infoP df = 0;         
+//          if(facts->is_distributed_start())
+// 	       df = facts->get_distribute_info();
+// 
+//          sp = facts->get_variable(IntfName) ;
+//          Loci::entitySet dom = entitySet(sp->domain()) ;
+//          
+//          if(df!=0) {
+// 	       dom &= df->my_entities ;
+//          }
+// 
+//          int ntrias = 0 ;
+// 	     int nquads = 0 ;
+//          FORALL(dom, ii) {
+// 		    if ($face2node[ii].size() == 3)
+// 		      ntrias++ ;
+// 		    else if ($face2node[ii].size() == 4)
+// 			   nquads++ ;
+// 	      } ENDFORALL ;
+// /*
+//  * find interface with file Name with name *$extInterfaceName(X,Y) in it
+//  */
+//          const char *srt = str_intfname.c_str(); 
+//          sprintf (buffer, "/*/SV_Name=%s", srt);
+// /*
+//  * locate interface, clean allocated memory
+//  */      
+//         if( (Founds = m3l_Locate(Gnode, "/Interfaces/Interface", buffer,  (lmchar_t *)NULL)) != NULL){
+//           
+//           IntfNode = m3l_get_Found_node(Founds, 0);
+//           m3l_DestroyFound(&Founds);
+// 
+//         }
+//         else{
+//           Perror("Did not find aeroleastic interface");
+//         }
+//         
+//         if(  (Pelems = m3l_Mklist("Element_info", "DIR", 0, 0, &IntfNode, "/Interface", "./", (char *)NULL)) == 0)
+// 		    Perror("m3l_Mklist");
+//           
+//         dim[0] = 1;
+//         if(  (TmpNode = m3l_Mklist("Tria", "ST", 1, dim, &Pelems, "./Element_info", "./", (char *)NULL)) == 0)
+// 		  Error("socket_FlowPsi2simulink: m3l_Mklist");
+//         TmpNode->data.st[0] = ntrias;
+//           if(  (TmpNode = m3l_Mklist("Quad", "ST", 1, dim, &Pelems, "./Element_info", "./", (char *)NULL)) == 0)
+// 		Error("socket_FlowPsi2simulink: m3l_Mklist");
+//            TmpNode->data.st[0] = nquads;        
+//         
+//     };
 /*
  * 
  * componentExternal is set always when interface calls for external communication
@@ -427,7 +427,7 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
  */
    $rule apply(componentMotionData<-ncycle, stime, dtmax,ext_interfaces,extInterfaceNameStr(X,Y),
                  componentName_X,extInterfaceName(X,Y),volumeTag(X),ConstextInterfaceName(X,Y),
-                 face2node, pos,facecenter,InterfaceIO,iflux)[Loci::NullOp], 
+                 face2node, pos,facecenter,iflux)[Loci::NullOp], 
                  parametric(extInterfaceName(X,Y)),
                  constraint(ConstextInterfaceName(X,Y),volumeTag(X),componentExternalElastic_X), 
                  conditional(docom),
@@ -668,7 +668,7 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
  */
    $rule apply(componentMotionData<-ncycle, stime, dtmax,ext_interfaces,extInterfaceNameStr(X,Y),
                  componentName_X,extInterfaceName(X,Y),volumeTag(X),ConstextInterfaceName(X,Y),
-                 face2node, pos,facecenter,InterfaceIO,iflux)[Loci::NullOp], 
+                 face2node, pos,facecenter,iflux)[Loci::NullOp], 
                  parametric(extInterfaceName(X,Y)),
                  constraint(ConstextInterfaceName(X,Y),volumeTag(X),componentExternalRigidElastic_X), 
                  conditional(docom),
