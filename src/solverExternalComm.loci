@@ -79,13 +79,17 @@ $type ConstextInterfaceName(X,Y) constraint;
 $type extInterfaceNameStr(X,Y)  param<InterfStr_t>;
 $type componentName_X blackbox<string> ;
 
-$type componentExternalRigid_X Constraint ;
-$type componentExternalElastic_X Constraint ;
-$type componentExternalMotion_X Constraint ;
-$type componentExternalRigidElastic_X Constraint ;
+
+$type componentExternalRigid_X_Y Constraint ;
+$type componentExternalElastic_X_Y Constraint ;
+$type componentExternalRigidElastic_X_Y Constraint;
+$type componentExternalMotion_X_Y Constraint ;
+$type componenLsipdxExtMotion Constraint ;
 
 $type volumeTag(X) param<string> ;
 $type localvec store<Loci::vector3d<Loci::real_t> > ;
+
+$type nodeDisp_b                        store<vect3d>; 
 
 // $type faked_time param<flowPsi::real> ; 
 
@@ -228,6 +232,53 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
  * and is with the $componentExternalRigid_X which indicates the tag communicates 
  * externally set in gridComponent.loci
  */
+  
+//    $rule default(componentExternalRigid_X_Y,componentExternalElastic_X_Y,
+//        componentExternalMotion_X_Y,componentExternalRigidElastic_X_Y, componenLsipdxExtMotion),
+//        parametric(extInterfaceName(X,Y)){
+//            
+//        std::cout << "Set default component flag - " << std::endl ; 
+// 
+//        
+//        $componentExternalRigid_X_Y = EMPTY ;
+//        $componentExternalRigidElastic_X_Y = EMPTY ;
+//        $componentExternalElastic_X_Y = EMPTY ;
+//        $componentExternalMotion_X_Y = EMPTY ;
+//        $componenLsipdxExtMotion = EMPTY;
+//   }
+
+  $rule constraint(componentExternalRigid_X_Y,componentExternalElastic_X_Y,
+       componentExternalMotion_X_Y,componentExternalRigidElastic_X_Y, componenLsipdxExtMotion<-
+       extInterfaceName(X,Y),ext_interfaces), parametric(extInterfaceName(X,Y)), 
+       constraint(ConstextInterfaceName(X,Y)) {
+
+       Loci::options_list::arg_list Vol_tags, *pVol_tags;
+       pVol_tags = &Vol_tags;
+       comm_struct_t comm_str, *pcomm_str;
+       pcomm_str = &comm_str;
+
+        std::cout << "Looking for interface to set component flag - " <<  $extInterfaceName(X,Y)  << std::endl ; 
+/*
+ * identify interface
+ */
+        if( ident_intf(pVol_tags, $ext_interfaces, pcomm_str, $extInterfaceName(X,Y), "prescribed_quaternion")){
+            $componentExternalRigid_X_Y = ~EMPTY;
+            $componenLsipdxExtMotion = ~EMPTY;
+        }
+        else if( ident_intf(pVol_tags, $ext_interfaces, pcomm_str, $extInterfaceName(X,Y), "aeroelasticity")){
+            $componentExternalRigid_X_Y = ~EMPTY;
+            $componenLsipdxExtMotion = ~EMPTY;
+        }
+        else if( ident_intf(pVol_tags, $ext_interfaces, pcomm_str, $extInterfaceName(X,Y), "aeroelasticity_rigid")){
+            $componentExternalRigid_X_Y = ~EMPTY;
+            $componenLsipdxExtMotion = ~EMPTY;
+        }
+        else
+        {
+           std::cerr << "ERROR: unknown type of interface (C1) '" << pcomm_str->type << "', check settings in .vars file" << std::endl ;
+           exit(-1) ;
+        }
+  }
 
 /*
  * this is a temporary hack which makes the comm rule always executed
@@ -237,17 +288,11 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
   $rule default(docom){
       $docom=true;
   }
-
-  $type docomappl param<bool>;
-  $rule default(docomappl){
-      $docomappl=false;
-  }
 /*
  * execute interfaces
  *
  * Prescribed Quaternion interface
  */
-  $type docommnit param<bool> ;
   $type docomm param<bool> ;
 
   
@@ -267,7 +312,7 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
    $rule apply(componentMotionData<-ncycle, stime, dtmax,ext_interfaces,extInterfaceNameStr(X,Y),
                  componentName_X,extInterfaceName(X,Y),volumeTag(X))[Loci::NullOp], 
                  parametric(extInterfaceName(X,Y)),
-                 constraint(ConstextInterfaceName(X,Y),volumeTag(X),componentExternalRigid_X), 
+                 constraint(ConstextInterfaceName(X,Y),volumeTag(X),componentExternalRigid_X_Y), 
                  conditional(docom),
                  prelude{
 /*
@@ -419,17 +464,30 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
 //  $rule apply( faked_time<-ncycle,$it{n,it}  )[Loci::NullOp]{
 // 	$faked_time = 0;
 //   }
-   
 
+      $rule apply(OUTPUT <- nodeDisp_b)[Loci::NullOp], 
+                 parametric(extInterfaceName(X,Y)),
+                 constraint(ConstextInterfaceName(X,Y),volumeTag(X),componentExternalElastic_X_Y), 
+                 conditional(docom),
+                 prelude{
+                 }; 
 /*
  * elastic body motion interface
  * ====================================================================================
  */
-   $rule apply(componentMotionData<-ncycle, stime, dtmax,ext_interfaces,extInterfaceNameStr(X,Y),
+//    $rule apply(componentMotionData<-ncycle, stime, dtmax,ext_interfaces,extInterfaceNameStr(X,Y),
+//                  componentName_X,extInterfaceName(X,Y),volumeTag(X),ConstextInterfaceName(X,Y),
+//                  face2node, pos,facecenter,iflux)[Loci::NullOp], 
+//                  parametric(extInterfaceName(X,Y)),
+//                  constraint(ConstextInterfaceName(X,Y),volumeTag(X),componentExternalElastic_X_y), 
+//                  conditional(docom),
+//                  prelude{
+
+   $rule apply(nodeDisp_b<-ncycle, stime, dtmax,ext_interfaces,extInterfaceNameStr(X,Y),
                  componentName_X,extInterfaceName(X,Y),volumeTag(X),ConstextInterfaceName(X,Y),
                  face2node, pos,facecenter,iflux)[Loci::NullOp], 
                  parametric(extInterfaceName(X,Y)),
-                 constraint(ConstextInterfaceName(X,Y),volumeTag(X),componentExternalElastic_X), 
+                 constraint(ConstextInterfaceName(X,Y),volumeTag(X),componentExternalElastic_X_y), 
                  conditional(docom),
 //                  conditional(docomm{n,it}),
                  prelude{
@@ -633,7 +691,7 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
                int ind2 = m3l_get_2ind(i,1,3);
                int ind3 = m3l_get_2ind(i,2,3);
           
-                std::cout << "PNE "  << i << "  "<< forcesg[ind1]  << " " << forcesg[ind2] << " " << forcesg[ind3]  <<endl ;
+//                 std::cout << "PNE "  << i << "  "<< forcesg[ind1]  << " " << forcesg[ind2] << " " << forcesg[ind3]  <<endl ;
            }
            
            std::cout << "CMMMMMMMMMMMMMMMMMMMMMM "  <<endl ;
@@ -651,10 +709,29 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
  */        
         ScatterDVec(displacementsg, displacements, lenvec, comm); 
         
-        componentXform xform ;
+        FORALL(intsurf,ii) {
+//           vect3d p1 = $pos[$face2node[ii][0]] ;
+//           vect3d p2 = $pos[$face2node[ii][1]] ;
+//           vect3d p3 = $pos[$face2node[ii][2]] ;
+//           vect3d p4 = $pos[$face2node[ii][3]] ;
+            
+           int ind1 = m3l_get_2ind(cnt,0,3);
+           int ind2 = m3l_get_2ind(cnt,1,3);
+           int ind3 = m3l_get_2ind(cnt,2,3);
+            
+//            $face2node[ii][0]->$nodeDisp_b = vect3d(0., 0., 0.);
+           
+           $nodeDisp_b[$face2node[ii][0]] = vect3d(0., 0., 0.);
 
-        string name = *$componentName_X;
-       (*$componentMotionData)[name] = xform;
+// 		   cnt++ ;
+
+        }ENDFORALL ;  
+        
+        
+//         componentXform xform ;
+// 
+//         string name = *$componentName_X;
+//        (*$componentMotionData)[name] = xform;
         
    };
    
@@ -670,7 +747,7 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
                  componentName_X,extInterfaceName(X,Y),volumeTag(X),ConstextInterfaceName(X,Y),
                  face2node, pos,facecenter,iflux)[Loci::NullOp], 
                  parametric(extInterfaceName(X,Y)),
-                 constraint(ConstextInterfaceName(X,Y),volumeTag(X),componentExternalRigidElastic_X), 
+                 constraint(ConstextInterfaceName(X,Y),volumeTag(X),componentExternalRigidElastic_X_y), 
                  conditional(docom),
                  prelude{
 /*
@@ -961,7 +1038,7 @@ namespace flowPsi {
 
 
   $rule singleton(XmotionData(X)<-dtmax,stime), 
-    constraint(componentExternalRigid_X),parametric(volumeTag(X)){
+    constraint(componentExternalRigid_X_y),parametric(volumeTag(X)){
     if(Loci::MPI_rank==0) {
       cerr << " " << endl ;
       cerr << "ERROR: Current version of flowPsi not compiled with libm3l and lsidpx support" << endl ;

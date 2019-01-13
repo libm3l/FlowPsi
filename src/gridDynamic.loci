@@ -64,7 +64,10 @@ $include "flowPsi.lh"
 namespace flowPsi {
 
   // Moving Mesh because of moving components
-  $rule pointwise(movingMesh),constraint(componentMotion) {
+/*
+ * JKA - set as priority rule, conflicted with $rule pointwise(pos{n,it} <- pos{n},pos, nodeDisp{n} ), in idw.loci
+ */
+  $rule pointwise(comp::movingMesh),constraint(componentMotion) {
     $movingMesh = true ;
   }
   
