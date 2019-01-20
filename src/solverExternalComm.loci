@@ -722,6 +722,9 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
 //            $face2node[ii][0]->$nodeDisp_b = vect3d(0., 0., 0.);
            
            $nodeDisp_b[$face2node[ii][0]] = vect3d(0., 0., 0.);
+           $nodeDisp_b[$face2node[ii][2]] = vect3d(0., 0., 0.);
+           $nodeDisp_b[$face2node[ii][3]] = vect3d(0., 0., 0.);
+           $nodeDisp_b[$face2node[ii][4]] = vect3d(0., 0., 0.);
 
 // 		   cnt++ ;
 
@@ -754,9 +757,9 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
  * if interface is "active" communicate
  */
     find_t *Founds=NULL;
-    node_t *IntfNode, *Snode, *local_data, *global_data, *FoundNode;
+    node_t *IntfNode, *local_data, *global_data, *FoundNode;
     char buffer [80];
-    lmdouble_t *forces, *forcesg, *g_time; 
+    lmdouble_t *forces, *forcesg, *g_time, *coords, *coordsg;
     
     real t = *$stime + *$dtmax ;
 
@@ -828,27 +831,7 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
             exit(-1) ;
         }
        }
-/* 
- * broadcast comm_interface
- */
-//         MPI_Bcast(&comm_interface,1,MPI_INTEGER,0,MPI_COMM_WORLD) ;
-//         if(comm_interface == 1){
-// /*
-//  * if comm_interface == 1 broadcast pcomm_str
-//  */
-//            MPI_Bcast(pcomm_str->type,80,MPI_CHAR,0,MPI_COMM_WORLD) ;
-//            commtype = pcomm_str->type;
-// 
-//            if(commtype.compare("aeroelasticity_rigid") == 0){
-//     //           $extInterfaceNameStr(X,Y).INTF_docommunicate = true;
-//            } 
-//            else{
-//               std::cerr << "ERROR: did not find communication type (3) - " << commtype  << " - , check settings in .vars file" << std::endl ;
-//               exit(-1) ;
-//            }
-// 
-//         }
-//         
+         
         lmsize_t len = (*$extInterfaceNameStr(X,Y)).INTF_domsize;
 
         string IntfName = "LocConstextInterfaceName("+str_voltagname+","+str_intfname+")"; 
@@ -880,6 +863,14 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
         forces =(lmdouble_t *)m3l_get_data_pointer(FoundNode);
         m3l_DestroyFound(&Founds);
         
+        
+        Founds = m3l_Locate(local_data, "./local_data/coordinates", "/*/*",  (lmchar_t *)NULL);
+/*
+ */	
+        FoundNode = m3l_get_Found_node(Founds, 0);
+        coords =(lmdouble_t *)m3l_get_data_pointer(FoundNode);
+        m3l_DestroyFound(&Founds);
+        
         if(Loci::MPI_rank==0) {
           Founds = m3l_Locate(IntfNode, "./Interface/global_data", "/*/*",  (lmchar_t *)NULL);
 /*
@@ -892,6 +883,13 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
  */
           FoundNode = m3l_get_Found_node(Founds, 0);
           forcesg =(lmdouble_t *)m3l_get_data_pointer(FoundNode);
+          m3l_DestroyFound(&Founds);
+          
+          Founds = m3l_Locate(global_data, "./global_data/coordinates", "/*/*",  (lmchar_t *)NULL);
+/*
+ */
+          FoundNode = m3l_get_Found_node(Founds, 0);
+          coordsg =(lmdouble_t *)m3l_get_data_pointer(FoundNode);
           m3l_DestroyFound(&Founds);
 
           Founds = m3l_Locate(global_data, "./global_data/time", "/*/*",  (lmchar_t *)NULL);
@@ -918,16 +916,12 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
            forces[ind1] = $iflux[ii][mi+0];
            forces[ind2] = $iflux[ii][mi+1];
            forces[ind3] = $iflux[ii][mi+2];
+           
+            coords[ind1] = $facecenter[ii].x;
+            coords[ind2] = $facecenter[ii].y;
+            coords[ind3] = $facecenter[ii].z;
 
 		   cnt++ ;
-           
-//           vect3d p1 = $pos[$face2node[ii][0]] ;
-//           vect3d p2 = $pos[$face2node[ii][1]] ;
-//           vect3d p3 = $pos[$face2node[ii][2]] ;
-//           vect3d p4 = $pos[$face2node[ii][3]] ;
-           
-//         std::cout << "IIIIIIIII - RE"  << $face2node[ii][0]  << " " << $face2node[ii][1]  << " "<< $face2node[ii][2]  << " "<< $face2node[ii][3]  << " "<< l2g[ii] <<endl ;
-
 
         }ENDFORALL ;         
 /*
@@ -935,6 +929,8 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
  */         
         MPI_Comm comm  = MPI_Comm_f2c((*$extInterfaceNameStr(X,Y)).INTF_comm);
         GatherDVec(forcesg, forces, lenvec, comm);
+        GatherDVec(coordsg, coords, lenvec, comm);
+
 // 
         if(Loci::MPI_rank==0) {
 //            
@@ -943,23 +939,22 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
  * this is rigid body motion interface, sends away forces and gets back quaternion, translation and 
  * center of rotation
  */
-//            Snode = bridge_aeroelastic(IntfNode, pcomm_str);
+         bridge_aeroelastic_rigid(IntfNode, &Alpha, &Qx, &Qy, &Qz,
+                    &TransX, &TransY, &TransZ, &RotCX, &RotCY, &RotCZ, pcomm_str);
 // 
-//            if(m3l_Umount(&Snode) != 1)
-// 		     Perror("solverExternalComm - aeroelastic: m3l_Umount");
 
-           TransX = 0;
-           TransY = 0;
-           TransZ = 0;
-           
-           RotCX = 0.25;
-           RotCY = 0.;
-           RotCZ = 0.;
-           
-           Alpha = 0;
-           Qx = 0;
-           Qy = 1;
-           Qz = 0;
+//            TransX = 0;
+//            TransY = 0;
+//            TransZ = 0;
+//            
+//            RotCX = 0.25;
+//            RotCY = 0.;
+//            RotCZ = 0.;
+//            
+//            Alpha = 0;
+//            Qx = 0;
+//            Qy = 1;
+//            Qz = 0;
          }
 /*
  * broadcast and save in XmotionData structure
@@ -991,7 +986,7 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
 
         string name = *$componentName_X;
        (*$componentMotionData)[name] = xform;
-//         
+       
    };
 /*
  * elastic body motion interface
