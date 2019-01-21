@@ -472,6 +472,9 @@ namespace flowPsi {
  */
   	     if(  (TmpNode = m3l_Mklist("Forces", "D", 2, dim, &LDataNode, "./local_data", "./", (char *)NULL)) == 0)
   		    Error("socket_FlowPsi2simulink: m3l_Mklist");
+
+  	     if(  (TmpNode = m3l_Mklist("coordinates", "D", 2, dim, &LDataNode, "./local_data", "./", (char *)NULL)) == 0)
+  		    Error("socket_FlowPsi2simulink: m3l_Mklist");
            
          if(Loci::MPI_rank == 0){
              
@@ -659,7 +662,7 @@ namespace flowPsi {
       pcomm_str->portno = (int)param;
 
       if(found == 0){
-         return true;  /* specified interface not found, return*/
+         return false;  /* specified interface not found, return*/
       }
       else{
          return true;  /* specified interface found, return*/
