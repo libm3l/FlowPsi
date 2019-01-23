@@ -772,7 +772,7 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
     lmdouble_t RotCX, RotCY,  RotCZ;
     lmdouble_t TransX, TransY, TransZ;
     lmdouble_t Alpha, Qx, Qy, Qz;
-    lmdouble_t ForceX, ForceY, ForceZ, simulation_time, delta_t ;
+    lmdouble_t ForceX, ForceY, ForceZ, simulation_time, delta_t, *angle ;
     componentXform xform ;
     lmsize_t *dims;
     
@@ -902,6 +902,14 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
           FoundNode = m3l_get_Found_node(Founds, 0);
           g_time =(lmdouble_t *)m3l_get_data_pointer(FoundNode);
           m3l_DestroyFound(&Founds);
+
+          Founds = m3l_Locate(global_data, "./global_data/modangle", "/*/*",  (lmchar_t *)NULL);
+/*
+ */
+          FoundNode = m3l_get_Found_node(Founds, 0);
+          angle =(lmdouble_t *)m3l_get_data_pointer(FoundNode);
+          m3l_DestroyFound(&Founds);
+
           
           *g_time = *$stime + *$dtmax ;
           simulation_time = *g_time;
@@ -945,6 +953,8 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
  //        bridge_aeroelastic_rigid(IntfNode, &Alpha, &Qx, &Qy, &Qz,
 //                    &TransX, &TransY, &TransZ, &RotCX, &RotCY, &RotCZ, pcomm_str);
 // 
+           double MomentY = 0;
+
            for(int inodes = 0; inodes < dims[0]; inodes++){
 /*
  *  for Jurgen
@@ -964,12 +974,41 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
              double FX = forcesg[ind1];
              double FY = forcesg[ind2];
              double FZ = forcesg[ind3];
-             
+
+             double rotcx = 0.5;
+             double rotcz = 0;
+
+             double vecx = X -  rotcx;
+             double vecz = Z -  rotcz;
+
+             MomentY = MomentY + vecx*FZ - vecz*FX;
+/*
+ * structula equations constants
+ */
+             double Imom    = 1;
+             double damping = 0.01;
+             double Kstiff  = 1;
+
+             angle[0] = MomentY - Imom*(-3*angle[1] + 4*angle[1])/(delta_t*delta_t);
+             angle[0] = angle[0] +damping*angle[1]/delta_t;
+             angle[0] = angle[0] /(Imom + damping + Kstiff);
+/*
+ * shift in time
+ */
+             angle[2] = angle[1];
+             angle[1] = angle[0]; 
+
+             std::ofstream outfile;
+             outfile.open("DATA.txt", std::ios_base::app);
+             outfile << simulation_time << "  " << angle[0] << MomentY << endl;
+             outfile.close();
            }
 /*
  * here get pitch, roll, yaw agle
  */
-            double pitch = 0.016+2.51*sin(simulation_time*2*3.1415926*6.6565344171);
+            double pitch;
+            pitch = angle[0];
+          //  double pitch = 0.016+2.51*sin(simulation_time*2*3.1415926*6.6565344171);
             double yaw = 0;
             double roll = 0;
 /*
