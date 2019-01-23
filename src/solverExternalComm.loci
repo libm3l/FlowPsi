@@ -989,12 +989,19 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
              double damping = 0.01;
              double Kstiff  = 1;
 
-             angle[0] = MomentY - Imom*(-3*angle[1] + 4*angle[1])/(delta_t*delta_t);
-             angle[0] = angle[0] +damping*angle[1]/delta_t;
+             double term1 = Imom*(-5*angle[1] + 4*angle[2] - angle[3])/(delta_t*delta_t);
+             double term2 = damping * (-4*angle[1]+angle[2])/(2*delta_t)
+
+             angle[0] = MomentY - term1 - term2;
              angle[0] = angle[0] /(Imom + damping + Kstiff);
+/*
+ * if first step, prescribe derivative of alpha
+ */
+             if(simulation_time - delta_t < 0) angle[0] = 0.1*delta_t   
 /*
  * shift in time
  */
+             angle[3] = angle[2];
              angle[2] = angle[1];
              angle[1] = angle[0]; 
 

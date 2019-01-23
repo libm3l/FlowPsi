@@ -489,7 +489,7 @@ namespace flowPsi {
   	       if(  (TmpNode = m3l_Mklist("coordinates", "D", 2, dim, &DataNode, "./global_data", "./", (char *)NULL)) == 0)
   		     Error("socket_FlowPsi2simulink: m3l_Mklist");
            
-           dim[0] = 3;
+           dim[0] = 4;
 //           if(  (TmpNode = m3l_Mklist("modcoord", "D", 1, dim, &DataNode, "./global_data", "./", (char *)NULL)) == 0)
 //  		     Error("socket_FlowPsi2simulink: m3l_Mklist");
            if(  (TmpNode = m3l_Mklist("modangle", "D", 1, dim, &DataNode, "./global_data", "./", (char *)NULL)) == 0)
