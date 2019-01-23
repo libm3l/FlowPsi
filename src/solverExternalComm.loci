@@ -455,22 +455,13 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
        string name = *$componentName_X;
        (*$componentMotionData)[name] = xform;
    };
-   
-   
-//   $rule unit( faked_time), constraint( UNIVERSE){
-//  	$faked_time = 0;
-//   }
-//   
-//  $rule apply( faked_time<-ncycle,$it{n,it}  )[Loci::NullOp]{
-// 	$faked_time = 0;
-//   }
 
-      $rule apply(OUTPUT <- nodeDisp_b)[Loci::NullOp], 
-                 parametric(extInterfaceName(X,Y)),
-                 constraint(ConstextInterfaceName(X,Y),volumeTag(X),componentExternalElastic_X_Y), 
-                 conditional(docom),
-                 prelude{
-                 }; 
+    //  $rule apply(OUTPUT<-nodeDisp_b)[Loci::NullOp], 
+    //             parametric(extInterfaceName(X,Y)),
+    //             constraint(ConstextInterfaceName(X,Y),volumeTag(X),componentExternalElastic_X_Y), 
+    //             conditional(docom),
+    //             prelude{
+    //             }; 
 /*
  * elastic body motion interface
  * ====================================================================================
