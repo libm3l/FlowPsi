@@ -238,6 +238,157 @@ node_t *bridge_aeroelastic(node_t *Gnode, comm_struct_t *comm_str){
 
 }
 
+
+lmint_t bridge_aeroelastic_rigid(node_t *Gnode, lmdouble_t * Alpha, lmdouble_t * Qx, lmdouble_t * Qy, lmdouble_t * Qz,
+                   lmdouble_t * TransX, lmdouble_t * TransY, lmdouble_t * TransZ, 
+                   lmdouble_t * RotCX, lmdouble_t * RotCY, lmdouble_t * RotCZ,
+                   comm_struct_t *comm_str){
+
+	lmint_t sockfd;
+    node_t *Snode, *GlobDataNode;
+
+	client_fce_struct_t InpPar, *PInpPar;
+	opts_t *Popts_1, opts, opts_1, *Popts;
+    find_t *Founds=NULL;
+/*
+ * Set parameters which are needed for opening the socket for sending data
+ */
+    PInpPar = &InpPar;
+	PInpPar->channel_name = comm_str->O_channel;   /* name of channel where to send data*/
+	PInpPar->SR_MODE = 'S';         /* set R or S, because we will write outgoing data to this 
+                                                   socket, set it to S */
+/*
+ *  this parameter determines two modes.
+ *  for this case it is set to D as direct, meaning we will open the socket and get the data only
+ *  had we planned to send data back through the same socket, we would use A as alternate
+ *
+ *  the second parameter is either Y or N. It determines if we should close the socket afetr receiving data
+ *  or keep it opened. In this scenario we close the socket as soon as we receive the data so set it N
+ *
+ *  NOTE: these nodes have to be the same for both processign accessing this channel (ie. sendign process and receviing process
+ *        need to use the same settings - see ../External_Processes/Client1_FakedSimulink.c)
+ *
+ *  for more details on modes see:  
+ *  Adam Jirasek and Arthur W. Rizzi: libm3l and lsipdx - Utilities for Inter-Process Data Transfer and Synchronization", 
+ *  52nd Aerospace Sciences Meeting, AIAA SciTech Forum, (AIAA 2014-1045) https://doi.org/10.2514/6.2014-1045
+ */
+	if ( (PInpPar->mode = get_exchange_channel_mode('D', 'N')) == -1)
+		Error("socket_Flow2Aeroel: wrong client mode");
+/*
+ * this is just a structure containing additional data
+ */
+	Popts   = &opts;
+	Popts_1 = &opts_1;
+/*
+ *  use the set options to set parameters for connection
+ */
+	m3l_set_Send_receive_tcpipsocket(&Popts_1);
+	m3l_set_Find(&Popts);
+/*
+ * find global_data set
+ */
+    if( (Founds = m3l_Locate(Gnode, "./Interface/global_data", "./*/*",  (lmchar_t *)NULL)) != NULL){
+                    
+       GlobDataNode = m3l_get_Found_node(Founds, 0);
+       m3l_DestroyFound(&Founds);
+
+    }
+    else{
+      Perror("Did not find glob data set");
+    }
+                
+/*
+ * print data on screen
+ */
+    if(m3l_Cat(GlobDataNode, "--detailed", "-P", "-L",  "*",   (char *)NULL) != 0)
+ 	   Error("CatData");
+/*
+ * open socket
+ */
+#pragma omp critical
+{
+	if( (sockfd = open_connection_to_server(comm_str->IP, comm_str->portno, PInpPar, Popts_1)) < 1)
+		Error("socket_Flow2Aeroel: Error when opening socket");
+}
+/*
+ * send data 
+ */
+	if ( client_sender(Gnode, sockfd, PInpPar, (opts_t *)NULL, (opts_t *)NULL) !=1 )
+		Error("socket_Flow2Aeroel: client_sender()");
+/*
+ * close socket
+ */
+#pragma omp critical
+{
+	if( close(sockfd) == -1)
+		Perror("socket_Flow2Aeroel: close");
+}
+/*
+ * free borrowed memory
+ */
+	if(m3l_Umount(&Gnode) != 1)
+		Perror("socket_Flow2Aeroel: m3l_Umount");
+/*
+ * receive data 
+ */
+	PInpPar = &InpPar;
+	PInpPar->channel_name = comm_str->I_channel;       /* name of channel */
+	PInpPar->SR_MODE = 'R';              /* set R or S, because we will read incoming data from this 
+                                                   socket, set it to R */
+/*
+ *  this parameter determines two modes.
+ *  for this case it is set to D as direct, meaning we will open the socket and get the data only
+ *  had we planned to send data back through the same socket, we would use A as alternate
+ *
+ *  the second parameter is either Y or N. It determines if we should close the socket afetr receiving data
+ *  or keep it opened. In this scenario we close the socket as soon as we receive the data so set it N
+ *
+ *  NOTE: these nodes have to be the same for both processign accessing this channel (ie. sendign process and receviing process
+ *        need to use the same settings - see ../External_Processes/Client1_FakedSimulink.c)
+ *
+ *  for more details on modes see:  
+ *  Adam Jirasek and Arthur W. Rizzi: libm3l and lsipdx - Utilities for Inter-Process Data Transfer and Synchronization", 
+ *  52nd Aerospace Sciences Meeting, AIAA SciTech Forum, (AIAA 2014-1045) https://doi.org/10.2514/6.2014-1045
+ */
+	if ( (PInpPar->mode = get_exchange_channel_mode('D', 'N')) == -1)
+		Error("socket_Flow2Aeroel: wrong client mode");
+
+	Popts   = &opts;
+	Popts_1 = &opts_1;
+/*
+ * set socket settings
+ */
+	m3l_set_Send_receive_tcpipsocket(&Popts_1);
+	m3l_set_Find(&Popts);
+/*
+ * open socket for reading data 
+ */
+#pragma omp critical
+{
+	if( (sockfd = open_connection_to_server(comm_str->IP, comm_str->portno, PInpPar, Popts_1)) < 1)
+		Error("client_sender: Error when opening socket");
+}
+/*
+ * receive data from socket
+ */
+	if ( (Snode = client_receiver(sockfd, PInpPar, (opts_t *)NULL, (opts_t *)NULL)) == NULL)
+		Error("socket_Flow2Aeroel: client_receiver()");
+/*
+ * close socket 
+ */
+#pragma omp critical
+{
+	if( close(sockfd) == -1)
+		Perror("socket_Flow2Aeroel: close");
+}
+
+
+//=======================================================================
+
+        return Snode;
+
+}
+
 #else
 
    #include "src_bridges_types.h"
