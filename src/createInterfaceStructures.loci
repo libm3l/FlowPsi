@@ -431,7 +431,9 @@ namespace flowPsi {
  */        
          dim[0] = locdomsize;
          dim[1] = 3;
-         if(new_comm != MPI_COMM_NULL){
+//         if(new_comm != MPI_COMM_NULL){
+
+         if(locdomsize > 0){
 /*
  * create and store double array of 6 with name ForcesMoments in CFD_2_SIM
  */
@@ -469,7 +471,8 @@ namespace flowPsi {
  */        
          dim[0] = locdomsize;
          dim[1] = 3;
-         if(new_comm != MPI_COMM_NULL){
+  //       if(new_comm != MPI_COMM_NULL){  
+         if(locdomsize > 0){
 /*
  * create and store double array of 6 with name ForcesMoments in CFD_2_SIM
  */

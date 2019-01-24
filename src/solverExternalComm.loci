@@ -106,6 +106,7 @@ namespace flowPsi {
  */
 void  GatherDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
 	int procs = 1 ;
+        if(len < 1)len = 0;
         if(comm == MPI_COMM_NULL)return;
 	MPI_Comm_size(comm,&procs) ;
 /*
@@ -775,7 +776,7 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
     lmdouble_t Alpha, Qx, Qy, Qz;
     lmdouble_t ForceX, ForceY, ForceZ, simulation_time, delta_t, *angle ;
     componentXform xform ;
-    lmsize_t *dims;
+    lmsize_t *dims, *domsize;
     double pitch;
 
     
@@ -865,21 +866,21 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
         local_data = m3l_get_Found_node(Founds, 0);
         m3l_DestroyFound(&Founds);
         
-        if(comm != MPI_COMM_NULL){
+        if(comm != MPI_COMM_NULL && len > 0){
         
-          Founds = m3l_Locate(local_data, "./local_data/Forces", "/*/*",  (lmchar_t *)NULL);
+            Founds = m3l_Locate(local_data, "./local_data/Forces", "/*/*",  (lmchar_t *)NULL);
 /*
  */	
-          FoundNode = m3l_get_Found_node(Founds, 0);
-          forces =(lmdouble_t *)m3l_get_data_pointer(FoundNode);
-          m3l_DestroyFound(&Founds);
+            FoundNode = m3l_get_Found_node(Founds, 0);
+            forces =(lmdouble_t *)m3l_get_data_pointer(FoundNode);
+            m3l_DestroyFound(&Founds);
         
-          Founds = m3l_Locate(local_data, "./local_data/coordinates", "/*/*",  (lmchar_t *)NULL);
+            Founds = m3l_Locate(local_data, "./local_data/coordinates", "/*/*",  (lmchar_t *)NULL);
 /*
  */	
-          FoundNode = m3l_get_Found_node(Founds, 0);
-          coords =(lmdouble_t *)m3l_get_data_pointer(FoundNode);
-          m3l_DestroyFound(&Founds);
+            FoundNode = m3l_get_Found_node(Founds, 0);
+            coords =(lmdouble_t *)m3l_get_data_pointer(FoundNode);
+            m3l_DestroyFound(&Founds);
 
         }
         
@@ -950,6 +951,7 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
  * gather data
  */         
         // MPI_Comm comm  = MPI_Comm_f2c((*$extInterfaceNameStr(X,Y)).INTF_comm); 
+
         GatherDVec(forcesg, forces, lenvec, comm);
         GatherDVec(coordsg, coords, lenvec, comm);
 // 
