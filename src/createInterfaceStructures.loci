@@ -431,6 +431,7 @@ namespace flowPsi {
  */        
          dim[0] = locdomsize;
          dim[1] = 3;
+         if(new_comm != MPI_COMM_NULL){
 /*
  * create and store double array of 6 with name ForcesMoments in CFD_2_SIM
  */
@@ -438,7 +439,7 @@ namespace flowPsi {
   		    Error("socket_FlowPsi2simulink: m3l_Mklist");
 	     if(  (TmpNode = m3l_Mklist("disps", "D", 2, dim, &LDataNode, "./local_data", "./", (char *)NULL)) == 0)
 		     Error("socket_FlowPsi2simulink: m3l_Mklist");
-           
+         }           
          if(Loci::MPI_rank == 0){
              
             dim[0] = gproc;
@@ -468,6 +469,7 @@ namespace flowPsi {
  */        
          dim[0] = locdomsize;
          dim[1] = 3;
+         if(new_comm != MPI_COMM_NULL){
 /*
  * create and store double array of 6 with name ForcesMoments in CFD_2_SIM
  */
@@ -476,6 +478,7 @@ namespace flowPsi {
 
   	     if(  (TmpNode = m3l_Mklist("coordinates", "D", 2, dim, &LDataNode, "./local_data", "./", (char *)NULL)) == 0)
   		    Error("socket_FlowPsi2simulink: m3l_Mklist");
+         }
            
          if(Loci::MPI_rank == 0){
              

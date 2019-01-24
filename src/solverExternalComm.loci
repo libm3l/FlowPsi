@@ -106,6 +106,7 @@ namespace flowPsi {
  */
 void  GatherDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
 	int procs = 1 ;
+        if(comm == MPI_COMM_NULL)return;
 	MPI_Comm_size(comm,&procs) ;
 /*
  * gather sizes of vectors on root partition
@@ -779,7 +780,7 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
 
     
      if(Loci::MPI_rank==0) 
-         m3l_Cat(Gnode, "--detailed", "-L", "-P", "*",   (lmchar_t *)NULL);
+       m3l_Cat(Gnode, "--detailed", "-L", "-P", "*",   (lmchar_t *)NULL);
 /*
  * find interface with file Name with name *$extInterfaceName(X,Y) in it
  */
@@ -805,7 +806,9 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
       comm_struct_t comm_str, *pcomm_str;
       pcomm_str = &comm_str;
       Loci::storeRepP sp;
-      Loci::fact_db* facts = Loci::exec_current_fact_db ;     
+      Loci::fact_db* facts = Loci::exec_current_fact_db ;    
+
+      MPI_Comm comm  = MPI_Comm_f2c((*$extInterfaceNameStr(X,Y)).INTF_comm); 
 /*
  * get simulation time
  */
@@ -862,19 +865,23 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
         local_data = m3l_get_Found_node(Founds, 0);
         m3l_DestroyFound(&Founds);
         
-        Founds = m3l_Locate(local_data, "./local_data/Forces", "/*/*",  (lmchar_t *)NULL);
-/*
- */	
-        FoundNode = m3l_get_Found_node(Founds, 0);
-        forces =(lmdouble_t *)m3l_get_data_pointer(FoundNode);
-        m3l_DestroyFound(&Founds);
+        if(comm != MPI_COMM_NULL){
         
-        Founds = m3l_Locate(local_data, "./local_data/coordinates", "/*/*",  (lmchar_t *)NULL);
+          Founds = m3l_Locate(local_data, "./local_data/Forces", "/*/*",  (lmchar_t *)NULL);
 /*
  */	
-        FoundNode = m3l_get_Found_node(Founds, 0);
-        coords =(lmdouble_t *)m3l_get_data_pointer(FoundNode);
-        m3l_DestroyFound(&Founds);
+          FoundNode = m3l_get_Found_node(Founds, 0);
+          forces =(lmdouble_t *)m3l_get_data_pointer(FoundNode);
+          m3l_DestroyFound(&Founds);
+        
+          Founds = m3l_Locate(local_data, "./local_data/coordinates", "/*/*",  (lmchar_t *)NULL);
+/*
+ */	
+          FoundNode = m3l_get_Found_node(Founds, 0);
+          coords =(lmdouble_t *)m3l_get_data_pointer(FoundNode);
+          m3l_DestroyFound(&Founds);
+
+        }
         
         if(Loci::MPI_rank==0) {
           Founds = m3l_Locate(IntfNode, "./Interface/global_data", "/*/*",  (lmchar_t *)NULL);
@@ -932,17 +939,17 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
            forces[ind2] = $iflux[ii][mi+1];
            forces[ind3] = $iflux[ii][mi+2];
            
-            coords[ind1] = $facecenter[ii].x;
-            coords[ind2] = $facecenter[ii].y;
-            coords[ind3] = $facecenter[ii].z;
+           coords[ind1] = $facecenter[ii].x;
+           coords[ind2] = $facecenter[ii].y;
+           coords[ind3] = $facecenter[ii].z;
 
-		   cnt++ ;
+	   cnt++ ;
 
         }ENDFORALL ;         
 /*
  * gather data
  */         
-        MPI_Comm comm  = MPI_Comm_f2c((*$extInterfaceNameStr(X,Y)).INTF_comm);
+        // MPI_Comm comm  = MPI_Comm_f2c((*$extInterfaceNameStr(X,Y)).INTF_comm); 
         GatherDVec(forcesg, forces, lenvec, comm);
         GatherDVec(coordsg, coords, lenvec, comm);
 // 
@@ -990,9 +997,9 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
 /*
  * structula equations constants
  */
-             double Imom    = 100;
-             double damping = 0.0;
-             double Kstiff  = 100;
+             double Imom    = 0.0012;
+             double damping = 0.0;   //0.016
+             double Kstiff  = 0.795;
              
              double term1 = Imom*(-5*angle[1] + 4*angle[2] - angle[3])/(delta_t*delta_t);
              double term2 = damping * (-4*angle[1]+angle[2])/(2*delta_t);
@@ -1014,24 +1021,24 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
 
              std::ofstream outfile;
              outfile.open("DATA.txt", std::ios_base::app);
-             outfile << simulation_time << "  " << angle[0] << "   " << MomentY << endl;
+             outfile << simulation_time << "  " << angle[0]*180./3.1415926 << "   " << MomentY << endl;
              outfile.close();
 /*
  * here get pitch, roll, yaw agle
  */
 //             pitch = angle[0];
           //  double pitch = 0.016+2.51*sin(simulation_time*2*3.1415926*6.6565344171);
-            double yaw = 0;
-            double roll = 0;
+             double yaw = 0;
+             double roll = 0;
             
-            printf(" ----------------------->  Pitch angle is  %lf \n", pitch);
+             printf(" ----------------------->  Pitch angle is  %lf \n", pitch*180./3.1415926);
 
 /*
  * transform angles to radiand if needed
  */            
-            pitch = pitch *3.1415926/180.;
-            yaw = yaw *3.1415926/180.;
-            roll = roll *3.1415926/180.;
+//            pitch = pitch *3.1415926/180.;
+//            yaw = yaw *3.1415926/180.;
+//            roll = roll *3.1415926/180.;
 /*
  * set center of rotation
  */
