@@ -82,6 +82,7 @@ namespace flowPsi {
     string bname;
     int locdomsize;
     int size_voltags;
+    lmdouble_t *angle;
     Loci::options_list::arg_list list_voltags ;
     
     param<options_list> bc_info, int_info ;
@@ -494,6 +495,11 @@ namespace flowPsi {
 //  		     Error("socket_FlowPsi2simulink: m3l_Mklist");
            if(  (TmpNode = m3l_Mklist("modangle", "D", 1, dim, &DataNode, "./global_data", "./", (char *)NULL)) == 0)
   		     Error("socket_FlowPsi2simulink: m3l_Mklist");
+          angle =(lmdouble_t *)m3l_get_data_pointer(TmpNode);
+          angle[0] = 0;
+          angle[1] = 0;
+          angle[2] = 0;
+          angle[3] = 0;
            
 //    	       if(  (TmpNode = m3l_Mklist("global_index", "ST", 1, dim, &DataNode, "./global_data", "./", (char *)NULL)) == 0)
 //   		     Error("socket_FlowPsi2simulink: m3l_Mklist");          

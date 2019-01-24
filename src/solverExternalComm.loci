@@ -263,34 +263,34 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
         $componentExternalMotion_X_Y = EMPTY ;
         $componenLsipdxExtMotion = EMPTY;
 
-        std::cout << "Looking for interface to set component flag - " <<  $extInterfaceName(X,Y)  << std::endl ; 
+         if(Loci::MPI_rank==0)  std::cout << "Looking for interface to set component flag - " <<  $extInterfaceName(X,Y)  << std::endl ; 
 /*
  * identify interface
  */
         if( ident_intf(pVol_tags, $ext_interfaces, pcomm_str, $extInterfaceName(X,Y), "prescribed_quaternion")){
             
-            std::cout << "Interface is set to prescribed_quaternion " << std::endl ; 
+             if(Loci::MPI_rank==0)  std::cout << "Interface is set to prescribed_quaternion " << std::endl ; 
             
             $componentExternalRigid_X_Y = ~EMPTY;
             $componenLsipdxExtMotion      = ~EMPTY;
         }
         else if( ident_intf(pVol_tags, $ext_interfaces, pcomm_str, $extInterfaceName(X,Y), "aeroelasticity")){
        
-            std::cout << "Interface is set to aeroelasticity " << std::endl ;             
+             if(Loci::MPI_rank==0)  std::cout << "Interface is set to aeroelasticity " << std::endl ;             
             
             $componentExternalElastic_X_Y = ~EMPTY;
             $componenLsipdxExtMotion        = ~EMPTY;
         }
         else if( ident_intf(pVol_tags, $ext_interfaces, pcomm_str, $extInterfaceName(X,Y), "aeroelasticity_rigid")){
 
-            std::cout << "Interface is set to aeroelasticity_rigid " << std::endl ; 
+             if(Loci::MPI_rank==0)  std::cout << "Interface is set to aeroelasticity_rigid " << std::endl ; 
 
             $componentExternalRigidElastic_X_Y = ~EMPTY;
             $componenLsipdxExtMotion                = ~EMPTY;
         }
         else
         {
-           std::cerr << "ERROR: unknown type of interface (C1) '" << pcomm_str->type << "', check settings in .vars file" << std::endl ;
+            if(Loci::MPI_rank==0)  std::cerr << "ERROR: unknown type of interface (C1) '" << pcomm_str->type << "', check settings in .vars file" << std::endl ;
            exit(-1) ;
         }
   }
@@ -775,6 +775,8 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
     lmdouble_t ForceX, ForceY, ForceZ, simulation_time, delta_t, *angle ;
     componentXform xform ;
     lmsize_t *dims;
+    double pitch;
+
     
      if(Loci::MPI_rank==0) 
          m3l_Cat(Gnode, "--detailed", "-L", "-P", "*",   (lmchar_t *)NULL);
@@ -943,7 +945,6 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
         MPI_Comm comm  = MPI_Comm_f2c((*$extInterfaceNameStr(X,Y)).INTF_comm);
         GatherDVec(forcesg, forces, lenvec, comm);
         GatherDVec(coordsg, coords, lenvec, comm);
-
 // 
         if(Loci::MPI_rank==0) {
 /*
@@ -974,50 +975,57 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
              double FX = forcesg[ind1];
              double FY = forcesg[ind2];
              double FZ = forcesg[ind3];
+             
+//              printf(" %lf %lf %lf %lf %lf %lf \n", X,Y,Z, FX,FY,FZ);
 
-             double rotcx = 0.5;
+             double rotcx = 0.075;
              double rotcz = 0;
 
              double vecx = X -  rotcx;
              double vecz = Z -  rotcz;
 
              MomentY = MomentY + vecx*FZ - vecz*FX;
+             
+           }
 /*
  * structula equations constants
  */
-             double Imom    = 1;
-             double damping = 0.01;
-             double Kstiff  = 1;
-
+             double Imom    = 100;
+             double damping = 0.0;
+             double Kstiff  = 100;
+             
              double term1 = Imom*(-5*angle[1] + 4*angle[2] - angle[3])/(delta_t*delta_t);
-             double term2 = damping * (-4*angle[1]+angle[2])/(2*delta_t)
+             double term2 = damping * (-4*angle[1]+angle[2])/(2*delta_t);
 
              angle[0] = MomentY - term1 - term2;
-             angle[0] = angle[0] /(Imom + damping + Kstiff);
+             angle[0] = angle[0] /(2*Imom/ (delta_t*delta_t) + 3*damping/delta_t + Kstiff);
 /*
  * if first step, prescribe derivative of alpha
  */
-             if(simulation_time - delta_t < 0) angle[0] = 0.1*delta_t   
+             if(simulation_time - delta_t < delta_t) angle[0] = 0.1*delta_t;
 /*
  * shift in time
  */
              angle[3] = angle[2];
              angle[2] = angle[1];
              angle[1] = angle[0]; 
+             
+             pitch = angle[0];
 
              std::ofstream outfile;
              outfile.open("DATA.txt", std::ios_base::app);
-             outfile << simulation_time << "  " << angle[0] << MomentY << endl;
+             outfile << simulation_time << "  " << angle[0] << "   " << MomentY << endl;
              outfile.close();
-           }
 /*
  * here get pitch, roll, yaw agle
  */
-            double pitch;
-            pitch = angle[0];
+//             pitch = angle[0];
           //  double pitch = 0.016+2.51*sin(simulation_time*2*3.1415926*6.6565344171);
             double yaw = 0;
             double roll = 0;
+            
+            printf(" ----------------------->  Pitch angle is  %lf \n", pitch);
+
 /*
  * transform angles to radiand if needed
  */            
@@ -1027,7 +1035,7 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
 /*
  * set center of rotation
  */
-            RotCX = 0.25;
+            RotCX = 0.075;
             RotCY = 0.;
             RotCZ = 0.;
 /*
