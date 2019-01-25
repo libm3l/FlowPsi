@@ -487,7 +487,7 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
 //                  componentName_X,extInterfaceName(X,Y),volumeTag(X),ConstextInterfaceName(X,Y),
 //                  face2node, pos,facecenter,iflux)[Loci::NullOp], 
 //                  parametric(extInterfaceName(X,Y)),
-//                  constraint(ConstextInterfaceName(X,Y),volumeTag(X),componentExternalElastic_X_y), 
+//                  constraint(ConstextInterfaceName(X,Y),volumeTag(X),componentExternalElastic_X_Y), 
 //                  conditional(docom),
 //                  prelude{
 
@@ -754,24 +754,6 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
  * rigid-elastic body motion interface (expot forces,get back rgid body motion)
  * ====================================================================================
  */
-
-  $type dosubiter param<bool>;
-  $rule default(dosubiter){
-      $dosubiter=false;
-  };
-/*
- */
-//
- //  $rule apply(OUTPUT<-componentMotionData)[Loci::NullOp], 
- //    parametric(extInterfaceName(X,Y)),
- //    constraint(ConstextInterfaceName(X,Y),volumeTag(X),componentExternalRigidElastic_X_Y), 
- //    conditional(dosubiter),
- //    prelude{};
-
-   $rule singleton(OUTPUT<-componentMotionData), 
-     parametric(extInterfaceName(X,Y)),
-     constraint(ConstextInterfaceName(X,Y),volumeTag(X),componentExternalRigidElastic_X_Y), 
-     conditional(dosubiter){};
 
 /*
  */
@@ -1188,7 +1170,7 @@ namespace flowPsi {
 
 
   $rule singleton(XmotionData(X)<-dtmax,stime), 
-    constraint(componentExternalRigid_X_y),parametric(volumeTag(X)){
+    constraint(componentExternalRigid_X_Y),parametric(volumeTag(X)){
     if(Loci::MPI_rank==0) {
       cerr << " " << endl ;
       cerr << "ERROR: Current version of flowPsi not compiled with libm3l and lsidpx support" << endl ;
