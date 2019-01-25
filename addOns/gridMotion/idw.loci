@@ -29,7 +29,6 @@ using Loci::pointwise_rule ;
 using Loci::sequence ;
 using Loci::entitySet ;
 using Loci::register_rule ;
-using Loci::EMPTY ;
 
 #include <iostream>
 using std::cout ;
@@ -38,7 +37,6 @@ using std::vector;
 
 $include "FVM.lh"
 $include "gridMover.lh"
-$include "flowPsi.lh"
 
 //--------------------------------------------------------------------
 $rule default(gridMotionExpA) {
@@ -177,28 +175,9 @@ $rule pointwise(pos0{n,it}<-pos),constraint(pos,UNIVERSE{n,it}) {
 
 //--------------------------------------------------------------------
 // Update the mesh node positions
-// JKA: execute this rule only if not componentMotion specified
-// otherwise fill temporary value for deformed positions
-// which will be then rotated
 //--------------------------------------------------------------------
-
-$type nocomMotBool Constraint;
-$rule default(nocomMotBool){
-       printf(" SETTIIIIIIIIIIIIIIII   ~~~~~~~~EMPTY\n");
-
-    $nocomMotBool=~EMPTY;
-}
-
-// $type componenLsipdxExtMotion Constraint ;
-// 
-// // $rule constraint(nocomMotBool<-componentMotion), constraint(componenLsipdxExtMotion) {
-// $rule constraint(nocomMotBool<-componenLsipdxExtMotion) {
-//    $nocomMotBool = $componenLsipdxExtMotion;
-//    printf(" SETTIIIIIIIIIIIIIIII   EMPTY\n");
-// } ;
-
 $rule pointwise(pos{n,it} <- pos{n},pos, nodeDisp{n} ),
-constraint( UNIVERSE{n,it}, pos, GM_timeLaggedCouplingMode,nocomMotBool ) {
+constraint( UNIVERSE{n,it}, pos, GM_timeLaggedCouplingMode ) {
   $pos{n,it} = $pos + $nodeDisp{n};
 }
 
@@ -206,7 +185,7 @@ constraint( UNIVERSE{n,it}, pos, GM_timeLaggedCouplingMode,nocomMotBool ) {
 // at time level n in variable nodeDisp_b,  and an updated displacement 
 // provided at the end of each Newton step in nodeDispUpdate_b
 $rule pointwise(pos{n,it=0} <- pos{n},pos,nodeDisp{n} ), 
-  constraint( UNIVERSE{n}, pos, GM_nonLinearCouplingMode,nocomMotBool ) {
+  constraint( UNIVERSE{n}, pos, GM_nonLinearCouplingMode ) {
     $pos{n,it=0} = $pos + $nodeDisp{n};
 }
 
