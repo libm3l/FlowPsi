@@ -751,22 +751,30 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
    
 
 /*
- * rigid-elastic body motion interface (expot forces,get back rogid body motion)
+ * rigid-elastic body motion interface (expot forces,get back rgid body motion)
  * ====================================================================================
  */
 
   $type dosubiter param<bool>;
   $rule default(dosubiter){
       $dosubiter=false;
-  }
+  };
+/*
+ */
+//
+ //  $rule apply(OUTPUT<-componentMotionData)[Loci::NullOp], 
+ //    parametric(extInterfaceName(X,Y)),
+ //    constraint(ConstextInterfaceName(X,Y),volumeTag(X),componentExternalRigidElastic_X_Y), 
+ //    conditional(dosubiter),
+ //    prelude{};
 
-     $rule apply(OUTPUT<-componentMotionData)[Loci::NullOp], 
-                parametric(extInterfaceName(X,Y)),
-                constraint(ConstextInterfaceName(X,Y),volumeTag(X),componentExternalRigidElastic_X_Y), 
-                conditional(dosubiter),
-                prelude{
-                }; 
+   $rule singleton(OUTPUT<-componentMotionData), 
+     parametric(extInterfaceName(X,Y)),
+     constraint(ConstextInterfaceName(X,Y),volumeTag(X),componentExternalRigidElastic_X_Y), 
+     conditional(dosubiter){};
 
+/*
+ */
    $rule apply(componentMotionData<-ncycle, stime, dtmax,ext_interfaces,extInterfaceNameStr(X,Y),
                  componentName_X,extInterfaceName(X,Y),volumeTag(X),ConstextInterfaceName(X,Y),
                  face2node, pos,facecenter,iflux)[Loci::NullOp], 
@@ -791,10 +799,12 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
     componentXform xform ;
     lmsize_t *dims, *domsize;
     double pitch;
+    int time_shift;
 
-    
-     if(Loci::MPI_rank==0) 
-       m3l_Cat(Gnode, "--detailed", "-L", "-P", "*",   (lmchar_t *)NULL);
+    time_shitf = 0;
+
+    if(Loci::MPI_rank==0) 
+      m3l_Cat(Gnode, "--detailed", "-L", "-P", "*",   (lmchar_t *)NULL);
 /*
  * find interface with file Name with name *$extInterfaceName(X,Y) in it
  */
@@ -933,10 +943,17 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
           angle =(lmdouble_t *)m3l_get_data_pointer(FoundNode);
           m3l_DestroyFound(&Founds);
 
-          
-          *g_time = *$stime + *$dtmax ;
-          simulation_time = *g_time;
-          delta_t = *$dtmax;
+          if(*gtime < *$stime + *$dtmax*0.4){
+            *g_time = *$stime + *$dtmax ;
+             simulation_time = *g_time;
+             delta_t = *$dtmax;
+             time_shitf = 1;
+          }
+          else{
+             simulation_time = *g_time;
+             delta_t = *$dtmax;
+             time_shitf = 0;
+          }
         }
 
         int cnt = 0 ; 
@@ -1013,7 +1030,7 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
  * structural equations constants
  */
              double Imom    = 0.0012;
-             double damping = 0.;  //0.0106;
+             double damping = 0.0035;  //0.0106;
              double Kstiff  = 0.795;
 /*
  * approximations: 
@@ -1035,9 +1052,11 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
 /*
  * shift in time
  */
-             angle[3] = angle[2];
-             angle[2] = angle[1];
-             angle[1] = angle[0]; 
+             if(time_shitf == 1){
+               angle[3] = angle[2];
+               angle[2] = angle[1];
+               angle[1] = angle[0]; 
+             }
              
              pitch = angle[0];
 
