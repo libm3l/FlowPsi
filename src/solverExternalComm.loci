@@ -801,7 +801,7 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
     double pitch;
     int time_shift;
 
-    time_shitf = 0;
+    time_shift = 0;
 
     if(Loci::MPI_rank==0) 
       m3l_Cat(Gnode, "--detailed", "-L", "-P", "*",   (lmchar_t *)NULL);
@@ -943,16 +943,16 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
           angle =(lmdouble_t *)m3l_get_data_pointer(FoundNode);
           m3l_DestroyFound(&Founds);
 
-          if(*gtime < *$stime + *$dtmax*0.4){
+          if(*g_time < *$stime + *$dtmax*0.4){
             *g_time = *$stime + *$dtmax ;
              simulation_time = *g_time;
              delta_t = *$dtmax;
-             time_shitf = 1;
+             time_shift = 1;
           }
           else{
              simulation_time = *g_time;
              delta_t = *$dtmax;
-             time_shitf = 0;
+             time_shift = 0;
           }
         }
 
@@ -1052,7 +1052,7 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
 /*
  * shift in time
  */
-             if(time_shitf == 1){
+             if(time_shift == 1){
                angle[3] = angle[2];
                angle[2] = angle[1];
                angle[1] = angle[0]; 
