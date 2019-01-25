@@ -754,6 +754,19 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
  * rigid-elastic body motion interface (expot forces,get back rogid body motion)
  * ====================================================================================
  */
+
+  $type dosubiter param<bool>;
+  $rule default(dosubiter){
+      $dosubiter=false;
+  }
+
+     $rule apply(OUTPUT<-componentMotionData)[Loci::NullOp], 
+                parametric(extInterfaceName(X,Y)),
+                constraint(ConstextInterfaceName(X,Y),volumeTag(X),componentExternalRigidElastic_X_Y), 
+                conditional(dosubiter),
+                prelude{
+                }; 
+
    $rule apply(componentMotionData<-ncycle, stime, dtmax,ext_interfaces,extInterfaceNameStr(X,Y),
                  componentName_X,extInterfaceName(X,Y),volumeTag(X),ConstextInterfaceName(X,Y),
                  face2node, pos,facecenter,iflux)[Loci::NullOp], 
