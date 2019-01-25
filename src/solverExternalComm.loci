@@ -1052,18 +1052,21 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
 /*
  * shift in time
  */
+             pitch = angle[0];
+
              if(time_shift == 1){
+                 
+                 printf(" Shifting solution ---------------------------> \n");
                angle[3] = angle[2];
                angle[2] = angle[1];
                angle[1] = angle[0]; 
-             }
              
-             pitch = angle[0];
 
-             std::ofstream outfile;
-             outfile.open("DATA.txt", std::ios_base::app);
-             outfile << simulation_time << "  " << angle[0]*180./3.1415926 << "   " << MomentY << endl;
-             outfile.close();
+               std::ofstream outfile;
+               outfile.open("DATA.txt", std::ios_base::app);
+               outfile << simulation_time << "  " << angle[0]*180./3.1415926 << "   " << MomentY << endl;
+               outfile.close();
+             }
 /*
  * here get pitch, roll, yaw agle
  */
