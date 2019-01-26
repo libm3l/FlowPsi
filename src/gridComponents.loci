@@ -667,32 +667,32 @@ $type GM_timeLaggedCouplingMode Constraint ;
 $type GM_nonLinearCouplingMode    Constraint ;
 
 $rule constraint(GM_timeLaggedCouplingMode,GM_nonLinearCouplingMode<-componentMotion) {
-  $GM_timeLaggedCouplingMode = ~EMPTY ;
-  $GM_nonLinearCouplingMode    = EMPTY ;
+  $GM_timeLaggedCouplingMode = EMPTY ;
+  $GM_nonLinearCouplingMode    = ~EMPTY ;
 }
-
-//   $rule pointwise(pos{n,it}<-pos{n},pos,componentTransformsn_X{n,it}),
-//     constraint(componentNodes_X,componentMotion,GM_timeLaggedCouplingMode),
-//     parametric(volumeTag(X)) , 
-//     prelude{printf(" --------------------> new mesh positions\n");}
-//     {
-//     vect3d xpos = $pos ;
-//     for(size_t i=0;i<$componentTransformsn_X{n,it}.size();++i)
-//       xpos = $componentTransformsn_X{n,it}[i].applyXform(xpos) ;
-//     $pos{n,it} = xpos ;
-//   }    
-  
-
-// For nonlinear coupling we use a displacement prediction provided
-// at time level n in variable nodeDisp_b,  and an updated displacement 
-// provided at the end of each Newton step in nodeDispUpdate_b
+/*
+ * coupling at time step level
+ */
+  $rule pointwise(pos{n,it}<-pos{n},pos,componentTransformsn_X{n,it}),
+    constraint(componentNodes_X,componentMotion, GM_timeLaggedCouplingMode),
+    parametric(volumeTag(X)) , 
+    prelude{printf(" --------------------> new mesh positions\n");}
+    {
+    vect3d xpos = $pos ;
+    for(size_t i=0;i<$componentTransformsn_X{n,it}.size();++i)
+      xpos = $componentTransformsn_X{n,it}[i].applyXform(xpos) ;
+    $pos{n,it} = xpos ;
+  }    
+/*
+ * coupling on suubiteration level
+ */
 $rule pointwise(pos{n,it=0} <- pos{n},pos ), 
-  constraint( UNIVERSE{n}, pos) {
+  constraint( UNIVERSE{n}, pos, GM_nonLinearCouplingMode) {
     $pos{n,it=0} = $pos{n};
 }
   
     $rule pointwise(pos{n,it+1}<-pos{n},pos,componentTransforms_X{n,it}),
-    constraint(componentNodes_X,componentMotion),
+    constraint(componentNodes_X,componentMotion, GM_nonLinearCouplingMode),
     parametric(volumeTag(X)) , 
     prelude{printf(" --------------------> new mesh positions\n");}
     {
@@ -702,10 +702,10 @@ $rule pointwise(pos{n,it=0} <- pos{n},pos ),
     $pos{n,it+1} = xpos ;
   } 
 
-//    $rule singleton(componentTransformsn_X{n}<-componentTransforms_X{n}),
-//      parametric(volumeTag(X)) {
-//      $componentTransformsn_X{n} = $componentTransforms_X{n} ;
-//    }
+   $rule singleton(componentTransformsn_X{n}<-componentTransforms_X{n}),
+     parametric(volumeTag(X)) {
+     $componentTransformsn_X{n} = $componentTransforms_X{n} ;
+   }
   
   $type componentVectorRotation_X param<tens3d> ;
 /*
