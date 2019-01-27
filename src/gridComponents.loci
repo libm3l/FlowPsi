@@ -663,13 +663,13 @@ namespace flowPsi {
  * transform mesh (rotate and translate)
  */
 
+/*
+ * this defines if rigid motion is done at iteration or subiteration level
+ * it is defined in couplingLevel.loci which was moved from /addOns/gridMotion to /src
+ */
+$type meshCouplingMode param<string> ;
 $type GM_timeLaggedCouplingMode Constraint ;
 $type GM_nonLinearCouplingMode    Constraint ;
-
-$rule constraint(GM_timeLaggedCouplingMode,GM_nonLinearCouplingMode<-componentMotion) {
-  $GM_timeLaggedCouplingMode = EMPTY ;
-  $GM_nonLinearCouplingMode    = ~EMPTY ;
-}
 /*
  * coupling at time step level
  */
@@ -682,25 +682,7 @@ $rule constraint(GM_timeLaggedCouplingMode,GM_nonLinearCouplingMode<-componentMo
     for(size_t i=0;i<$componentTransformsn_X{n,it}.size();++i)
       xpos = $componentTransformsn_X{n,it}[i].applyXform(xpos) ;
     $pos{n,it} = xpos ;
-  }    
-/*
- * coupling on suubiteration level
- */
-$rule pointwise(pos{n,it=0} <- pos{n},pos ), 
-  constraint( UNIVERSE{n}, pos, GM_nonLinearCouplingMode) {
-    $pos{n,it=0} = $pos{n};
-}
-  
-    $rule pointwise(pos{n,it+1}<-pos{n},pos,componentTransforms_X{n,it}),
-    constraint(componentNodes_X,componentMotion, GM_nonLinearCouplingMode),
-    parametric(volumeTag(X)) , 
-    prelude{printf(" --------------------> new mesh positions\n");}
-    {
-    vect3d xpos = $pos;
-    for(size_t i=0;i<$componentTransforms_X{n,it}.size();++i)
-      xpos = $componentTransforms_X{n,it}[i].applyXform(xpos) ;
-    $pos{n,it+1} = xpos ;
-  } 
+  }
 
    $rule singleton(componentTransformsn_X{n}<-componentTransforms_X{n}),
      parametric(volumeTag(X)) {
@@ -726,6 +708,26 @@ $rule pointwise(pos{n,it=0} <- pos{n},pos ),
       v = $componentTransformsn_X[i].applyRotation(v) ;
     $componentVectorRotation_X.z = v ;
   }
+/*
+ * coupling on subiteration level
+ */
+$rule pointwise(pos{n,it=0} <- pos{n},pos ), 
+  constraint( UNIVERSE{n}, pos, GM_nonLinearCouplingMode) {
+    $pos{n,it=0} = $pos{n};
+}
+  
+    $rule pointwise(pos{n,it+1}<-pos{n},pos,componentTransforms_X{n,it}),
+    constraint(componentNodes_X,componentMotion, GM_nonLinearCouplingMode),
+    parametric(volumeTag(X)) , 
+    prelude{printf(" --------------------> new mesh positions\n");}
+    {
+    vect3d xpos = $pos;
+    for(size_t i=0;i<$componentTransforms_X{n,it}.size();++i)
+      xpos = $componentTransforms_X{n,it}[i].applyXform(xpos) ;
+    $pos{n,it+1} = xpos ;
+  }   
+  
+  
 
   $type surfaceNodeNormal store<vector3d<float> > ;
 

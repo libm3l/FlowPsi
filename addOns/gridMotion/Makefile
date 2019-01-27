@@ -24,9 +24,8 @@ OBJS =	approx.o \
 	treeApprox.o \
 	rotor.o \
 	geomRep.o \
-	couplingLevel.o \
-	constrainedSurfaces.o \
 	flowpsi_interface.o 
+#	couplingLevel.o \
 
 # List your object files here
 VOGDEFOBJS =  vogdeform.o \
@@ -37,8 +36,8 @@ VOGDEFOBJS =  vogdeform.o \
 	treeApprox.o \
 	rotor.o \
 	geomRep.o \
-	couplingLevel.o \
 	constrainedSurfaces.o
+#	couplingLevel.o \
 
 MODULE_NAME = gridMotionFPSI
 
