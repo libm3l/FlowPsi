@@ -669,7 +669,7 @@ namespace flowPsi {
  */
 $type meshCouplingMode param<string> ;
 $type GM_timeLaggedCouplingMode Constraint ;
-$type GM_nonLinearCouplingMode    Constraint ;
+$type GM_nonLinearCouplingMode  Constraint ;
 /*
  * coupling at time step level
  */
