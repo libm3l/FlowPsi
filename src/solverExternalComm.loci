@@ -1012,7 +1012,7 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
  * structural equations constants
  */
              double Imom    = 0.0012;
-             double damping = 0.0035;  //0.0106;
+             double damping = 0.0106;
              double Kstiff  = 0.795;
 /*
  * approximations: 
@@ -1025,7 +1025,7 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
              double term1 = Imom*(-5*angle[1] + 4*angle[2] - angle[3])/(delta_t*delta_t);
              double term2 = damping * (-4*angle[1]+angle[2])/(2*delta_t);
 
-             angle[0] = MomentY - term1 - term2;
+             angle[0] = -MomentY - term1 - term2;
              angle[0] = angle[0] /(2*Imom/(delta_t*delta_t) + 3*damping/(2*delta_t) + Kstiff);
 /*
  * if first step, prescribe derivative of alpha
