@@ -675,9 +675,7 @@ $type GM_nonLinearCouplingMode  Constraint ;
  */
   $rule pointwise(pos{n,it}<-pos{n},pos,componentTransformsn_X{n,it}),
     constraint(componentNodes_X,componentMotion, GM_timeLaggedCouplingMode),
-    parametric(volumeTag(X)) , 
-    prelude{printf(" --------------------> new mesh positions\n");}
-    {
+    parametric(volumeTag(X)) {
     vect3d xpos = $pos ;
     for(size_t i=0;i<$componentTransformsn_X{n,it}.size();++i)
       xpos = $componentTransformsn_X{n,it}[i].applyXform(xpos) ;
@@ -718,8 +716,7 @@ $type GM_nonLinearCouplingMode  Constraint ;
   
    $rule pointwise(pos{n,it+1}<-pos{n},pos,componentTransforms_X{n,it}),
     constraint(componentNodes_X,componentMotion, GM_nonLinearCouplingMode),
-    parametric(volumeTag(X)) , 
-    prelude{printf(" --------------------> new mesh positions - STRONG\n");}
+    parametric(volumeTag(X)) 
     {
     vect3d xpos = $pos;
     for(size_t i=0;i<$componentTransforms_X{n,it}.size();++i)
