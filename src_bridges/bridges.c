@@ -91,7 +91,7 @@
  *     Description
  * 
  */
-lmint_t bridge_prescribed_quaternion(lmdouble_t time, 
+CPP_C lmint_t bridge_prescribed_quaternion(lmdouble_t time, 
                     lmdouble_t ForceX, lmdouble_t ForceY, lmdouble_t ForceZ , 
                     lmdouble_t *Alpha, lmdouble_t *Qx, lmdouble_t *Qy, lmdouble_t *Qz,
                     lmdouble_t *TransX, lmdouble_t *TransY, lmdouble_t *TransZ,
@@ -373,7 +373,7 @@ lmint_t bridge_prescribed_quaternion(lmdouble_t time,
    #include "src_bridges_types.h"
    #include "src_bridges.h"
 
-   int bridge_prescribed_quaternion(double time, 
+CPP_C int bridge_prescribed_quaternion(double time, 
                     double ForceX, double ForceY, double ForceZ , 
                     double *Alpha, double *Qx, double *Qy, double *Qz,
                     double *TransX, double *TransY, double *TransZ,
