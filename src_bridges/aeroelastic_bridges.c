@@ -91,7 +91,7 @@
  *     Description
  * 
  */
-node_t *bridge_aeroelastic(node_t *Gnode, comm_struct_t *comm_str){
+CPP_C node_t *bridge_aeroelastic(node_t *Gnode, comm_struct_t *comm_str){
 
 	lmint_t sockfd;
     node_t *Snode, *GlobDataNode;
@@ -239,7 +239,7 @@ node_t *bridge_aeroelastic(node_t *Gnode, comm_struct_t *comm_str){
 }
 
 
-lmint_t bridge_aeroelastic_rigid(node_t *Gnode, lmdouble_t * Alpha, lmdouble_t * Qx, lmdouble_t * Qy, lmdouble_t * Qz,
+CPP_C lmint_t bridge_aeroelastic_rigid(node_t *Gnode, lmdouble_t * Alpha, lmdouble_t * Qx, lmdouble_t * Qy, lmdouble_t * Qz,
                    lmdouble_t * TransX, lmdouble_t * TransY, lmdouble_t * TransZ, 
                    lmdouble_t * RotCX, lmdouble_t * RotCY, lmdouble_t * RotCZ,
                    comm_struct_t *comm_str){
@@ -394,7 +394,7 @@ lmint_t bridge_aeroelastic_rigid(node_t *Gnode, lmdouble_t * Alpha, lmdouble_t *
    #include "src_bridges_types.h"
    #include "src_bridges.h"
 
-   int bridge_aeroelastic(double time){
+CPP_C int bridge_aeroelastic(double time){
 
       printf("This version of flowPsi does not support external communication\n");
       exit;
