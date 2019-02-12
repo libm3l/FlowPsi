@@ -717,8 +717,7 @@ $rule pointwise(pos{n,it=0} <- pos{n},pos ),
   
     $rule pointwise(pos{n,it+1}<-pos{n},pos,componentTransforms_X{n,it}),
     constraint(componentNodes_X,componentMotion, GM_nonLinearCouplingMode),
-    parametric(volumeTag(X)) , 
-    prelude{printf(" --------------------> new mesh positions\n");}
+    parametric(volumeTag(X)) 
     {
     vect3d xpos = $pos;
     for(size_t i=0;i<$componentTransforms_X{n,it}.size();++i)
