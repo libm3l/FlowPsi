@@ -958,6 +958,17 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
         int cnt = 0 ; 
         int lenvec = len *3;
         const int mi = 1;
+        
+        double suml, suml1, suml2;
+        suml   = 0;
+        suml1 = 0;
+        suml2 = 0;
+        
+        double sumxl, sumxl1, sumxl2;
+        sumxl   = 0;
+        sumxl1 = 0;
+        sumxl2 = 0;
+
 
         FORALL(intsurf,ii) {
             
@@ -965,23 +976,46 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
            int ind2 = m3l_get_2ind(cnt,1,3);
            int ind3 = m3l_get_2ind(cnt,2,3);
             
-           forces[ind1] = $iflux[ii][mi+0];  //- $Pambient[ii] * $area[ii].n.x * $area[ii].sada;
-           forces[ind2] = $iflux[ii][mi+1]; // - $Pambient[ii] * $area[ii].n.y * $area[ii].sada;
-           forces[ind3] = $iflux[ii][mi+2];//  - $Pambient[ii] * $area[ii].n.z * $area[ii].sada;
+//            forces[ind1] = $iflux[ii][mi+0];  //- $Pambient[ii] * $area[ii].n.x * $area[ii].sada;
+//            forces[ind2] = $iflux[ii][mi+1]; // - $Pambient[ii] * $area[ii].n.y * $area[ii].sada;
+//            forces[ind3] = $iflux[ii][mi+2];//  - $Pambient[ii] * $area[ii].n.z * $area[ii].sada;
            
-//            forces[ind1] = $gagePressure_f[ii] * $area[ii].n.x * $area[ii].sada;
-//            forces[ind2] = $gagePressure_f[ii] * $area[ii].n.y * $area[ii].sada;
-//            forces[ind3] = $gagePressure_f[ii] * $area[ii].n.z * $area[ii].sada; 
+           forces[ind1] = $gagePressure_f[ii] * $area[ii].n.x * $area[ii].sada;
+           forces[ind2] = $gagePressure_f[ii] * $area[ii].n.y * $area[ii].sada;
+           forces[ind3] = $gagePressure_f[ii] * $area[ii].n.z * $area[ii].sada; 
+           
+           suml = suml    + forces[ind3];
+           suml1= suml1 + $iflux[ii][mi+2];
+           suml2= suml2 + forces[ind3]-$iflux[ii][mi+2];
+           
+           
+           
+           double vecx1 = $facecenter[ii].x -  .075;
+           double vecz1 = $facecenter[ii].z;
+           sumxl = sumxl + vecx1*forces[ind3] - vecz1*forces[ind1];
+           
+           sumxl1 = sumxl1 + vecx1*$iflux[ii][mi+2] - vecz1*$iflux[ii][mi+0];
+
+//            sumxl1= sumxl1 + $iflux[ii][mi+0];
+//            sumxl2= sumxl2 + forces[ind1]-$iflux[ii][mi+0];
+           
            
            coords[ind1] = $facecenter[ii].x;
            coords[ind2] = $facecenter[ii].y;
            coords[ind3] = $facecenter[ii].z;
            
-//            printf("%lf %lf %lf | %lf %lf %lf\n", $iflux[ii][mi+0],$iflux[ii][mi+1],$iflux[ii][mi+2],forces[ind1],forces[ind2],forces[ind3]);
+
+//             printf("%lf %lf %lf | %lf %lf %lf\n", $iflux[ii][mi+0],$iflux[ii][mi+1],$iflux[ii][mi+2],forces[ind1],forces[ind2],forces[ind3]);
            
 	        cnt++ ;
 
         }ENDFORALL ;         
+        
+        
+//         printf("SUM    %lf %lf       %lf \n", suml ,  suml1, suml2);
+//         printf("SUMX    %lf %lf       %lf \n", sumxl ,  sumxl1, sumxl-sumxl1);
+
+
 /*
  * gather data
  */
