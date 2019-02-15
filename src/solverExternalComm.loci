@@ -48,6 +48,8 @@ $include "flowPsi.lh"
 #include "extcomm_def.h"
 #include "src_bridges_types.h"
 #include "solverExternalComm.h"
+#include "inviscidFlux.h"
+
 
 #include <vector>
 #include <list>
@@ -497,7 +499,6 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
                  parametric(extInterfaceName(X,Y)),
                  constraint(ConstextInterfaceName(X,Y),volumeTag(X),componentExternalElastic_X_Y), 
                  conditional(docom),
-//                  conditional(docomm{n,it}),
                  prelude{
 /*
  * if interface is "active" communicate
@@ -755,11 +756,28 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
  * ====================================================================================
  */
 
+
+  $rule pointwise(iflux<-gagePressure,temperature,u, area,us_n,Pambient,Rtilde,gamma,Eta_p),
+  constraint(ConstextInterfaceName(X,Y),componentExternalRigidElastic_X_Y,volumeTag(X)),
+  prelude{printf("-         flux            xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n"); }
+  {
+    const real Tl = $temperature ;
+    const real Pgl = $gagePressure ;
+    const vect3d ul = $u ;
+    const real Tr = Tl ;
+    const real Pgr = Pgl ;
+    const real uit = dot(ul,$area.n)-$us_n ;
+    const vect3d ur = ul - 2.*uit*$area.n;
+    inviscidRiemannFlux($iflux,Pgl,Tl,ul,Pgr,Tr,ur,$area.n,$area.sada,$Pambient,
+			$Rtilde, $gamma,$us_n,$Eta_p) ;
+    $iflux[0] = 0 ; // Mass flux should be zero for this BC
+}
+
 /*
  */
    $rule apply(componentMotionData<-ncycle, stime, dtmax,ext_interfaces,extInterfaceNameStr(X,Y),
                  componentName_X,extInterfaceName(X,Y),volumeTag(X),ConstextInterfaceName(X,Y),
-                 pos,facecenter,iflux,area, gagePressure_f )[Loci::NullOp], 
+                 face2node, pos,facecenter,iflux,area, gagePressure_f )[Loci::NullOp], 
                  parametric(extInterfaceName(X,Y)),
                  constraint(ConstextInterfaceName(X,Y),volumeTag(X),componentExternalRigidElastic_X_Y), 
                  prelude{
@@ -986,6 +1004,7 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
            coords[ind2] = $facecenter[ii].y;
            coords[ind3] = $facecenter[ii].z;
            
+
 //             printf("%lf %lf %lf | %lf %lf %lf\n", $iflux[ii][mi+0],$iflux[ii][mi+1],$iflux[ii][mi+2],forces[ind1],forces[ind2],forces[ind3]);
            
 	        cnt++ ;

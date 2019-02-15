@@ -710,12 +710,12 @@ $type GM_nonLinearCouplingMode  Constraint ;
 /*
  * coupling on subiteration level
  */
-$rule pointwise(pos{n,it=0} <- pos{n},pos ), 
-  constraint( UNIVERSE{n}, pos, GM_nonLinearCouplingMode) {
+  $rule pointwise(pos{n,it=0} <- pos{n},pos ), 
+    constraint( UNIVERSE{n}, pos, GM_nonLinearCouplingMode) {
     $pos{n,it=0} = $pos{n};
-}
+   }
   
-    $rule pointwise(pos{n,it+1}<-pos{n},pos,componentTransforms_X{n,it}),
+   $rule pointwise(pos{n,it+1}<-pos{n},pos,componentTransforms_X{n,it}),
     constraint(componentNodes_X,componentMotion, GM_nonLinearCouplingMode),
     parametric(volumeTag(X)) 
     {
