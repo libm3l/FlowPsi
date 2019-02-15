@@ -48,8 +48,6 @@ $include "flowPsi.lh"
 #include "extcomm_def.h"
 #include "src_bridges_types.h"
 #include "solverExternalComm.h"
-#include "inviscidFlux.h"
-
 
 #include <vector>
 #include <list>
@@ -756,22 +754,6 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
  * ====================================================================================
  */
 
-
-  $rule pointwise(iflux<-gagePressure,temperature,u, area,us_n,Pambient,Rtilde,gamma,Eta_p),
-  constraint(ConstextInterfaceName(X,Y),componentExternalRigidElastic_X_Y,volumeTag(X)),
-  prelude{printf("-         flux            xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n"); }
-  {
-    const real Tl = $temperature ;
-    const real Pgl = $gagePressure ;
-    const vect3d ul = $u ;
-    const real Tr = Tl ;
-    const real Pgr = Pgl ;
-    const real uit = dot(ul,$area.n)-$us_n ;
-    const vect3d ur = ul - 2.*uit*$area.n;
-    inviscidRiemannFlux($iflux,Pgl,Tl,ul,Pgr,Tr,ur,$area.n,$area.sada,$Pambient,
-			$Rtilde, $gamma,$us_n,$Eta_p) ;
-    $iflux[0] = 0 ; // Mass flux should be zero for this BC
-}
 
 /*
  */
