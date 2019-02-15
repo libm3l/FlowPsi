@@ -1061,9 +1061,13 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
 /*
  * structural equations constants
  */
-             double Imom    = 0.0012;
-             double damping = 0.0106;
-             double Kstiff  = 0.795;
+//             double Imom    = 0.0012;
+//             double damping = 0.0106;
+//             double Kstiff  = 0.795;
+
+             double Imom    = 0.0023;
+             double damping = 0.0136;
+             double Kstiff  = 0.7964;
 /*
  * approximations: 
  *
