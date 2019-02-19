@@ -489,7 +489,7 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
                  extInterfaceName(X,Y),volumeTag(X),ConstextInterfaceName(X,Y),
                  face2node, pos,facecenter,iflux)[Loci::NullOp], 
                  parametric(extInterfaceName(X,Y)),
-                 constraint(ConstextInterfaceName(X,Y),volumeTag(X),componentExternalElastic_X_Y), 
+                 constraint(ConstextInterfaceName(X,Y),volumeTag(X),componentExternalElastic_X_Y,deformNodes), 
                  conditional(docom),
                  prelude{
 /*
