@@ -97,9 +97,10 @@ namespace flowPsi {
     $componentMotionTypes->insert(string("rotation")) ;
     $componentMotionTypes->insert(string("servo")) ;
     $componentMotionTypes->insert(string("prescribed")) ;
-    $componentMotionTypes->insert(string("external_rigid")) ;
-    $componentMotionTypes->insert(string("external_elastic")) ;
-    $componentMotionTypes->insert(string("external_rigid_elastic")) ;
+    $componentMotionTypes->insert(string("external")) ;
+//     $componentMotionTypes->insert(string("external_rigid")) ;
+//     $componentMotionTypes->insert(string("external_elastic")) ;
+//     $componentMotionTypes->insert(string("external_rigid_elastic")) ;
     $componentMotionTypes->insert(string("stationary")) ;
   } ;    
 /*
@@ -205,9 +206,6 @@ namespace flowPsi {
   
 
   $type componentTransformMap blackbox<map<string,vector<componentXform> > > ;
-
-  
-//   $type componentMotionData blackbox<map<string,componentXform> > ;
 
   $rule unit(componentMotionData<-componentMotion), prelude {
     *$componentMotionData = map<string,componentXform>() ;
