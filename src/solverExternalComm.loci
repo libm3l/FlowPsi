@@ -1039,9 +1039,8 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
  //        bridge_aeroelastic_rigid(IntfNode, &Alpha, &Qx, &Qy, &Qz,
 //                    &TransX, &TransY, &TransZ, &RotCX, &RotCY, &RotCZ, pcomm_str);
 // 
-           double mf1, mf_n11, mf_n12, mc1, mc_n11, mc_n12;
-           double mf2, mf_n21, mf_n22, mc2, mc_n21, mc_n22;
-           double pitch, plunge;
+           double MomentY = 0;
+           vect3d Moment = vect3d(0., 0., 0.);
 
            for(int inodes = 0; inodes < dims[0]; inodes++){
 /*
@@ -1063,116 +1062,128 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
              double FY = forcesg[ind2];
              double FZ = forcesg[ind3];
 
-             mf1 = mf1 + FZ*0.106652684354435;
-             mf2 = mf2 + FZ*(-0.515360786731372) * (0.2023 - X);
+             double rotcx = 0.075;
+             double rotcy = 0.;
+             double rotcz = 0.;
+             
+             const vect3d delta = vect3d(X-0.075, Y, Z);
+             const vect3d momentum_flux = vect3d(FX, FY, FZ) ;
+             const vect3d dmom = cross(delta,momentum_flux) ;
+            
+             Moment = Moment - dmom;
              
            }
+           MomentY = Moment[1];
+           
+//            exit(-1);
 /*
- * structural equations solver
+ * structural equations constants
  */
-           double freq1 = 3.3;
-           double mass1 = 1;
-           double damp1 = 0.;   
-       
-           double freq2 = 5.2;
-           double mass2 = 1;
-           double damp2 = 0.;
+//             double Imom    = 0.0012;
+//             double damping = 0.0106;
+//             double Kstiff  = 0.795;
 
-           double w1 = 2.*3.1415926*freq1;
-           double w2 = 2.*3.1415926*freq2;
-        
-           double A1 = 0.25*w1*w1 + damp1*w1/delta_t + 1./(delta_t*delta_t);
-           double A2 = 0.5 *w1*w1                   - 2./(delta_t*delta_t);
-           double A3 = 0.25*w1*w1 - damp1*w1/delta_t + 1./(delta_t*delta_t);
+             double Imom    = 0.0023;
+             double damping = 0.0136;
+             double Kstiff  = 0.7964;
+/*
+ * approximations: 
+ *
+ *  second order backward first and second derivative
+ * 
+ *  f'  = (3f_i - 4f_i-1 + f_i-2)/2h
+ *  f'' = (2f_i - 5f_i-1 + 4f_i-2-f_i-3)/h^2
+ */    
+             double term1 = Imom*(-5*angle[1] + 4*angle[2] - angle[3])/(delta_t*delta_t);
+             double term2 = damping * (-4*angle[1]+angle[2])/(2*delta_t);
 
-           mc1 = ((mf1 + 2*mf_n11 + mf_n12)/(4*mass1) - A2*mc_n11 - A3*mc_n12)/A1;
-
-           A1 = 0.25*w2*w2 + damp2*w2/delta_t + 1./(delta_t*delta_t);
-           A2 = 0.5 *w2*w2                   - 2./(delta_t*delta_t);
-           A3 = 0.25*w2*w2 - damp2*w2/delta_t + 1./(delta_t*delta_t);
-
-           mc2 = ((mf2 + 2*mf_n21 + mf_n22)/(4*mass2) - A2*mc_n21 - A3*mc_n22)/A1;
-
-           plunge = mc1*0.1066528;
-           pitch  = mc2*27.264;
+             angle[0] = -MomentY - term1 - term2;
+             angle[0] = angle[0] /(2*Imom/(delta_t*delta_t) + 3*damping/(2*delta_t) + Kstiff);
 /*
  * if first step, prescribe derivative of alpha
  */
-             if(simulation_time - delta_t < delta_t){
-                pitch = 0.1*delta_t;
-                mf_n21 = 0;
-                mf_n22 = 0;
-                mc_n21 = 0;
-                mc_n22 = 0;
+             if(simulation_time - delta_t < delta_t) angle[0] = 0.1*delta_t;
+             
+             if(simulation_time - delta_t < 0.05) angle[0] = 25*sin(2.5*2*3.1415926*simulation_time)*3.1415926/180;
+             
+             angle[0] = 10*sin(3.1415926*10*(simulation_time))*3.1415926/180.;
+             
+//             if(simulation_time - delta_t < delta_t){
+//                  angle[0] = 7.58*3.1415926/180.;     //= 0.1*delta_t;
+//                  angle[1] = 7.58*3.1415926/180. - 272.14 * delta_t*3.1415926/180. ;
+//                  angle[2] = 7.58*3.1415926/180. - 2*272.14 * delta_t*3.1415926/180. ;
+//             }
+//             else if(simulation_time - delta_t < 2*delta_t){
+//                  angle[0] = 7.58*3.1415926/180. + 272.14 * delta_t*3.1415926/180. ;;     //= 0.1*delta_t;
+//	     }
+//             else if(simulation_time - delta_t < 3*delta_t){
+//                  angle[0] = 7.58*3.1415926/180. + 2*272.14 * delta_t*3.1415926/180. ;;     //= 0.1*delta_t;
+//	     }
 
-                mf_n11 = 0;
-                mf_n12 = 0;
-                mc_n11 = 0;
-                mc_n12 = 0;
-             }
-                
+             if(simulation_time < 0.05){
+
+                angle[0] = 7.58*3.1415926/180. + (26.12-12.5)/(.05-0.0003) * simulation_time*3.1415926/180.;
+
+	     }
+
 /*
  * shift in time
  */
+             pitch = 0   ; //angle[0];
 
              if(time_shift == 1){
-                 
-               printf(" Shifting solution ---------------------------> \n");
-
-               mf_n12 = mf_n11;
-               mf_n12 = mf1;
-               mc_n12 = mc_n11;
-               mc_n12 = mc1;
-
-               mf_n22 = mf_n21;
-               mf_n22 = mf2;
-               mc_n22 = mc_n21;
-               mc_n22 = mc2;
+               angle[3] = angle[2];
+               angle[2] = angle[1];
+               angle[1] = angle[0]; 
              
+
                std::ofstream outfile;
                outfile.open("DATA.txt", std::ios_base::app);
-               outfile << simulation_time << "  " << pitch << "   " << plunge << endl;
+               outfile << simulation_time - delta_t << "  " << angle[0]*180./3.1415926 << "   " << Moment <<  endl;
                outfile.close();
              }
 /*
  * here get pitch, roll, yaw agle
  */
-           double yaw = 0;
-           double roll = 0;
+//             pitch = angle[0];
+          //  double pitch = 0.016+2.51*sin(simulation_time*2*3.1415926*6.6565344171);
+             double yaw = 0;
+             double roll = 0;
             
-           printf(" ----------------------->  Pitch angle is  %lf \n", pitch*180./3.1415926);
+             printf(" ----------------------->  Pitch angle is  %lf    %lf\n", pitch*180./3.1415926, simulation_time);
+
 /*
  * transform angles to radiand if needed
  */            
-           pitch = pitch *3.1415926/180.;
-           yaw   = yaw   *3.1415926/180.;
-           roll  = roll  *3.1415926/180.;
+//            pitch = pitch *3.1415926/180.;
+//            yaw = yaw *3.1415926/180.;
+//            roll = roll *3.1415926/180.;
 /*
  * set center of rotation
  */
-           RotCX = 0.2023;
-           RotCY = 0.;
-           RotCZ = 0.;
+            RotCX = 0.075;
+            RotCY = 0.;
+            RotCZ = 0.;
 /*
  * displacement ....
  */
            TransX = 0;
            TransY = 0;
-           TransZ = plunge;
+           TransZ = 0;
 /*
  * calculate quaternion
  */
-           double cy = cos(yaw * 0.5);
-           double sy = sin(yaw * 0.5);
-           double cr = cos(roll * 0.5);
-           double sr = sin(roll * 0.5);
-           double cp = cos(pitch * 0.5);
-           double sp = sin(pitch * 0.5);
+            double cy = cos(yaw * 0.5);
+            double sy = sin(yaw * 0.5);
+            double cr = cos(roll * 0.5);
+            double sr = sin(roll * 0.5);
+            double cp = cos(pitch * 0.5);
+            double sp = sin(pitch * 0.5);
 
-           Alpha = cy * cr * cp + sy * sr * sp;
-           Qx     = cy * sr * cp - sy * cr * sp;
-           Qy     = cy * cr * sp + sy * sr * cp;
-           Qz     = sy * cr * cp - cy * sr * sp;
+            Alpha = cy * cr * cp + sy * sr * sp;
+            Qx     = cy * sr * cp - sy * cr * sp;
+            Qy     = cy * cr * sp + sy * sr * cp;
+            Qz     = sy * cr * cp - cy * sr * sp;
 
          }
 /*
