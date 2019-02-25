@@ -782,16 +782,46 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
  * rigid-elastic body motion interface (expot forces,get back rgid body motion)
  * ====================================================================================
  */
+/*
+ */
+   $type Forces_f store<Loci::Array<flowPsi::real,3> > ;
 
+   $rule optional(Forces_f) {}
 
 /*
  */
+   $rule pointwise(OUTPUT<-Forces_f),
+    parametric(extInterfaceName(X,Y)),
+    constraint(ConstextInterfaceName(X,Y),volumeTag(X),componentExternalRigidElastic_X_Y)
+    {
+           printf(" FFFFFFFFFFFF  OOOOOOOOOOOOOOOOOOO \n");
+    };
+
+
+//   $rule apply(Forces_f<-ncycle, stime, dtmax,ext_interfaces,extInterfaceNameStr(X,Y),
+//      componentName_X,extInterfaceName(X,Y),volumeTag(X),ConstextInterfaceName(X,Y),
+//      face2node, pos,facecenter,area,gagePressure_f)[Loci::NullOp], 
+//      parametric(extInterfaceName(X,Y))
+//      ,constraint(ConstextInterfaceName(X,Y),volumeTag(X),componentExternalRigidElastic_X_Y)
+
+   $rule pointwise(Forces_f<-area,gagePressure_f),
+      parametric(extInterfaceName(X,Y))
+      ,constraint(ConstextInterfaceName(X,Y),volumeTag(X),componentExternalRigidElastic_X_Y)
+
+      {
+           printf(" HHHHHHHHHHHHHHHHHHHHHH   \n");
+           $Forces_f[0] = $gagePressure_f * $area.n.x * $area.sada;
+           $Forces_f[1] = $gagePressure_f * $area.n.y * $area.sada;
+           $Forces_f[2] = $gagePressure_f * $area.n.z * $area.sada; 
+      }
+
+
    $rule apply(componentMotionData<-ncycle, stime, dtmax,ext_interfaces,extInterfaceNameStr(X,Y),
-                 componentName_X,extInterfaceName(X,Y),volumeTag(X),ConstextInterfaceName(X,Y),
-                 face2node, pos,facecenter,iflux,area, gagePressure_f )[Loci::NullOp], 
-                 parametric(extInterfaceName(X,Y)),
-                 constraint(ConstextInterfaceName(X,Y),volumeTag(X),componentExternalRigidElastic_X_Y), 
-                 prelude{
+            componentName_X,extInterfaceName(X,Y),volumeTag(X),ConstextInterfaceName(X,Y),
+            face2node, pos,facecenter,area,gagePressure_f,iflux, Forces_f)[Loci::NullOp], 
+            parametric(extInterfaceName(X,Y)),
+            constraint(ConstextInterfaceName(X,Y),volumeTag(X),componentExternalRigidElastic_X_Y), 
+            prelude{
 /*
  * if interface is "active" communicate
  */
@@ -979,19 +1009,20 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
            forces[ind1] = $iflux[ii][mi+0];
            forces[ind2] = $iflux[ii][mi+1];
            forces[ind3] = $iflux[ii][mi+2];
+
+           forces[ind1] = $Forces_f[ii][mi+0];
+           forces[ind2] = $Forces_f[ii][mi+1];
+           forces[ind3] = $Forces_f[ii][mi+2];
            
-//            forces[ind1] = $gagePressure_f[ii] * $area[ii].n.x * $area[ii].sada;
-//            forces[ind2] = $gagePressure_f[ii] * $area[ii].n.y * $area[ii].sada;
-//            forces[ind3] = $gagePressure_f[ii] * $area[ii].n.z * $area[ii].sada; 
+//           forces[ind1] = $gagePressure_f[ii] * $area[ii].n.x * $area[ii].sada;
+//           forces[ind2] = $gagePressure_f[ii] * $area[ii].n.y * $area[ii].sada;
+//           forces[ind3] = $gagePressure_f[ii] * $area[ii].n.z * $area[ii].sada; 
            
            coords[ind1] = $facecenter[ii].x;
            coords[ind2] = $facecenter[ii].y;
            coords[ind3] = $facecenter[ii].z;
                       
-	        cnt++ ;
-            
-//             std::cout << "Looking for interface  - " <<   $facecenter[ii] << "   " <<   forces[ind1] << "  "  <<forces[ind2] << "  "  << forces[ind3] << std::endl ; 
-            
+	        cnt++ ;    
 
         }ENDFORALL ;
 /*
@@ -1030,31 +1061,19 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
              double FX = forcesg[ind1];
              double FY = forcesg[ind2];
              double FZ = forcesg[ind3];
-             
-//              printf(" %lf %lf %lf %lf %lf %lf \n", X,Y,Z, FX,FY,FZ);
 
              double rotcx = 0.075;
              double rotcy = 0.;
              double rotcz = 0.;
-
-             double vecx = X -  rotcx;
-             double vecy = Y -  rotcy;
-             double vecz = Z -  rotcz;
-
-             MomentY = MomentY + vecx*FZ - vecz*FX;
              
-            const vect3d delta = vect3d(X-0.075, Y, Z);
-            const vect3d momentum_flux = vect3d(FX, FY, FZ) ;
-            const vect3d dmom = cross(delta,momentum_flux) ;
+             const vect3d delta = vect3d(X-0.075, Y, Z);
+             const vect3d momentum_flux = vect3d(FX, FY, FZ) ;
+             const vect3d dmom = cross(delta,momentum_flux) ;
             
-//             std::cout << "Looking for interface  - " <<   delta << "   " <<   FX << "  "  <<FY<< "  "  << FZ << std::endl ; 
-            
-//              std::cout << momentum_flux << endl;
-            
-            Moment = Moment - dmom;
+             Moment = Moment - dmom;
              
            }
-              MomentY = Moment[1];
+           MomentY = Moment[1];
            
 //            exit(-1);
 /*
@@ -1089,11 +1108,28 @@ void  ScatterDVec(lmdouble_t *gv, lmdouble_t *v, int len, MPI_Comm comm) {
              
              angle[0] = 10*sin(3.1415926*10*(simulation_time))*3.1415926/180.;
              
-            // angle[0] = 0.016+2.51*sin(simulation_time*2*3.1415926*6.6565344171)*3.1415926/180;   // CT5 case
+//             if(simulation_time - delta_t < delta_t){
+//                  angle[0] = 7.58*3.1415926/180.;     //= 0.1*delta_t;
+//                  angle[1] = 7.58*3.1415926/180. - 272.14 * delta_t*3.1415926/180. ;
+//                  angle[2] = 7.58*3.1415926/180. - 2*272.14 * delta_t*3.1415926/180. ;
+//             }
+//             else if(simulation_time - delta_t < 2*delta_t){
+//                  angle[0] = 7.58*3.1415926/180. + 272.14 * delta_t*3.1415926/180. ;;     //= 0.1*delta_t;
+//	     }
+//             else if(simulation_time - delta_t < 3*delta_t){
+//                  angle[0] = 7.58*3.1415926/180. + 2*272.14 * delta_t*3.1415926/180. ;;     //= 0.1*delta_t;
+//	     }
+
+             if(simulation_time < 0.05){
+
+                angle[0] = 7.58*3.1415926/180. + (26.12-12.5)/(.05-0.0003) * simulation_time*3.1415926/180.;
+
+	     }
+
 /*
  * shift in time
  */
-             pitch = angle[0];
+             pitch = 0   ; //angle[0];
 
              if(time_shift == 1){
                angle[3] = angle[2];
