@@ -1,6 +1,6 @@
 //#############################################################################
 //#
-//# Copyright 2015, Mississippi State University
+//# Copyright 2015-2019, Mississippi State University
 //#
 //# This file is part of the flowPsi computational fluid dynamics solver.
 //#
@@ -19,18 +19,6 @@
 //#
 //#############################################################################
 
-/*
- *
- * CHANGELOG:
- * Version   Author:               Date       Patch number  CLA     Comment
- * -------   -------               --------   --------      ---     -------
- * 1-beta-6  Adam Jirasek         2018-05-23          Add three stage backward implicit scheme
- *
- *
- *
- * 
- */
-
 #include <Loci.h>
 $include "flowPsi.lh"
 
@@ -42,15 +30,7 @@ namespace flowPsi {
   $type temperature_i store<real> ;
   $type gagePressure_i store<real> ;
   $type u_i store<vect3d> ;
-/*
- * some default setting
- */
-  $rule default(Relax) {
-    $Relax = 0.8 ;
-  }
-  /*
-   * fill iblanked by previous time step at the beginning of Newton loop
-   */
+  
   $rule pointwise(temperature_i{n,it=0}<-temperature{n}),
     constraint(geom_cells) {
     $temperature_i{n,it=0}= $temperature{n} ;
@@ -71,9 +51,6 @@ namespace flowPsi {
   	inplace(gagePressure{n,it}|gagePressure_i{n,it}),prelude {} ;
   $rule pointwise(u{n,it}<-u_i{n,it}),inplace(u{n,it}|u_i{n,it}),prelude {} ;
 
-  /*
-   * this is for steady state mode
-   */
   $type dfluid storeVec<real> ;
   $rule pointwise(temperature_i{n,it+1},gagePressure_i{n,it+1},u_i{n,it+1}<- 
 		  temperature{n,it},gagePressure{n,it},u{n,it},dfluid{n,it},
@@ -105,27 +82,23 @@ namespace flowPsi {
   //      $u{n+1} = $u{n,it} ;
   //    }
   
-/*
- * JKA note: Update pressure, temperature and velocity in Newton subiter
- * this is the Crank-Nicholson type od scheme - unsteady mode
- */
   $rule pointwise(temperature_i{n,it+1},gagePressure_i{n,it+1},u_i{n,it+1}<- 
-		  temperature{n,it},gagePressure{n,it},u{n,it},
-                  dfluid{n,it},
+		  temperature{n,it},gagePressure{n,it},u{n,it},dfluid{n,it},
                   localPBias{n,it},iblank{n,it},
 		  temperature{n},gagePressure{n},
-		  Pambient,Relax),
+		  Pambient),
     inplace(temperature_i{n,it+1}|temperature{n,it}),
     inplace(gagePressure_i{n,it+1}|gagePressure{n,it}),
     inplace(u_i{n,it+1}|u{n,it}),
-    constraint(geom_cells,timeStepAccurate,componentTimeIntegCN) {
+    constraint(geom_cells,timeStepAccurate,timeStepSchemeKEC) {
     const real dT = $dfluid{n,it}[0] ;
     const vect3d du($dfluid{n,it}[1],$dfluid{n,it}[2],$dfluid{n,it}[3]) ;
     const real dp = $dfluid{n,it}[4] ;
     real alpha = 1.0 ;
-    real relax = $Relax ;
+    real relax = 0.8 ;
     const real Tstar = $temperature{n,it} ;
     const real Tn = $temperature{n} ;
+
 
     real dTlim = (relax*(2*Tn-Tstar))/2.0 ;
     
@@ -137,18 +110,13 @@ namespace flowPsi {
 
     real dplim = (1+peps)*relax*(pgnp1+$Pambient)/2.0 ;
     alpha = min(alpha,dplim/max<real>(fabs(dp),1e-30)) ;
-
     alpha = ($iblank{n,it}>1)?0.0:alpha ;
-/*
- * update
- */
-    $temperature_i{n,it+1}  = $temperature{n,it}  + alpha*dT;
+    $temperature_i{n,it+1} = $temperature{n,it} + alpha*dT;
     $gagePressure_i{n,it+1} = $gagePressure{n,it} + alpha*dp ;
-    $u_i{n,it+1}            = $u{n,it}            + alpha*du ;
+    $u_i{n,it+1} = $u{n,it} + alpha*du ;
   }
-/*
- * JKA note: Update pressure, temperature and velocity in time step
- */
+
+
   $rule pointwise(temperature{n+1},gagePressure{n+1},u{n+1}<-
 		  temperature{n,it},gagePressure{n,it},u{n,it},iblank{n,it},
                   temperature{n},gagePressure{n},u{n},
@@ -156,7 +124,7 @@ namespace flowPsi {
     inplace(temperature{n+1}|temperature{n,it}),
     inplace(gagePressure{n+1}|gagePressure{n,it}),
     inplace(u{n+1}|u{n,it}),
-    constraint(geom_cells,timeStepAccurate,componentTimeIntegCN),
+    constraint(geom_cells,timeStepAccurate,timeStepSchemeKEC),
     conditional(newtonFinished{n,it}) {
     const real Tstar = $temperature{n,it} ;
     const real Tn = $temperature{n} ;
@@ -181,64 +149,52 @@ namespace flowPsi {
     $temperature{n+1} = ($iblank{n,it} > 1)?$temperature{n,it}:Tnp1 ;
     $u{n+1} = ($iblank{n,it} > 1)?$u{n,it}:unp1 ;
   } 
-/*
- * three stage backward implicit scheme
- */
+
   $rule pointwise(temperature_i{n,it+1},gagePressure_i{n,it+1},u_i{n,it+1}<- 
-		  temperature{n,it},gagePressure{n,it},u{n,it},u{n},dfluid{n,it},
-                  localPBias{n,it},iblank{n,it},
-		  temperature{n},gagePressure{n},
-		  Pambient, Relax),
+		  temperature{n,it},gagePressure{n,it},u{n,it},dfluid{n,it},
+                  iblank{n,it}, Pambient),
     inplace(temperature_i{n,it+1}|temperature{n,it}),
     inplace(gagePressure_i{n,it+1}|gagePressure{n,it}),
     inplace(u_i{n,it+1}|u{n,it}),
-    constraint(geom_cells,timeStepAccurate,componentTimeInteg3BW) {
+    constraint(geom_cells,timeStepAccurate,timeStepSchemeBDF2) {
     const real dT = $dfluid{n,it}[0] ;
     const vect3d du($dfluid{n,it}[1],$dfluid{n,it}[2],$dfluid{n,it}[3]) ;
     const real dp = $dfluid{n,it}[4] ;
-    real alpha = 1.0 ;
-    real relax = $Relax ;
-    const real Tstar = $temperature{n,it} ;
-    
-    alpha = min<real>(alpha,Tstar/max<real>(fabs(dT),1e-30)) ;
+    real alpha = 1. ;
 
-    const real pgstar = $gagePressure{n,it} ;
-    const real peps = $localPBias{n,it} ;
-    const real pgnp1 = (2.*pgstar-(1.-peps)*$gagePressure{n})/(1+peps) ;
-
-    real dplim = (1+peps)*relax*(pgnp1+$Pambient)/2.0 ;
-    alpha = min(alpha,dplim/max<real>(fabs(dp),1e-30)) ;
-
+    // determine if dq qill cause negative pressure or temperature,
+    // if so scale back dq
+    const real relax = 0.75 ;
+    const real pnit = $gagePressure{n,it}+$Pambient ;
+    alpha = min(alpha,relax*pnit/max<real>(fabs(dp),1e-30)) ;
+    alpha = min(alpha,relax*$temperature{n,it}/max<real>(fabs(dT),1e-30)) ;
     alpha = ($iblank{n,it}>1)?0.0:alpha ;
-
-    $temperature_i{n,it+1}  = $temperature{n,it}  + alpha*dT;
+    $temperature_i{n,it+1} = $temperature{n,it} + alpha*dT;
     $gagePressure_i{n,it+1} = $gagePressure{n,it} + alpha*dp ;
-    $u_i{n,it+1}            = $u{n,it}            + alpha*du ;
+    $u_i{n,it+1} = $u{n,it} + alpha*du ;
   }
- 
+
+
   $rule pointwise(temperature{n+1},gagePressure{n+1},u{n+1}<-
-		  temperature{n,it},gagePressure{n,it},u{n,it},
-                  temperature{n},gagePressure{n},u{n},localPBias_next{n,it}),
+		  temperature{n,it},gagePressure{n,it},u{n,it},iblank{n,it},
+                  temperature{n},gagePressure{n},u{n},Pambient,Rtilde),
     inplace(temperature{n+1}|temperature{n,it}),
     inplace(gagePressure{n+1}|gagePressure{n,it}),
     inplace(u{n+1}|u{n,it}),
-    constraint(geom_cells,timeStepAccurate,componentTimeInteg3BW),
-    conditional(newtonFinished{n,it}){
-    $gagePressure{n+1} = $gagePressure{n,it} ;
-    $temperature{n+1}  = $temperature{n,it} ;
-    $u{n+1}            = $u{n,it} ;
-};
-/*
- * some default setting
- */
+    constraint(geom_cells,timeStepAccurate,timeStepSchemeBDF2),
+    conditional(newtonFinished{n,it}), prelude {} ; // Inplace copy
+  //    {
+  //      $gagePressure{n+1} = $gagePressure{n,it} ;
+  //      $temperature{n+1} = $temperature{n,it} ;
+  //      $u{n+1} = $u{n,it} ;
+  //    } 
+
   $rule default(newtonMaxIter) {
     $newtonMaxIter = 6 ;
   }
   
   $type newtonFinalIter param<int> ;
-/*
- * set value of newtonFinalIter
- */
+  
   $rule singleton(newtonFinalIter<-newtonMaxIter,timeSteppingMode) {
     $newtonFinalIter = 1 ;
     if($timeSteppingMode > 0)
@@ -248,9 +204,8 @@ namespace flowPsi {
   $rule singleton(lastNewton{n,it}<-newtonFinalIter{n,it},$it{n,it}) {
     $lastNewton{n,it}=($$it{n,it}+1 == $newtonFinalIter{n,it}) ;
   }
-/*
- * check when newton subiteration is finished
- */
+
+  
   $type newtonFinished param<bool> ;
   $rule singleton(newtonFinished{n,it}<-$it{n,it},newtonFinalIter) {
     $newtonFinished{n,it} = ($$it{n,it} >= $newtonFinalIter) ;
@@ -304,5 +259,6 @@ namespace flowPsi {
   $rule pointwise(dfluid<-petscBlockedSSolve(fluid)), 
     constraint(geom_cells,fluidLinearSolverPETSC),
     inplace(dfluid|petscBlockedSSolve(fluid)){} 
+
 
 }
