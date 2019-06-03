@@ -1,6 +1,6 @@
 //#############################################################################
 //#
-//# Copyright 2015, Mississippi State University
+//# Copyright 2015-2019, Mississippi State University
 //#
 //# This file is part of the flowPsi computational fluid dynamics solver.
 //#
@@ -58,6 +58,10 @@ $type p0 param<PressureValue> ;
 $type temperature_ic store<flowPsi::real> ;
 $type gagePressure_ic store<flowPsi::real> ;
 $type u_ic store<flowPsi::vect3d> ;
+// Previous timestep values for BDF2
+$type temperature_ico store<flowPsi::real> ;
+$type gagePressure_ico store<flowPsi::real> ;
+$type u_ico store<flowPsi::vect3d> ;
 
 // Ambient Pressure used to define gage pressure
 $type Pambient          param<flowPsi::real> ;
@@ -108,7 +112,7 @@ $type Minf param<flowPsi::real> ; // Free stream Mach number
 $type etaT param<flowPsi::real> ; // Stagnation point limit factor
 $type Eta_p store<flowPsi::real> ; // Eta factor used in preconditioning
 $type Eta_pf store<flowPsi::real> ; // Eta factor used in preconditioning
-
+$type Eta_bc store<flowPsi::real> ; // used for boundary conditions, only includes viscous terms
 // Jacobian Assembly
 $type fjp storeMat<flowPsi::real_fj> ;
 $type fjm storeMat<flowPsi::real_fj> ;
@@ -337,6 +341,9 @@ $type componentMotionData blackbox<map<string,componentXform> > ;
 $type timeStepSteadyState Constraint ;
 $type timeStepAccurate Constraint ;
 
+$type timeStepSchemeBDF2 Constraint ;
+$type timeStepSchemeKEC Constraint ;
+
 $type LaminarSimulation Constraint ;
 $type TurbulentSimulation Constraint ;
 $type ViscousSimulation Constraint ;
@@ -399,9 +406,7 @@ $type name_BCoption Constraint ;
 
 $type AllViscousBCs store<bool> ;
 $type AllWallBCs store<bool> ;
-/*
- * moving meshes specification
- */
+
 $type componentMotion param<options_list> ;
 $type componentHierarchy param<options_list> ;
 $type componentGeometry param<options_list> ;
@@ -411,6 +416,11 @@ $type componentNodes_X store<bool> ;
 $type movingMesh store<bool> ;
 $type coriolis param<coriolis_options> ;
 $type gauss_seidel_iter param<int> ;
+  
+
+
+
+
 
 $type componentTimeIntegCN Constraint;
 $type componentTimeInteg3BW Constraint;
