@@ -576,7 +576,7 @@ namespace flowPsi {
     string filename = *$icfile+"flowVars_"+*$InputModelName ;
     if(Loci::MPI_rank == 0)
       cout << "restarting flow variables from '" << filename << "'"<<endl ;
-    }
+    
     struct stat buf ;
     int has_file = 0 ;
     $[Once] {
