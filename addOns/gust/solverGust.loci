@@ -1,0 +1,436 @@
+//#############################################################################
+//#
+//# Copyright 2018, Adam Jirasek
+//#
+//# This file is part of the flowPsi computational fluid dynamics solver.
+//#
+//# The flowPsi solver is free software: you can redistribute it and/or modify
+//# it under the terms of the GNU General Public License as published by
+//# the Free Software Foundation, either version 3 of the License, or
+//# (at your option) any later version.
+//#
+//# The flowPsi solver is distributed in the hope that it will be useful,
+//# but WITHOUT ANY WARRANTY; without even the implied warranty of
+//# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//# GNU General Public License for more details.
+//#
+//# You should have received a copy of the GNU General Public License
+//# along with the flowPsi solver.  If not, see <http://www.gnu.org/licenses>
+//#
+//#############################################################################
+
+
+
+
+/*
+ * 
+ * Description: calculates gust and adds it to the grid velocity
+ *
+ * CHANGELOG:
+ * Version   Author:               Date       Patch number  CLA     Comment
+ * -------   -------               --------   --------      ---     -------
+ * 1-beta-6  Adam Jirasek         2018-03-21                     Initial Implementation
+ *                                                               of 1-cos and step gust
+ *
+ *
+ *
+ * 
+ */
+
+#include <Loci.h>
+$include "flowPsi.lh"
+#include <Tools/tools.h>
+#include <iostream>
+#include <fstream>
+#include <string>
+
+using std::string ;
+using std::endl ;
+using std::cout ;
+using std::cerr ;
+using std::ifstream ;
+using std::ios ;
+
+#include <vector>
+using std::vector ;
+#include <map>
+using std::map ;
+#include <set>
+using std::set ;
+
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include "solverGust.h"
+
+$include "flowPsi.lh"
+
+namespace flowPsi {
+
+  $rule optional(gustSpecification) {}
+
+  $type tmn1 param<vect3d>;
+  $type tm3  param<vect3d>;
+
+  $type Usg    param<real>;
+  $type gnorm  param<vect3d>;
+  $type gvel   param<vect3d>;
+  $type Lgrad  param<real>;
+  $type Gvel   param<real>;
+  $type Ogust  param<vect3d>;
+/*
+ * if required, set that gust will be computed
+ */  
+  $rule singleton(Gust),constraint(gustSpecification) {
+    $Gust = true ;
+  }
+
+  $rule singleton(tm3<-gvel,gnorm), constraint(Gust) {
+/*
+ *  transformation matrix 
+ *    direction of gust propagation
+ *    direction normal to gust plane
+ *    direction of gust disturbance 
+ */
+    vect3d tm1 = $gvel;   //vect3d(1.0, 0.0, 0.0);
+    vect3d tm2 = $gnorm;  //vect3d(0.0, 1.0, 0.0); 
+    real n1,n2,n3,nl;
+
+    nl = sqrt(tm1.x*tm1.x + tm1.y*tm1.y + tm1.z*tm1.z);
+    tm1.x = tm1.x/nl;
+    tm1.z = tm1.y/nl;
+    tm1.y = tm1.z/nl;
+
+    n1 = tm1.y*tm2.z-tm1.z*tm2.y;
+    n2 =-tm1.x*tm2.z+tm1.z*tm2.x;
+    n3 = tm1.x*tm2.y-tm1.y*tm2.x;
+
+    $tm3 = vect3d(n1, n2, n3);
+   }
+
+   $rule singleton(tmn1<-tm3), constraint(Gust) {
+/*
+ *  transformation matrix 
+ *    direction of gust propagation
+ *    direction normal to gust plane
+ *    direction of gust disturbance 
+ */
+    vect3d tm1 = vect3d(1.0, 0.0, 0.0);
+    vect3d tm2 = vect3d(0.0, 1.0, 0.0); 
+    $tmn1 = vect3d(tm1.x, tm2.x, $tm3.x);
+   }
+/*
+ * gust propagation velocity
+ */
+   $rule singleton(Gvel<-gvel), constraint(Gust) {
+     $Gvel = sqrt($gvel.x*$gvel.x + $gvel.y*$gvel.y + $gvel.z*$gvel.z);
+   }
+/*
+ * set gust types
+ */
+  $type GustTypes blackbox<std::set<std::string> > ;
+
+  $rule unit(GustTypes<-gustSpecification),prelude {
+    *$GustTypes = std::set<std::string>() ;
+  } ;
+
+  $rule apply(GustTypes)[Loci::NullOp],
+    constraint(UNIVERSE),prelude {
+    $GustTypes->insert(string("oneMcos")) ;
+    $GustTypes->insert(string("step")) ;
+    $GustTypes->insert(string("tabulated")) ;
+  } ;
+/*
+ * specify constraints for each type of gust
+ * gust is specified in entire domain, not per
+ * volumeTag
+ */ 
+  $type GustTypes_oneMcos    Constraint ;
+  $type GustTypes_step       Constraint ;
+  $type GustTypes_prescribed Constraint ;
+/*
+ * set the proper gust type
+ */
+  $rule constraint(GustTypes_oneMcos,GustTypes_step,GustTypes_prescribed<-gustSpecification,GustTypes){
+
+    $GustTypes_oneMcos    = EMPTY ;
+    $GustTypes_step       = EMPTY ;
+    $GustTypes_prescribed = EMPTY ;
+    string type;
+
+    Loci::options_list int_info ;
+    int_info  = $gustSpecification;
+    int_info.getOption("type",type) ;
+        
+    if(type == "oneMcos") {
+      $GustTypes_oneMcos = ~EMPTY ;
+    } else if(type == "step") {
+      $GustTypes_step = ~EMPTY ;
+    } else if(type == "tabulated") {
+      $GustTypes_prescribed = ~EMPTY ;
+    } else {
+      cerr << "Unknown gust type '" << type << "'" << endl ;
+      Loci::Abort() ;
+    }
+  };
+/*
+ * get parameters for 1-cos gust
+ */
+  $rule singleton(Ogust,Usg,gnorm,gvel,Lgrad<-gustSpecification),constraint(GustTypes_oneMcos){
+    string type;
+    real  rpar;
+    vect3d vpar;
+
+    Loci::options_list int_info ;
+    int_info  = $gustSpecification;
+/*
+ * get 1-cos gust parameters 
+ */
+    int_info.getOptionUnits("Lgrad","m", rpar) ;
+    $Lgrad = rpar;
+    int_info.getOptionUnits("Usg","m/s",rpar) ;
+    $Usg = rpar;
+    int_info.getOptionUnits("gnorm"," ", vpar,1); 
+    $gnorm = vpar;
+    int_info.getOptionUnits("gvel","m/s",vpar,1); 
+    $gvel = vpar;
+    int_info.getOptionUnits("Ogust","m/s",vpar,1); 
+    $Ogust = vpar;
+  };
+
+/*
+ * add artificial velocity due to 1-cos gust to face velocity
+ */
+  $rule apply(us_n<-dtmax,stime,area,facecenter,tm3,tmn1,Lgrad,Gvel,Usg,Ogust)[Loci::NullOp],
+    constraint(area,GustTypes_oneMcos){
+
+    real time    = $dtmax + $stime;
+    real length  = $Lgrad;
+    real velfree = $Gvel;
+
+    vect3d usv;
+    vect3d gust_orig = $Ogust;
+    real twopil = 3.1415926 / length ;  // length is so called gradient length
+/*
+ * interpolate
+ */
+    real xmin    = velfree * time - 2*length;
+    real xmax    = velfree * time;
+
+    real xtmp = ($tmn1.x * ($facecenter.x-gust_orig.x)) +
+                ($tmn1.y * ($facecenter.y-gust_orig.y)) +
+                ($tmn1.z * ($facecenter.z-gust_orig.z));
+
+    if(  (xtmp > xmin ) && (xtmp < xmax)){
+       real gvel  = $Usg * (1 - cos(twopil * (xmax - xtmp) ))/2.;
+       usv.x = $tm3.x * gvel;
+       usv.y = $tm3.y * gvel;
+       usv.z = $tm3.z * gvel;
+    }else{
+       usv = vect3d(0.0, 0.0, 0.0);
+    }
+    $us_n = -dot(usv,$area.n);
+  };
+/*
+ * get parameters for step gust
+ */
+  $rule singleton(Ogust,Usg,gnorm,gvel<-gustSpecification),constraint(GustTypes_step){
+    string type;
+    real   rpar;
+    vect3d vpar;
+
+    Loci::options_list int_info ;
+    int_info  = $gustSpecification;
+/*
+ * get step gust parameters 
+ */
+    int_info.getOptionUnits("Usg","m/s",rpar) ;
+    $Usg = rpar;
+    int_info.getOptionUnits("gnorm"," ", vpar,1); 
+    $gnorm = vpar;
+    int_info.getOptionUnits("gvel","m/s",vpar,1); 
+    $gvel = vpar;
+    int_info.getOptionUnits("Ogust","m/s",vpar,1); 
+    $Ogust = vpar;
+  };
+/*
+ * add artificial velocity due to step gust to face velocity
+ */
+  $rule apply(us_n<-dtmax,stime,area,facecenter,tm3,tmn1,Gvel,Usg,Ogust)[Loci::NullOp],
+    constraint(area,GustTypes_step){
+
+    real time    = $dtmax + $stime;
+    real velfree = $Gvel;
+
+    vect3d usv;
+
+    vect3d gust_orig = $Ogust;
+/*
+ * interpolate
+ */
+    real xfront = velfree * time;
+
+    real xtmp = ($tmn1.x * ($facecenter.x-gust_orig.x)) +
+                ($tmn1.y * ($facecenter.y-gust_orig.y)) +
+                ($tmn1.z * ($facecenter.z-gust_orig.z));
+
+    if(  xtmp < xfront ){
+       real gvel  = $Usg;
+       usv.x = $tm3.x * gvel;
+       usv.y = $tm3.y * gvel;
+       usv.z = $tm3.z * gvel;
+    }else{
+       usv = vect3d(0.0, 0.0, 0.0);
+    }
+
+    $us_n = -dot(usv,$area.n);
+  };
+/*
+ * get parameters for prescribed gust
+ */
+  $rule singleton(Ogust,gnorm,gvel<-gustSpecification),constraint(GustTypes_prescribed){
+    string type;
+    real   rpar;
+    vect3d vpar;
+
+    Loci::options_list int_info ;
+    int_info  = $gustSpecification;
+/*
+ * get prescribed gust parameters 
+ */
+    int_info.getOptionUnits("gnorm"," ", vpar,1); 
+    $gnorm = vpar;
+    int_info.getOptionUnits("gvel","m/s",vpar,1); 
+    $gvel = vpar;
+    int_info.getOptionUnits("Ogust","m/s",vpar,1); 
+    $Ogust = vpar;
+  };
+/*
+ * read prescribed gust file 
+ */
+   $type prescribedGust blackbox<gustSplines> ;
+
+   $rule blackbox(prescribedGust<-gustSpecification),
+    constraint(GustTypes_prescribed),prelude {
+
+    if(Loci::MPI_rank==0) {
+      string filename = "gust.dat" ;
+      ifstream infile(filename.c_str(),ios::in) ;
+      if(infile.fail()) {
+        cerr << "open failed on '" << filename <<"'"<< endl ;
+        Loci::Abort() ;
+      }
+
+      int npnts = 0 ;
+      infile >> npnts ;
+
+      if(npnts <= 1 || npnts > 10000000) {
+        cerr << "unreasonable number of points, " << npnts << ", in gust file '" << filename << "'." << endl ;
+        cerr << "check file for validity"<< endl ;
+        Loci::Abort() ;
+      }
+      vector<real> x(npnts),v(npnts);
+      for(int i=0;i<npnts;++i) {
+        infile >> x[i] >> v[i];
+        if(infile.fail()) {
+          cerr << "problem reading gust data from file '" << filename << endl ;
+          Loci::Abort() ;
+        }
+//        if(i>0 && x[i-1] > x[i]) {
+//          cerr << "gust time series should be in order of increasing time in file '" << filename << endl ;
+//          Loci::Abort() ;
+//        }
+      }
+      MPI_Bcast(&npnts,1,MPI_INT,0,MPI_COMM_WORLD) ;
+      MPI_Bcast(&x[0],npnts,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
+      MPI_Bcast(&v[0],npnts,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
+      $prescribedGust->gust_initialize(x,v) ;
+    } else {
+      int npnts ;
+      MPI_Bcast(&npnts,1,MPI_INT,0,MPI_COMM_WORLD) ;
+      vector<real> x(npnts),v(npnts);
+      MPI_Bcast(&x[0],npnts,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
+      MPI_Bcast(&v[0],npnts,MPI_DOUBLE,0,MPI_COMM_WORLD) ;
+      $prescribedGust->gust_initialize(x,v) ;
+    }
+  } ;
+/*
+ * set values of gust velocity
+ */
+  $rule apply(us_n<-prescribedGust,dtmax,stime,area,facecenter,tm3,tmn1,Gvel,Ogust)[Loci::NullOp],
+    constraint(area,GustTypes_prescribed){
+
+    real time = $stime + real($dtmax) ;
+    real ustab;
+    vect3d usv;
+    real x1, x2, v1, v2, dx;
+    int pt;
+
+    int n = $prescribedGust.xg.size() ;
+    real velfree = $Gvel;
+    vect3d gust_orig = $Ogust;
+/*
+ * interpolate
+ */
+    real xfront = velfree * time;
+    real xtmp   = ($tmn1.x * ($facecenter.x-gust_orig.x)) +
+                  ($tmn1.y * ($facecenter.y-gust_orig.y)) +
+                  ($tmn1.z * ($facecenter.z-gust_orig.z));
+
+// actual position in table front - xtmp
+   
+    real xmax = $prescribedGust.xg[0]   + xfront;
+    real xmin = $prescribedGust.xg[n-1] + xfront;
+    int nmin = 0 ;
+    int nmax = n-1 ;
+/*
+ * find interval
+ */
+    if(xtmp < xmin){
+      $us_n = 0;
+      return;}
+    if(xtmp > xmax){
+      $us_n = 0;
+      return;}
+
+ //   pt = int(floor((xtmp-xmin)/(xmax-xmin))) ;
+//    while( $prescribedGust.xg[pt+1] < xtmp ||  $prescribedGust.xg[pt] > xtmp) {
+//        if( $prescribedGust.xg[pt] < xtmp)
+//          nmin = pt+1 ;
+//        if($prescribedGust.xg[pt+1] > xtmp)
+//        nmax = pt-1 ;
+//
+//        pt = (nmin+nmax)/2 ;
+//    }
+
+      int ib = int(floor((xtmp-xmin)/(xmax-xmin))) ;
+      pt = 0;
+      for(int i = ib; i<n-1; i++){
+        x1 = xtmp - ($prescribedGust.xg[i]   + xfront);
+        x2 = xtmp - ($prescribedGust.xg[i+1] + xfront);
+
+        if(x1*x2 < 0.){
+          pt = i;
+          break;
+        }
+      }
+/*
+ * interpolate
+ */
+    x1 = $prescribedGust.xg[pt]   + xfront;
+    x2 = $prescribedGust.xg[pt+1] + xfront;
+    v1 = $prescribedGust.vg[pt]; 
+    v2 = $prescribedGust.vg[pt+1];
+
+    dx = xtmp - x1;
+    ustab = v1 + (v2-v1)/(x2-x1)*dx;
+
+    usv.x = $tm3.x * ustab;
+    usv.y = $tm3.y * ustab;
+    usv.z = $tm3.z * ustab;
+
+    $us_n = -dot(usv,$area.n);
+
+  } ;
+
+}
