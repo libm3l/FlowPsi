@@ -570,13 +570,13 @@ namespace flowPsi {
   }
     
   $rule pointwise(icfile::temperature_ic,icfile::gagePressure_ic,
-		  icfile::u_ic<-icfile,InputModelName,Pambient),
+		  icfile::u_ic<-icfile,modelName,Pambient),
     constraint(geom_cells,icfile),  option(disable_threading),  prelude {
     
-    string filename = *$icfile+"flowVars_"+*$InputModelName ;
-    if(Loci::MPI_rank == 0)
+    string filename = *$icfile+"flowVars_"+*$modelName ;
+    $[Once] {
       cout << "restarting flow variables from '" << filename << "'"<<endl ;
-    
+    }
     struct stat buf ;
     int has_file = 0 ;
     $[Once] {
@@ -597,23 +597,10 @@ namespace flowPsi {
     hid_t file_id = Loci::hdf5OpenFile(filename.c_str(),
 					 H5F_ACC_RDONLY, H5P_DEFAULT);
     entitySet read_set = entitySet(seq) ;
-
-    if(Loci::MPI_rank == 0){
-      std::cout << "Reading --> temperature"<< endl ;
-    }
     Loci::readContainer(file_id,"temperature",$temperature_ic.Rep(),read_set) ;
-    if(Loci::MPI_rank == 0){
-      std::cout << "Reading --> gagePressure"<< endl ;
-    }
     Loci::readContainer(file_id,"gagePressure",$gagePressure_ic.Rep(),read_set) ;
-    if(Loci::MPI_rank == 0){
-      std::cout << "Reading --> velocity"<< endl ;
-    }
     Loci::readContainer(file_id,"u",$u_ic.Rep(),read_set) ;
     param<real> Pref ;
-    if(Loci::MPI_rank == 0){
-      std::cout << "Reading --> Pambient"<< endl ;
-    }
     Loci::readContainer(file_id,"Pambient",Pref.Rep(),read_set) ;
     real dp = *Pref-*$Pambient ;
     FORALL(read_set,ii) {

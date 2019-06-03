@@ -19,33 +19,6 @@
 //#
 //#############################################################################
 
-/*
- * 
- * Description: 
- *
- * CHANGELOG:
- * Version   Author:               Date       Patch number  CLA     Comment
- * -------   -------               --------   --------      ---     -------
- * 1-beta-6  Adam Jirasek         2018-05-14  b80a7be70f8c94c   add us_ntmp temporary
- *                                 velocity which is calculated from moving mesh. This 
- *                                 velocity is then added to the us_n velocity. The
- *                                 allocation of us_ntmp is required due to condition that 
- *                                 only pointwise rules can use priority annotation
- *                                 [var=moving::us_n{n,it} and similar for specified:: 
- *                                 and axi::moving::us_n{n,it}], we need to use apply rule then 
- *                                 to sum up the velocities. Possibly later update
- *                                 to more memory efficient approach.
- * 
- * 1-beta-6  Adam Jirasek         2018-05-23          Add three stage backward implicit scheme
- * NOTE: 1. in gridDynamic.loci - in geometric conservation law we add us_n, it is unclear if we should not add us_ntmp.
-*  us_n may contain other cmponents such as deforming mesh, on the other hand it contains gust velocity which should not 
- * be in GCL, need to sort this out
- *
- *
- *
- * 
- */
-
 #include <Loci.h>
 
 #include <iostream>
@@ -62,6 +35,10 @@ $include "FVM.lh"
 $include "flowPsi.lh"
 
 namespace flowPsi {
+  
+//  $rule pointwise(iblank),constraint(geom_cells) {
+//    $iblank = 0 ;
+//  }
 
   // Moving Mesh because of moving components
   $rule pointwise(movingMesh),constraint(componentMotion) {
@@ -75,42 +52,25 @@ namespace flowPsi {
 
   $rule apply(hasMeshMotion)[Loci::Maximum],constraint(pos), prelude {
   } ;
-/*
- * set flag that meshes are moving if at least one moving
- */
+
   $rule apply(hasMeshMotion)[Loci::Maximum],constraint(movingMesh),prelude {
     join(*$hasMeshMotion,1) ;
   } ;
-/*
- * previously all es_n were rule pointwise
- * since gust was added, all rules are apply because gust adds 
- * gust velocity to us_n
- */
-  $rule unit(us_n),constraint(area) {
-     $us_n= 0 ;
+    
+  $rule pointwise(us_n),constraint(area) {
+    $us_n = 0 ;
   }
-//   $rule pointwise(us_n),constraint(area) {
-//     $us_n = 0 ;
-//   }
-/*
- * add us_ntmp to us_n
- */
-  $rule apply(us_n<-us_ntmp)[Loci::Summation],constraint(area,movingMesh){
-     join($us_n,$us_ntmp);
-  }
-  
+
   $type xgvel param<real> ;
   $rule optional(xgvel) { $xgvel = 0 ;  }
 
-  $rule pointwise(specified::us_ntmp<-area,xgvel),constraint(xgvel,area) {
+  $rule pointwise(specified::us_n<-area,xgvel),constraint(xgvel,area) {
     vect3d us($xgvel,0.0,0.0) ;
-    $us_ntmp = dot(us,$area.n) ;
+    $us_n = dot(us,$area.n) ;
   }
-/*
- * get grid velocities for moving mesh  - Crank Nicolson scheme
- */
-  $rule pointwise(moving::us_ntmp{n,it}<-dtmax,face2node->(pos{n},pos{n,it}),area{n,it}),
-    constraint(movingMesh,area,componentTimeIntegCN) {
+
+  $rule pointwise(moving::us_n{n,it}<-dtmax,face2node->(pos{n},pos{n,it}),area{n,it}),
+    constraint(movingMesh,area) {
     int fsz = $face2node.size() ;
     // Compute wireframe center
     vect3d wc_prev = vect3d(0,0,0) ;
@@ -161,90 +121,11 @@ namespace flowPsi {
       us_n_int += dot(ah,xp-xm);
     }
     // Get grid velocity at face by dividing by face area
-    $us_ntmp{n,it} = .25*us_n_int/(3.*max<real>($area{n,it}.sada,1e-30)*real($dtmax)) ;
+    $us_n{n,it} = .25*us_n_int/(3.*max<real>($area{n,it}.sada,1e-30)*real($dtmax)) ;
   }
-/*
- * initialize post @n=-1 for 3 stage backward time integration scheme
- */
-  $type pos_ic store<vect3d> ;
-  $rule pointwise(pos{n=-1}<-pos_ic),
-    constraint(movingMesh,pos,componentTimeInteg3BW) {
-    $pos{n=-1}=$pos_ic; 
-  } ;
-/*
- * get grid velocities for moving mesh  - three stage backward euler
- */ 
-  $rule pointwise(moving::us_ntmp{n,it}<-dtmax,face2node->(pos{n},pos{n,it},pos{n-1}),area{n,it}),
-    constraint(movingMesh,area,componentTimeInteg3BW) {
-    int fsz = $face2node.size() ;
-    // Compute wireframe center
-    vect3d wc_prev     = vect3d(0,0,0) ;
-    vect3d wc_prevn1 = vect3d(0,0,0) ;
-    vect3d wc_next     = vect3d(0,0,0) ;
-    
-    real lensum_prev     = 0 ;
-    real lensum_prevn1 = 0 ;
-    real lensum_next     = 0 ;
-    
-    for(int i=0;i<fsz;++i) {
-      int nd1 = i ;
-      int nd2 = (i+1)==fsz?0:i+1 ;
-      { const vect3d p1 = $face2node[nd1]->$pos{n} ;
-        const vect3d p2 = $face2node[nd2]->$pos{n} ;
-        const real len = norm(p1-p2) ;
-        wc_prev += len*(p1+p2) ;
-        lensum_prev += len ;
-      }
-      { const vect3d p1 = $face2node[nd1]->$pos{n,it} ;
-        const vect3d p2 = $face2node[nd2]->$pos{n,it} ;
-        const real len = norm(p1-p2) ;
-        wc_next += len*(p1+p2) ;
-        lensum_next += len ;
-      }
-      { const vect3d p1 = $face2node[nd1]->$pos{n-1} ;
-        const vect3d p2 = $face2node[nd2]->$pos{n-1} ;
-        const real len = norm(p1-p2) ;
-        wc_prevn1 += len*(p1+p2) ;
-        lensum_prevn1+= len ;
-      }
-    }
-    wc_prevn1 *= .5/lensum_prevn1 ;
-    wc_prev     *= .5/lensum_prev ;
-    wc_next     *= .5/lensum_next ;
 
-    // Integrate grid velocities over each triangle
-    real us_n_int = 0 ;
-    for(int i=0;i<fsz;++i) {
-      int nd1 = i ;
-      int nd2 = (i+1)==fsz?0:i+1 ;
-      // Edge points at {n-1}
-      const vect3d p1m = $face2node[nd1]->$pos{n} ;
-      const vect3d p2m = $face2node[nd2]->$pos{n} ;
-      // Edge points at {n}
-      const vect3d p1p = $face2node[nd1]->$pos{n,it} ;
-      const vect3d p2p = $face2node[nd2]->$pos{n,it} ;
-     // Edge points at {n-2}
-      const vect3d p1mn1 = $face2node[nd1]->$pos{n-1} ;
-      const vect3d p2mn1 = $face2node[nd2]->$pos{n-1} ;      
-      // triangle centroid at {n}, {n-1} and {n-2} (factor of 1/3 added at end of loop)
-      const vect3d xp      = (wc_next+p1p+p2p);
-      const vect3d xm     = (wc_prev+p1m+p2m) ;
-      const vect3d xmn1 = (wc_prevn1+p1mn1+p2mn1) ;
-      // 2*area at {n}
-      const vect3d ap = cross(p1p-wc_next,p2p-wc_next) ;
-      // Numerical grid velocity dot(us,area) for this triangle
-      // (2 * delta t divided at end of loop)
-      us_n_int += dot(ap, (3*xp-4*xm+xmn1)  );
-    }
-    // Get grid velocity at face by dividing by face area
-    $us_ntmp{n,it} =  0.5*us_n_int/(3.*max<real>($area{n,it}.sada,1e-30)*real(2*$dtmax)) ;
-  }
-/*
- * get grid velocities for moving mesh in axisymmetric mode
- * Crank-Nicolson
- */
-  $rule pointwise(axi::moving::us_ntmp{n,it}<-dtmax,face2node->(pos{n},pos{n,it}),area{n,it}),
-    constraint(movingMesh,area,axisymmetricCoordinateModel,componentTimeIntegCN) {
+  $rule pointwise(axi::moving::us_n{n,it}<-dtmax,face2node->(pos{n},pos{n,it}),area{n,it}),
+    constraint(movingMesh,area,axisymmetricCoordinateModel) {
     int fsz = $face2node.size() ;
     // Compute wireframe center
     vect3d wc_prev = vect3d(0,0,0) ;
@@ -270,50 +151,7 @@ namespace flowPsi {
     wc_prev *= .5/lensum_prev ;
     wc_next *= .5/lensum_next ;
     
-    $us_ntmp{n,it} = dot(wc_next-wc_prev,$area{n,it}.n)/real($dtmax) ;
-  }
-/*
- * 3-stage backward 
- */
-    $rule pointwise(axi::moving::us_ntmp{n,it}<-dtmax,face2node->(pos{n-1},pos{n},pos{n,it}),area{n,it}),
-    constraint(movingMesh,area,axisymmetricCoordinateModel,componentTimeInteg3BW) {
-    int fsz = $face2node.size() ;
-    // Compute wireframe center
-    vect3d wc_prevn1 = vect3d(0,0,0) ;
-    vect3d wc_prev = vect3d(0,0,0) ;
-    vect3d wc_next = vect3d(0,0,0) ;
-    
-    real lensum_prevn1 = 0 ;
-    real lensum_prev = 0 ;
-    real lensum_next = 0 ;
-    
-    for(int i=0;i<fsz;++i) {
-      int nd1 = i ;
-      int nd2 = (i+1)==fsz?0:i+1 ;
-      { const vect3d p1 = $face2node[nd1]->$pos{n-1} ;
-        const vect3d p2 = $face2node[nd2]->$pos{n-1} ;
-        const real len = norm(p1-p2) ;
-        wc_prevn1 += len*(p1+p2) ;
-        lensum_prevn1 += len ;
-      }      
-      { const vect3d p1 = $face2node[nd1]->$pos{n} ;
-        const vect3d p2 = $face2node[nd2]->$pos{n} ;
-        const real len = norm(p1-p2) ;
-        wc_prev += len*(p1+p2) ;
-        lensum_prev += len ;
-      }
-      { const vect3d p1 = $face2node[nd1]->$pos{n,it} ;
-        const vect3d p2 = $face2node[nd2]->$pos{n,it} ;
-        const real len = norm(p1-p2) ;
-        wc_next += len*(p1+p2) ;
-        lensum_next += len ;
-      }
-    }
-    wc_prevn1 *= .5/lensum_prevn1 ;
-    wc_prev *= .5/lensum_prev ;
-    wc_next *= .5/lensum_next ;
-    
-    $us_ntmp{n,it} = dot(3*wc_next-4*wc_prev+wc_prevn1,$area{n,it}.n)/(2*real($dtmax)) ;
+    $us_n{n,it} = dot(wc_next-wc_prev,$area{n,it}.n)/real($dtmax) ;
   }
 
   // Compute absolute grid velocity for viscous walls
@@ -325,12 +163,10 @@ namespace flowPsi {
   $rule pointwise(specified::us<-area,xgvel),constraint(xgvel,area) {
     $us= vect3d($xgvel,0.0,0.0) ;
   }
-/*
- * Crank-Nicolson
- */
+
   $rule pointwise(moving::us{n,it}<-dtmax,face2node->(pos{n},pos{n,it}),
-                  us_ntmp,area{n,it}),
-    constraint(movingMesh,area,componentTimeIntegCN) {
+                  us_n{n,it},area{n,it}),
+    constraint(movingMesh,area) {
     int fsz = $face2node.size() ;
     // Compute wireframe center
     vect3d wc_prev = vect3d(0,0,0) ;
@@ -365,78 +201,17 @@ namespace flowPsi {
     vect3d utt = ug - dot(ug,n)*n ;
     vect3d utn = utt/(norm(utt)+1e-30) ;
     // Tangential component if normal component equals half step normal velocity
-    real ut = sqrt(max<real>(dot(ug,ug)-$us_ntmp*$us_ntmp,0.0)) ;
+    real ut = sqrt(max<real>(dot(ug,ug)-$us_n{n,it}*$us_n{n,it},0.0)) ;
 
     // reassemble vector so that half step normal velocity is aligned with
     // current normal, remainder of grid velocity goes in current tangetial
     // direction.
-    $us{n,it} = $us_ntmp*n + ut*utn ;
+    $us{n,it} = $us_n{n,it}*n + ut*utn ;
   }
-/*
- * 3 stage backward 
- */
-  $rule pointwise(moving::us{n,it}<-dtmax,face2node->(pos{n-1},pos{n},pos{n,it}),
-                  us_ntmp,area{n,it}),
-    constraint(movingMesh,area,componentTimeInteg3BW) {
-    int fsz = $face2node.size() ;
 
-    // Compute wireframe center
-    
-    vect3d wc_prevn1 = vect3d(0,0,0) ;
-    vect3d wc_prev     = vect3d(0,0,0) ;
-    vect3d wc_next     = vect3d(0,0,0) ;
-    
-    real lensum_prev     = 0 ;
-    real lensum_prevn1 = 0 ;
-    real lensum_next     = 0 ;
-    
-    for(int i=0;i<fsz;++i) {
-      int nd1 = i ;
-      int nd2 = (i+1)==fsz?0:i+1 ;
-      { const vect3d p1 = $face2node[nd1]->$pos{n-1} ;
-        const vect3d p2 = $face2node[nd2]->$pos{n-1} ;
-        const real len = norm(p1-p2) ;
-        wc_prevn1 += len*(p1+p2) ;
-        lensum_prevn1 += len ;
-      }
-      { const vect3d p1 = $face2node[nd1]->$pos{n} ;
-        const vect3d p2 = $face2node[nd2]->$pos{n} ;
-        const real len = norm(p1-p2) ;
-        wc_prev += len*(p1+p2) ;
-        lensum_prev += len ;
-      }
-      { const vect3d p1 = $face2node[nd1]->$pos{n,it} ;
-        const vect3d p2 = $face2node[nd2]->$pos{n,it} ;
-        const real len = norm(p1-p2) ;
-        wc_next += len*(p1+p2) ;
-        lensum_next += len ;
-      }
-    }
-    wc_prevn1 *= .5/lensum_prevn1 ;
-    wc_prev     *= .5/lensum_prev ;
-    wc_next     *= .5/lensum_next ;
 
-    // Adjust velocity to match current normal
-    // grid velocity 
-    vect3d ug = (3*wc_next-4*wc_prev+wc_prevn1)/(2*real($dtmax)) ;
-    // present normal
-    vect3d n = $area{n,it}.n ;
-    // tangential component of grid velocity
-    vect3d utt = ug - dot(ug,n)*n ;
-    vect3d utn = utt/(norm(utt)+1e-30) ;
-    // Tangential component if normal component equals half step normal velocity
-    real ut = sqrt(max<real>(dot(ug,ug)-$us_ntmp*$us_ntmp,0.0)) ;
-
-    // reassemble vector so that half step normal velocity is aligned with
-    // current normal, remainder of grid velocity goes in current tangetial
-    // direction.
-     $us{n,it} = $us_ntmp*n + ut*utn ;
-   }
-/*
- * Crank-Nicolson
- */
   $rule pointwise(axi::moving::us{n,it}<-dtmax,face2node->(pos{n},pos{n,it}),area{n,it}),
-    constraint(movingMesh,area,axisymmetricCoordinateModel,componentTimeIntegCN) {
+    constraint(movingMesh,area,axisymmetricCoordinateModel) {
     int fsz = $face2node.size() ;
     // Compute wireframe center
     vect3d wc_prev = vect3d(0,0,0) ;
@@ -464,53 +239,11 @@ namespace flowPsi {
     
     $us{n,it} = (wc_next-wc_prev)/real($dtmax) ;
   }
-  
-/*
- * s stage backward
- */
-  $rule pointwise(axi::moving::us{n,it}<-dtmax,face2node->(pos{n-1},pos{n},pos{n,it}),area{n,it}),
-    constraint(movingMesh,area,axisymmetricCoordinateModel,componentTimeInteg3BW) {
-    int fsz = $face2node.size() ;
-    // Compute wireframe center
-    vect3d wc_prevn1 = vect3d(0,0,0) ;
-    vect3d wc_prev = vect3d(0,0,0) ;
-    vect3d wc_next = vect3d(0,0,0) ;
-    real lensum_prevn1 = 0 ;
-    real lensum_prev = 0 ;
-    real lensum_next = 0 ;
-    for(int i=0;i<fsz;++i) {
-      int nd1 = i ;
-      int nd2 = (i+1)==fsz?0:i+1 ;
-      { const vect3d p1 = $face2node[nd1]->$pos{n-1} ;
-        const vect3d p2 = $face2node[nd2]->$pos{n-1} ;
-        const real len = norm(p1-p2) ;
-        wc_prevn1 += len*(p1+p2) ;
-        lensum_prevn1 += len ;
-      }
-      { const vect3d p1 = $face2node[nd1]->$pos{n} ;
-        const vect3d p2 = $face2node[nd2]->$pos{n} ;
-        const real len = norm(p1-p2) ;
-        wc_prev += len*(p1+p2) ;
-        lensum_prev += len ;
-      }
-      { const vect3d p1 = $face2node[nd1]->$pos{n,it} ;
-        const vect3d p2 = $face2node[nd2]->$pos{n,it} ;
-        const real len = norm(p1-p2) ;
-        wc_next += len*(p1+p2) ;
-        lensum_next += len ;
-      }
-    }
-    wc_prevn1 *= .5/lensum_prevn1 ;
-    wc_prev *= .5/lensum_prev ;
-    wc_next *= .5/lensum_next ;
-    
-    $us{n,it} = (3*wc_next-4*wc_prev+wc_prevn1)/(2*real($dtmax)) ;
-  }
 
   // Pos initial conditions
 
-//  $type pos_ic store<vect3d> ;
-//  $type pos_icb store<vect3d> ;
+  $type pos_ic store<vect3d> ;
+  $type pos_icb store<vect3d> ;
 
   $rule pointwise(pos{n=0}<-pos_ic),inplace(pos{n=0}|pos_ic),
     constraint(movingMesh,pos), prelude {
@@ -533,16 +266,16 @@ namespace flowPsi {
   class restart_pos : public pointwise_rule {
     const_store<vect3d> pos ;
     const_param<string> icfile ;
-    const_param<string> InputModelName ;
+    const_param<string> modelName ;
     store<vect3d> pos_ic ;
   public:
     restart_pos() {
       name_store("pos",pos) ;
       name_store("restart::pos_ic",pos_ic) ;
       name_store("icfile",icfile) ;
-      name_store("InputModelName",InputModelName) ;
+      name_store("modelName",modelName) ;
       input("pos,icfile") ;
-      input("InputModelName") ;
+      input("modelName") ;
       output("restart::pos_ic") ;
       disable_threading() ;
     }
@@ -550,7 +283,7 @@ namespace flowPsi {
       if(Loci::GLOBAL_AND(seq==EMPTY))
         return ;
 
-      string filename = *icfile + string("posRestart_") + *InputModelName ;
+      string filename = *icfile + string("posRestart_") + *modelName ;
 
       int file_exists = 1 ;
       if(Loci::MPI_rank) {
@@ -591,20 +324,19 @@ namespace flowPsi {
   //--------------------------------------------------------------------
   // Rules for the Geometric Conservation Law source term.
   //--------------------------------------------------------------------
+  //--------------------------------------------------------------------
+  // Rules for the Geometric Conservation Law source term.
+  //--------------------------------------------------------------------
   $rule unit( gcl_sum ),
     constraint( geom_cells ) {
     $gcl_sum = 0;
   }
-/*
- * calculate GCL,
- */
- 
-//--------------------------------------------------------------------
+  //--------------------------------------------------------------------
   $rule apply( cl->gcl_sum <- us_n, area )[Loci::Summation],
     constraint( cl->geom_cells ) {
     $cl->$gcl_sum += $area.sada*$us_n;
   }
-//--------------------------------------------------------------------
+  //--------------------------------------------------------------------
   $rule apply( cr->gcl_sum <- us_n, area )[Loci::Summation],
     constraint( cr->geom_cells ) {
     $cr->$gcl_sum -= $area.sada*$us_n;

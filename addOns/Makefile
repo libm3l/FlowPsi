@@ -1,4 +1,4 @@
-all: MMStest gridMotion onlineStats actuatorDisk gust
+all: MMStest gridMotion onlineStats actuatorDisk 
 
 MMStest: FRC
 	$(MAKE) -C MMStest FLOWPSI_BASE="$(FLOWPSI_BASE)" all     
@@ -11,8 +11,6 @@ onlineStats: FRC
 
 actuatorDisk: FRC
 	$(MAKE) -C actuatorDisk FLOWPSI_BASE="$(FLOWPSI_BASE)" all     
-gust: FRC
-	$(MAKE) -C gust FLOWPSI_BASE="$(FLOWPSI_BASE)" all
 
 clean: FRC
 	$(MAKE) -C MMStest FLOWPSI_BASE="$(FLOWPSI_BASE)" clean     
