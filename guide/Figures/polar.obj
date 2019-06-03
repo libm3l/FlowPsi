@@ -1,7 +1,7 @@
 %TGIF 4.1.43
 state(0,37,100.000,0,0,1,16,0,9,1,1,3,0,1,2,1,0,'Helvetica-Bold',1,144000,0,0,0,10,0,1,1,1,0,16,0,0,1,1,1,1,1088,1408,1,0,2880,0).
 %
-% @(#)$Header: /simcenter/data4/loci/flowPsi/cvsroot/flowPsi/guide/Figures/polar.obj,v 1.1 2017/01/05 01:52:26 lush Exp $
+% @(#)$Header: /cavs/simcenter/data4/loci/flowPsi/cvsroot/flowPsi/guide/Figures/polar.obj,v 1.1 2017/01/05 01:52:26 lush Exp $
 % %W%
 %
 unit("1 pixel/pixel").

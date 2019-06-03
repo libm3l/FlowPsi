@@ -1,6 +1,6 @@
 //#############################################################################
 //#
-//# Copyright 2015, Mississippi State University
+//# Copyright 2015-2019, Mississippi State University
 //#
 //# This file is part of the flowPsi computational fluid dynamics solver.
 //#
@@ -62,6 +62,7 @@ namespace flowPsi {
   $rule optional(meanCountReset) {
     $meanCountReset = -1 ;
   }
+
   $rule apply(meanCount_ic<-meanCountReset)[priority_joiner], prelude {
     if (*$meanCountReset > 0.) {
       std::pair<int,real> count(2,0) ;
@@ -76,8 +77,7 @@ namespace flowPsi {
     string filename = *$icfile + "meanCount_" + *$modelName ;
 
     int file_exists = 1 ;
-//    $[Once] {
-    if(Loci::MPI_rank==0) {
+    $[Once] {
       struct stat buf ;
       if(stat(filename.c_str(),&buf) == -1 || !S_ISREG(buf.st_mode))
         file_exists = 0 ;
@@ -99,20 +99,6 @@ namespace flowPsi {
   } ;
 
   
-  $type meanCountReset param<int> ;
-
-  $rule optional(meanCountReset) { 
-    $meanCountReset = -1 ;
-  }
-
-  // Reset the mean count overriding the initial condition data
-  $rule apply(meanCount_ic<-meanCountReset)[priority_joiner], prelude {
-    if (*$meanCountReset > 0.) {
-      std::pair<int,real> count(2,0) ;
-      count.second = max(double(*$meanCountReset),1.) ;
-      join(*$meanCount_ic,count) ;
-    }
-  } ;
 
   $rule singleton(meanCount{n=0}<-meanCount_ic),constraint(UNIVERSE) {
     $meanCount{n=0} = $meanCount_ic.second ;
@@ -500,11 +486,11 @@ namespace flowPsi {
     prelude {
   } ;
 
-  $type X store<real> ;
-  $rule pointwise(scalarMeanAll_f(X){n,it}<-scalarMeanFaceAll_X{n,it},lastNewton{n,it},X{n,it},meanCount{n,it}) {
+  $type X_f store<real> ;
+  $rule pointwise(scalarMeanAll_f(X){n,it}<-scalarMeanFaceAll_X{n,it},lastNewton{n,it},X_f{n,it},meanCount{n,it}) {
     $scalarMeanAll_f(X){n,it} = $scalarMeanFaceAll_X{n,it} ;
     if($lastNewton{n,it}) {
-      real delta = $X{n,it}-$scalarMeanAll_f(X){n,it} ;
+      real delta = $X_f{n,it}-$scalarMeanAll_f(X){n,it} ;
       $scalarMeanAll_f(X){n,it} += delta/$meanCount{n,it} ;
     }
   }
