@@ -1,6 +1,6 @@
 //#############################################################################
 //#
-//# Copyright 2016, Mississippi State University
+//# Copyright 2016-2019, Mississippi State University
 //#
 //# This file is part of the flowPsi computational fluid dynamics solver.
 //#
@@ -80,7 +80,9 @@ $rule optional(componentMRF),
     $componentMRFMotionTypes->insert(string("rotation")) ;
     $componentMRFMotionTypes->insert(string("stationary")) ;
   } ;
-
+/*
+ * set type of mesh motion - rotation or stationary
+ */
 $rule constraint(componentMRFRotation_X,componentMRFStationary_X<-volumeTag(X),componentMRF,componentMRFMotionTypes),
     parametric(volumeTag(X)) {
     string tag = $volumeTag(X) ;
@@ -111,7 +113,9 @@ $rule constraint(componentMRFRotation_X,componentMRFStationary_X<-volumeTag(X),c
   $type componentMRFRotationCenter_X param<vect3d> ;
   $type componentMRFRotationSpeed_X param<real> ;
   $type componentName_X blackbox<string> ;
-
+/*
+ * set some components of rotation - rotation axes, rotational speed and center
+ */
   $rule singleton(componentMRFRotationAxis_X,componentMRFRotationCenter_X,
                   componentMRFRotationSpeed_X<-componentMRF,componentName_X),
     constraint(componentMRFRotation_X), parametric(volumeTag(X)) {
@@ -156,6 +160,13 @@ $rule constraint(componentMRFRotation_X,componentMRFStationary_X<-volumeTag(X),c
     }
   }
 
+  $rule singleton(componentMRFRotationAxis_X,componentMRFRotationCenter_X,
+                  componentMRFRotationSpeed_X<-componentMRF,componentName_X),
+    constraint(componentMRFStationary_X), parametric(volumeTag(X)) {
+    $componentMRFRotationAxis_X = vect3d(1,0,0) ;
+    $componentMRFRotationCenter_X= vect3d(0,0,0) ;
+    $componentMRFRotationSpeed_X = 0 ;
+  }
   // First component is the 1/2 degree revolution, second is the delta
   // t required to get the half degree revolution
   $type componentMRFData_X blackbox<std::pair<componentXform,real> > ;
@@ -189,7 +200,7 @@ $rule constraint(componentMRFRotation_X,componentMRFStationary_X<-volumeTag(X),c
   //* the volume conservation identity.
   //*
   //*************************************************************************
-  $rule pointwise(MRF::us_n<-face2node->pos,componentMRFData_X,area),
+  $rule pointwise(MRF::us_ntmp<-face2node->pos,componentMRFData_X,area),
     constraint(area,componentMRFData_X,face2node->componentNodes_X),parametric(volumeTag(X)) {
     int fsz = $face2node.size() ;
     // Compute wireframe center
@@ -243,10 +254,12 @@ $rule constraint(componentMRFRotation_X,componentMRFStationary_X<-volumeTag(X),c
     }
     // Get grid velocity at face by dividing by face area
     real dt = $componentMRFData_X.second ;
-    $us_n = .25*us_n_int/(3.*$area.sada*dt) ;
+    $us_ntmp = .25*us_n_int/(3.*$area.sada*dt) ;
   }
-
-  $rule pointwise(MRF::us<-face2node->pos,us_n,area,componentMRFData_X),
+/*
+ * seems like grid velocity on faces
+ */
+  $rule pointwise(MRF::us<-face2node->pos,us_ntmp,area,componentMRFData_X),
     constraint(area,componentMRFData_X,face2node->componentNodes_X),parametric(volumeTag(X)) {
     componentXform xform = $componentMRFData_X.first ;
     int fsz = $face2node.size() ;
@@ -284,12 +297,12 @@ $rule constraint(componentMRFRotation_X,componentMRFStationary_X<-volumeTag(X),c
     vect3d utt = ug - dot(ug,n)*n ;
     vect3d utn = utt/(norm(utt)+1e-30) ;
     // Tangential component if normal component equals half step normal velocity
-    real ut = sqrt(max<real>(dot(ug,ug)-$us_n*$us_n,0.0)) ;
+    real ut = sqrt(max<real>(dot(ug,ug)-$us_ntmp*$us_ntmp,0.0)) ;
 
     // reassemble vector so that half step normal velocity is aligned with
     // current normal, remainder of grid velocity goes in current tangetial
     // direction.
-    $us = $us_n*n + ut*utn ;
+    $us = $us_ntmp*n + ut*utn ;
   }
 
   // MRF source term

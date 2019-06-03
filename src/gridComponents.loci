@@ -1,6 +1,6 @@
 //#############################################################################
 //#
-//# Copyright 2015, Mississippi State University
+//# Copyright 2015-2019, Mississippi State University
 //#
 //# This file is part of the flowPsi computational fluid dynamics solver.
 //#
@@ -18,6 +18,19 @@
 //# along with the flowPsi solver.  If not, see <http://www.gnu.org/licenses>
 //#
 //#############################################################################
+
+/*
+ *
+ * CHANGELOG:
+ * Version   Author:               Date       Patch number  CLA     Comment
+ * -------   -------               --------   --------      ---     -------
+ * 1-beta-6  Adam Jirasek         2018-04-24    8d0d548f81f      Add external maneuver rule
+ *                                                               end required flags
+ *
+ *
+ *
+ * 
+ */
 
 #include <Loci.h>
 #include <Tools/tools.h>
@@ -45,6 +58,8 @@ using std::set ;
 
 $include "FVM.lh"
 $include "flowPsi.lh"
+
+#include "extcomm_def.h"
 
 namespace flowPsi {
 
@@ -80,21 +95,37 @@ namespace flowPsi {
     $componentMotionTypes->insert(string("rotation")) ;
     $componentMotionTypes->insert(string("servo")) ;
     $componentMotionTypes->insert(string("prescribed")) ;
+    $componentMotionTypes->insert(string("external")) ;
     $componentMotionTypes->insert(string("stationary")) ;
-  } ;
-    
-  
+  } ;    
+/*
+ * specify constraints for each type of motion
+ */ 
   $type componentRotation_X Constraint ;
   $type componentServo_X Constraint ;
   $type componentPrescribed_X Constraint ;
   $type componentStationary_X Constraint ;
   $type volumeTag(X) param<string> ;
-  
-  $rule constraint(componentServo_X,componentRotation_X,componentPrescribed_X,componentStationary_X<-volumeTag(X),componentMotion,componentMotionTypes),
+/*
+ * componentExternal is set always when interface calls for external communication
+ * componentExternalMotion is set when component motion is set to external
+ * some of the external communication does not necessarily need mesh motion
+ */
+  $type componentExternal_X Constraint ;
+  $type componentExternalMotion_X Constraint ;
+/*
+ * set what type of motion
+ */
+  $rule constraint(componentServo_X,componentRotation_X,componentPrescribed_X,
+       componentStationary_X,componentExternal_X,componentExternalMotion_X<-
+       volumeTag(X),componentMotion,componentMotionTypes),
+
     parametric(volumeTag(X)) {
     string tag = $volumeTag(X) ;
     $componentRotation_X = EMPTY ;
     $componentPrescribed_X = EMPTY ;
+    $componentExternal_X = EMPTY ;
+    $componentExternalMotion_X = EMPTY ;
     $componentStationary_X = EMPTY ;
     $componentServo_X = EMPTY ;
     if($componentMotion.optionExists(tag)) {
@@ -113,6 +144,15 @@ namespace flowPsi {
         $componentServo_X = ~EMPTY ;
       } else if(name == "prescribed") {
         $componentPrescribed_X = ~EMPTY ;
+      } else if(name == "external") {
+/*
+ * if componentMotion specified as external 
+ * set mesh motion to external and set flag that there is 
+ * external sovler communication (flag componentExternal).
+ * This flag is used in solverExternalComm.loci
+ */
+        $componentExternal_X = ~EMPTY ;
+        $componentExternalMotion_X= ~EMPTY ;
       } else if(name == "stationary") {
         $componentStationary_X = ~EMPTY ;
       }
@@ -121,7 +161,9 @@ namespace flowPsi {
       Loci::Abort() ;
     }
   }
-
+/*
+ * set componentName_X to volumeTag
+ */
   $type componentName_X blackbox<string> ;
   $rule blackbox(componentName_X<-volumeTag(X)),parametric(volumeTag(X)),
     prelude {
@@ -178,7 +220,6 @@ namespace flowPsi {
   
 
   $type componentTransformMap blackbox<map<string,vector<componentXform> > > ;
-
 
   
   $type componentMotionData blackbox<map<string,componentXform> > ;
@@ -288,8 +329,9 @@ namespace flowPsi {
   $rule pointwise(face2node->componentNodes_X),constraint(cl->volumeTag(X)),parametric(volumeTag(X)) {} 
   $rule pointwise(face2node->right::componentNodes_X),constraint(cr->volumeTag(X)),parametric(volumeTag(X)) {} 
   
-
- 
+/*
+ * set componentMotionData for rotation
+ */
   $rule apply(componentMotionData<-componentRotationAxis_X,componentRotationCenter_X,componentRotationSpeed_X,componentName_X,dtmax,stime)[Loci::NullOp],
     constraint(componentRotation_X),parametric(volumeTag(X)), prelude {
     real t = *$stime + real(*$dtmax) ;
@@ -324,7 +366,9 @@ namespace flowPsi {
     map<string,real> tmp ;
     $ServoPositionInfo = tmp ;
   }
-
+/*
+ * set componentMotionData for servo
+ */
   $rule apply(componentMotionData<-componentServoAxis_X,componentServoCenter_X,componentServoName_X,componentName_X,ServoPositionInfo)[Loci::NullOp],
     constraint(componentServo_X),parametric(volumeTag(X)), prelude {
     
@@ -459,8 +503,6 @@ namespace flowPsi {
   
   // Prescribed motion starts here... First we implement a cubic spline
 
-  // Prescribed motion starts here... First we implement a cubic spline
-
   // Compute spline derivatives
   void splineD(vector<real> &xp, const vector<real> &x,
                const vector<real> &t) {
@@ -539,7 +581,10 @@ namespace flowPsi {
   }
 
   $type prescribedMotion_X blackbox<motionSplines> ;
-  
+/*
+ * read prescribed motion file 
+ * motion_volumeTag(X).dat 
+ */
   $rule blackbox(prescribedMotion_X<-volumeTag(X)),
     constraint(componentPrescribed_X),parametric(volumeTag(X)),
     prelude {
@@ -601,6 +646,9 @@ namespace flowPsi {
     }
   } ;
 
+/*
+ * get motion center
+ */ 
   $type prescribedCG_X param<vect3d> ;
   $rule singleton(prescribedCG_X<-prescribedMotion_X),
     parametric(volumeTag(X)) {
@@ -609,7 +657,33 @@ namespace flowPsi {
     $prescribedMotion_X.getMotion(cg,q,0.0) ;
     $prescribedCG_X = cg ;
   }
+/*
+ * External manuever rule (Patch 8d0d548f81f)
+ * set values in componentMotionData when externally prescribed motion
+ * the new values area stored in componentXform XmotionData
+ * which is set in solverExtrnalComm.loci
+ */
+  $rule apply(componentMotionData<-XmotionData(X),componentName_X)[Loci::NullOp],
+    constraint(componentExternalMotion_X),parametric(volumeTag(X)), prelude{
 
+    string name = *$componentName_X ;
+
+#ifdef LIBM3LSIPDX
+    (*$componentMotionData)[name] = *$XmotionData(X) ;
+#else
+    if(Loci::MPI_rank==0) {
+      cerr << " " << endl ;
+      cerr << "ERROR: in rule: componentMotionData<-XmotionData(X),componentName_X" << endl ;
+      cerr << "Current version of flowPsi not compiled with libm3l and lsidpx support" << endl ;
+      cerr << "componentMotion: external not supported" << endl ;
+      cerr << "Exiting ...  " << endl ;
+    }
+    exit(-1) ;
+#endif
+  } ;
+/*
+ * set values in componentMotionData
+ */
   $rule apply(componentMotionData<-prescribedMotion_X,prescribedCG_X,componentName_X,dtmax,stime)[Loci::NullOp],
     constraint(componentPrescribed_X),parametric(volumeTag(X)), prelude {
     real t = *$stime + real(*$dtmax) ;
@@ -623,7 +697,9 @@ namespace flowPsi {
     string name = *$componentName_X ;
     (*$componentMotionData)[name] = xform ;
   } ;
-
+/*
+ * transform mesh
+ */
   $rule pointwise(pos{n,it}<-pos{n},pos,componentTransformsn_X{n,it}),
     constraint(componentNodes_X{n},componentMotion),
     parametric(volumeTag(X)) {
@@ -639,7 +715,9 @@ namespace flowPsi {
   }
   
   $type componentVectorRotation_X param<tens3d> ;
-
+/*
+ * set componentVectorRotation_X
+ */
   $rule singleton(componentVectorRotation_X<-componentTransformsn_X), parametric(volumeTag(X)) {
     int sz = $componentTransformsn_X.size() ;
     vect3d v = vect3d(1,0,0) ;
@@ -818,8 +896,8 @@ namespace flowPsi {
         int id = $componentID_node[nd] ;
         if(id != comp &&
            $pos[nd].x > bbox[0] && $pos[nd].x < bbox[1] &&
-						$pos[nd].y > bbox[2] && $pos[nd].y < bbox[3] &&
-										     $pos[nd].z > bbox[4] && $pos[nd].z < bbox[5]) {
+	   $pos[nd].y > bbox[2] && $pos[nd].y < bbox[3] &&
+           $pos[nd].z > bbox[4] && $pos[nd].z < bbox[5]) {
           send_set[proc].push_back(nd) ;
         }
   } ENDFORALL ;
@@ -1283,7 +1361,8 @@ if(req_queue.size() > 0 || self_send) {
               cerr << "wrong type in radius list for geometry of component '" << tag << "'" << endl ;
               Loci::Abort() ;
             }
-        }
+        } else
+	  fail = true ;
         if(ol.optionExists("offsets")) {
           Loci::option_value_type ovt= ol.getOptionValueType("offsets") ;
           if(ovt != Loci::LIST) {
@@ -1302,7 +1381,12 @@ if(req_queue.size() > 0 || self_send) {
               cerr << "wrong type in offset list for geometry of component '" << tag << "'" << endl ;
               Loci::Abort() ;
             }
-        }
+        } else
+	  fail = true ;
+	if(fail) {
+	  cerr << "component revolution needs to have specified 'p1', 'p2', 'radius', 'offsets'." <<endl ;
+	  Loci::Abort() ;
+	}
         if(radius.size() != offsets.size()) {
           cerr << "radius and offset should have same number of entries in geometry for component '" << tag << "'" << endl ;
           Loci::Abort() ;

@@ -25,11 +25,11 @@
  *     for more details go to www.github.com/libm3l/libm3l and www.github.com/libm3l/lsipdx 
  *     values of angles, rotation center and translation
  *
- * History:
+ * CHANGELOG:
  * Version   Author:               Date       Patch number  CLA     Comment
  * -------   -------               --------   --------      ---     -------
- * 1-beta-6  Adam Jirasek         2018-03-26                       Add mesh file and restart 
- *                                                                  directory to .vars file
+ * 1-beta-6  Adam Jirasek         2018-03-26                 Add mesh file and restart direstory
+ *                                                           and model names to .vars file
  * 
  */
 
@@ -192,6 +192,9 @@ int main(int ac, char *av[]) {
   string query = "solution" ;
   string meshfile = "" ;
   string restartdir = "" ;
+  string model_name = "" ;
+  string input_model_name = "" ;
+
 
   bool input_desc = false ;
   bool dryrun = false ;
@@ -344,6 +347,10 @@ int main(int ac, char *av[]) {
             meshfile = argument ;
           } else if(name == "loadRestartDir") {
             restartdir = argument ;
+          } else if(name == "loadModelName") {
+            model_name = argument ;
+          } else if(name == "loadInputModelName") {
+            input_model_name = argument ;
           } else if(name == "query") {
             query = argument ;
           } else {
@@ -432,15 +439,42 @@ int main(int ac, char *av[]) {
   }
 
 /*
+ * set model name, if not specified, set it to av[1]
+ */
+  if(model_name.empty()){
+    if(Loci::MPI_rank == 0){
+      std::cout << "Model name is: " << av[1]  << endl ;
+    }
+    model_name = av[1];
+  }else{
+    if(Loci::MPI_rank == 0){
+      std::cout << "Model name is: " << model_name << endl ;
+    }
+  }
+
+/*
+ * set input model name, if not specified, set it to av[1]
+ */
+  if(input_model_name.empty()){
+    input_model_name = av[1];
+  }
+  if(Loci::MPI_rank == 0){
+    std::cout << "Input model name is: " << input_model_name << endl ;
+  }
+/*
  * read mesh, if file specified in .vars file, use this name 
  * otherwise use name of vars file from  line
  */
   if(meshfile.empty()){
-    std::cout << "Reading mesh file: " << av[1] <<".vog" << endl ;
-    read_grid(facts,rdb,av[1],av[1],dryrun) ;
+    if(Loci::MPI_rank == 0){
+      std::cout << "Reading mesh file: " << av[1] <<".vog" << endl ;
+    }
+    read_grid(facts,rdb,av[1],av[1],model_name.c_str(),input_model_name.c_str(),dryrun) ;
   }else{
-    std::cout << "Reading mesh file: " << meshfile <<".vog" << endl ;
-    read_grid(facts,rdb,av[1],meshfile.c_str(),dryrun) ;
+    if(Loci::MPI_rank == 0){
+      std::cout << "Reading mesh file: " << meshfile <<".vog" << endl ;
+    }
+    read_grid(facts,rdb,av[1],meshfile.c_str(),model_name.c_str(),input_model_name.c_str(),dryrun) ;
   }
 
   if(command_vars.size() > 0) {
@@ -500,14 +534,16 @@ int main(int ac, char *av[]) {
     string restartDir;
     if( !restartdir.empty() ){
       if( meshfile.empty()){
-        cerr << "Restart directory specified in the vars file, the mesh file  must be specified the the vars file too" << endl ;
+        cerr << " " << endl ;
+        cerr << "ERROR: Restart directory specified in the vars file, the mesh file  must be specified the the vars file too" << endl ;
         cerr << "Exiting ...  " << endl ;
         exit(-1) ;
       }
       restartDir = string(restartdir) ;
     }else{
       if( !meshfile.empty()){
-        cerr << "Mesh file specified in vars file, restart directory must be specified in var file too" << endl ;
+        cerr << " " << endl ;
+        cerr << "RROR: Mesh file specified in vars file, restart directory must be specified in var file too" << endl ;
         cerr << "Exiting ...  " << endl ;
         exit(-1) ;
       }

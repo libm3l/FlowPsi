@@ -1,6 +1,6 @@
 //#############################################################################
 //#
-//# Copyright 2015, Mississippi State University
+//# Copyright 2015-2019, Mississippi State University
 //#
 //# This file is part of the flowPsi computational fluid dynamics solver.
 //#
@@ -290,7 +290,7 @@ namespace flowPsi {
 
   bool check_boundary_conditions(fact_db &facts) {
 
-    list<bc_checker_info> bclist ;
+        list<bc_checker_info> bclist ;
 
     for(BC_impl_list::iterator bci(register_BC_list.begin());
         bci!=register_BC_list.end();
@@ -328,18 +328,24 @@ namespace flowPsi {
     bc_info = facts.get_variable("boundary_conditions") ;
 #endif
 
-    
-    options_list::option_namelist nl = bc_info->getOptionNameList() ;
+    if(Loci::MPI_rank == 0) {
+      std::cout << "Boundary conditions:" << endl ;
+      std::cout << "--------------------" << endl ;}
 
+    options_list::option_namelist nl = bc_info->getOptionNameList() ;
     options_list::option_namelist::iterator li;
 
     for(li=nl.begin();li!=nl.end();++li) {
       string bname = *li ;
-      Loci::option_value_type vt =
-        bc_info->getOptionValueType(bname);
+      Loci::option_value_type vt = bc_info->getOptionValueType(bname);
       Loci::option_values ov = bc_info->getOption(bname) ;
       options_list::arg_list value_list ;
       string name ;
+
+      bool func = false ;
+      
+      if(Loci::MPI_rank == 0)
+         std::cout << "Boundary condition name:  " << bname << endl ;
 
       switch(vt) {
       case Loci::NAME :
@@ -424,6 +430,8 @@ namespace flowPsi {
       }
       
     }
+    if(Loci::MPI_rank == 0)
+      std::cout << "    " << endl;
     return error ;
   }
 
@@ -893,6 +901,9 @@ namespace flowPsi {
 
     constraint geom_cells(facts.get_variable("geom_cells")) ;
 
+#ifdef LOCI_HAS_STATIC_KEYSPACE
+    int fk = face2node.Rep()->getDomainKeySpace() ;
+#endif
     if(Loci::MPI_processes > 1) {
       // Fill in ghost facecenter
       entitySet face_out = face_dom ;
@@ -900,7 +911,11 @@ namespace flowPsi {
       face_out += Loci::MapRepP(boundary_map.Rep())->image(*geom_cells) ;
       face_out += Loci::MapRepP(upper.Rep())->image(*geom_cells) ;
       // Fill clone for facecenter
+#ifdef LOCI_HAS_STATIC_KEYSPACE
+      std::vector<entitySet> init_ptn = facts.get_init_ptn(fk) ;
+#else
       std::vector<entitySet> init_ptn = facts.get_init_ptn() ;
+#endif
       Loci::storeRepP facecenterRep = facecenter.Rep() ;
       fill_clone(facecenterRep, face_out, init_ptn) ;
       // fill clone for face area ;
@@ -1039,6 +1054,9 @@ namespace flowPsi {
     if(Loci::MPI_rank == 0)
       Loci::debugout << "Time spent in new min_2noslip is " << tglobal << endl ;
 
+#ifdef LOCI_HAS_STATIC_KEYSPACE
+    MapRepP(min_cell2face.Rep())->setRangeKeySpace(fk) ;
+#endif
     return min_cell2face.Rep() ;
   }
 
@@ -1251,6 +1269,8 @@ namespace flowPsi {
     constraint hasViscousWalls ;
     *hasViscousWalls = ~EMPTY ;
     facts.create_fact("hasViscousWalls",hasViscousWalls) ;
+
   }
 #endif
+
 }

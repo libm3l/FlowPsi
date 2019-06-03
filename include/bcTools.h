@@ -1,7 +1,30 @@
+//#############################################################################
+//#
+//# Copyright 2015-2019, Mississippi State University
+//#
+//# This file is part of the flowPsi computational fluid dynamics solver.
+//#
+//# The flowPsi solver is free software: you can redistribute it and/or modify
+//# it under the terms of the GNU General Public License as published by
+//# the Free Software Foundation, either version 3 of the License, or
+//# (at your option) any later version.
+//#
+//# The flowPsi solver is distributed in the hope that it will be useful,
+//# but WITHOUT ANY WARRANTY; without even the implied warranty of
+//# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//# GNU General Public License for more details.
+//#
+//# You should have received a copy of the GNU General Public License
+//# along with the flowPsi solver.  If not, see <http://www.gnu.org/licenses>
+//#
+//#############################################################################
 #include <Loci.h>
 #include "flowTypes.h"
 
 namespace flowPsi {
+/*
+ * subsonic inflow boundary
+ */
   inline void cv_inflow(real &pgb, real &Tb, vect3d &ub,
 			real pgi, real Ti, vect3d ui,
 			real pg0, real T0, vect3d u0,
@@ -10,7 +33,10 @@ namespace flowPsi {
 			real Beta) {
     const real uit = dot(ui,n)-us_n ; //dot(uin-us,n) ;
     const real u0t = dot(u0,n)-us_n ; //dot(uref-us,n) ;
-
+/*
+ *  pgb, Tb, ub  - pressure, temperature and velocity on the boundary
+ *  pgi, Ti, ui  - pressure, temperature and velocity in the domain
+ */
     const real a02 = gamma*Rtilde*T0 ;
     const real a0 = sqrt(a02) ;
     const real r0 = (pg0+Pambient)/(Rtilde*T0) ;
@@ -30,6 +56,9 @@ namespace flowPsi {
 
     Tb = (pgb+Pambient)/(Rtilde*rhob) ;
   }
+/*
+ * subsonic outflow boundary
+ */
   inline void cv_outflow(real &pgb, real &Tb, vect3d &ub,
 			 real pgi, real Ti, vect3d ui,
 			 real pg0, real T0, vect3d u0,
@@ -38,7 +67,10 @@ namespace flowPsi {
 			 real Beta) {
     const real uit = dot(ui,n)-us_n ; //dot(uin-us,n) ;
     const real u0t = dot(u0,n)-us_n ; //dot(uref-us,n) ;
-
+/*
+ *  pgb, Tb, ub  - pressure, temperature and velocity on the boundary
+ *  pgi, Ti, ui  - pressure, temperature and velocity in the domain
+ */
     const real a02 = gamma*Rtilde*T0 ;
     const real a0 = sqrt(a02) ;
     const real r0 = (pg0+Pambient)/(Rtilde*T0) ;

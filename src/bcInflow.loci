@@ -19,15 +19,16 @@
 //#
 //#############################################################################
 
-//#############################################################################
 /*
  * 
  * CHANGELOG:
  *
  * History:
- * Version   Author:               Date       Patch number  CLA     Comment
- * -------   -------                        --------   --------                 ---        -------
- * 1-beta-6  Adam Jirasek      2018-03-26                       Fix sign in subsonci inflow BC
+ * Version   Author:        Date     Patch number  CLA     Comment
+ * -------   -------       --------   --------     ---     -------
+ * 1-beta-6  Adam Jirasek  2018-03-26  46950b281039   Fix sign in subsonic inflow BC
+ *                                                    Consulted with Ed Luke 
+ *                                                    Bug actually did not have that much effect
  * 
  */
 

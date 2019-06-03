@@ -1,3 +1,36 @@
+//#############################################################################
+//#
+//# Copyright 2015-2019, Mississippi State University
+//#
+//# This file is part of the flowPsi computational fluid dynamics solver.
+//#
+//# The flowPsi solver is free software: you can redistribute it and/or modify
+//# it under the terms of the GNU General Public License as published by
+//# the Free Software Foundation, either version 3 of the License, or
+//# (at your option) any later version.
+//#
+//# The flowPsi solver is distributed in the hope that it will be useful,
+//# but WITHOUT ANY WARRANTY; without even the implied warranty of
+//# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//# GNU General Public License for more details.
+//#
+//# You should have received a copy of the GNU General Public License
+//# along with the flowPsi solver.  If not, see <http://www.gnu.org/licenses>
+//#
+//#############################################################################
+
+/*
+ *
+ * History:
+ * Version   Author:               Date       Patch number  CLA     Comment
+ * -------   -------               --------   --------      ---     -------
+ * 1-beta-6  Adam Jirasek         2018-04-24    0001                Add external interfaces variables
+ *
+ *
+ *
+ * 
+ */
+
 #include <Loci>
 #include <flowTypes.h>
 
@@ -7,6 +40,8 @@ $type plot_output param<flowPsi::list_input> ;
 $type plot_output_exclusive param<flowPsi::list_input> ;
 
 $type modelName param<std::string> ;
+$type InputModelName param<std::string> ;
+
 // Transform for periodic bc's (should this be in FVM.lh?)
 $type periodicTransform store<Loci::rigid_transform> ;
 
@@ -23,6 +58,10 @@ $type p0 param<PressureValue> ;
 $type temperature_ic store<flowPsi::real> ;
 $type gagePressure_ic store<flowPsi::real> ;
 $type u_ic store<flowPsi::vect3d> ;
+// Previous timestep values for BDF2
+$type temperature_ico store<flowPsi::real> ;
+$type gagePressure_ico store<flowPsi::real> ;
+$type u_ico store<flowPsi::vect3d> ;
 
 // Ambient Pressure used to define gage pressure
 $type Pambient          param<flowPsi::real> ;
@@ -43,6 +82,7 @@ $type u                 store<flowPsi::vect3d> ;
 $type us_n store<flowPsi::real> ;
 $type us store<flowPsi::vect3d> ;
 $type gcl_sum store<flowPsi::real>;
+$type us_ntmp store<flowPsi::real> ;
 
 $type mu        store<flowPsi::real> ; // fluid viscosity cell
 $type mu_f      store<flowPsi::real> ; // fluid viscosity face
@@ -72,7 +112,7 @@ $type Minf param<flowPsi::real> ; // Free stream Mach number
 $type etaT param<flowPsi::real> ; // Stagnation point limit factor
 $type Eta_p store<flowPsi::real> ; // Eta factor used in preconditioning
 $type Eta_pf store<flowPsi::real> ; // Eta factor used in preconditioning
-
+$type Eta_bc store<flowPsi::real> ; // used for boundary conditions, only includes viscous terms
 // Jacobian Assembly
 $type fjp storeMat<flowPsi::real_fj> ;
 $type fjm storeMat<flowPsi::real_fj> ;
@@ -96,7 +136,9 @@ $type u_f               store<flowPsi::vect3d> ;
 $type bc_total_area store<flowPsi::real> ;
 $type bc_total_force store<flowPsi::real> ;
 $type bc_average_pressure store<flowPsi::real> ;
-
+/*
+ * free stream parameters
+ */
 $type flow_direction store<flowPsi::vect3d> ;
 $type rigid_u store<flowPsi::vect3d> ;
 $type p0Ref store<flowPsi::real> ;
@@ -161,6 +203,7 @@ $type timeStepSize      param<flowPsi::real> ;
 $type cflmax            param<flowPsi::real> ;
 $type cflpdt            store<flowPsi::real> ; // Multiply this by dt to get cfl
 $type cfl               param<std::pair<flowPsi::real,flowPsi::real> > ;
+$type Relax             param<flowPsi::real> ;
 
 $type dtau              store<flowPsi::real> ;
 $type iblank store<flowPsi::byte_t> ;
@@ -192,6 +235,10 @@ $type initialConditions param<Loci::options_list> ;
 $type initialConditionRegions param<Loci::options_list> ;
 $type icRegionInfo blackbox<std::vector<flowPsi::ICstate_info> >;
 $type icRegionId store<int> ;
+/*
+ * gust specification
+ */
+$type gustSpecification param<Loci::options_list> ;
 
 $type print_freq  param<int> ;
 $type plot_freq   param<int> ;
@@ -268,14 +315,41 @@ $type vect3dFavreCoVarBase_f(X) store<flowPsi::vect3d> ;
 $type scalarTransportP(X,C) store<flowPsi::real> ;
 $type scalarTransport(X,C) store<flowPsi::real> ;
 
+
+/*
+ * global data  (need to check if there is no duplicity to above declared variables)
+ * - forces, moments
+ * - euler angles
+ */
+$type global_visc_force param<flowPsi::vect3d> ;
+$type global_invisc_force param<flowPsi::vect3d> ;
+$type global_angles     param<flowPsi::vect3d> ;
+$type global_displ      param<flowPsi::vect3d> ;
+$type global_rot_center param<flowPsi::vect3d> ;
+
+/*
+ * external interfaces data sets
+ */
+$type ext_interfaces param<Loci::options_list> ;
+$type comm_freq   param<int> ;
+//$type XmotionData blackbox<componentXform> ;
+$type XmotionData(X) blackbox<componentXform> ;
+
+
+
+
 $type timeStepSteadyState Constraint ;
 $type timeStepAccurate Constraint ;
+
+$type timeStepSchemeBDF2 Constraint ;
+$type timeStepSchemeKEC Constraint ;
 
 $type LaminarSimulation Constraint ;
 $type TurbulentSimulation Constraint ;
 $type ViscousSimulation Constraint ;
-
-
+/*
+ * linear solver specification
+ */
 $type fluidLinearSolverSGS Constraint ;
 $type fluidLinearSolverFSGS Constraint ;
 $type fluidLinearSolverLSGS Constraint ;
@@ -348,3 +422,6 @@ $type gauss_seidel_iter param<int> ;
 
 
 
+$type componentTimeIntegCN Constraint;
+$type componentTimeInteg3BW Constraint;
+$type Gust param<bool>;
