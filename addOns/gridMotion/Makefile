@@ -11,7 +11,7 @@
 include $(FLOWPSI_BASE)/flowpsi.conf
 include $(LOCI_BASE)/Loci.conf
 
-#COPT= -g -O0
+COPT= -g -O0
 #COPTLESS= -g -O0 
 
 INCLUDES = -DUSE_LOCI_TYPES -I$(FLOWPSI_BASE)/include -I./include

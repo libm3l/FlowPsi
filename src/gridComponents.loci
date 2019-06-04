@@ -709,7 +709,7 @@ $type GM_nonLinearCouplingMode  Constraint ;
  * coupling on subiteration level
  */
   $rule pointwise(pos{n,it=0} <- pos{n},pos ), 
-    constraint( UNIVERSE{n}, pos, GM_nonLinearCouplingMode) {
+    constraint( UNIVERSE{n}, pos, GM_nonLinearCouplingMode,componentMotion) {
     $pos{n,it=0} = $pos{n};
    }
   
