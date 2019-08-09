@@ -1,11 +1,7 @@
 \subsection{Time Integration}
 
-For the time integration scheme we utilize a Crank-Nicolson inspired
-scheme or three-stage backward implicit scheme
-
-\subsubsection{Crank-Nicolson}
-For the Crank-Nicolson inspired
-scheme, the residual is evaluated an an interpolated half step.
+For the time integration scheme we utilize a Crank-Nicholson inspired
+scheme where the residual is evaluated an an interpolated half step.
 The interpolated half step, denoted by the primitive variable vector
 $q^{\star}$, is computed according to the relation
 \begin{equation}
@@ -44,7 +40,6 @@ e(p,T)+(\vec{u}\cdot \vec{u})/2$.  The residual, $R$, results from the
 numerically integrated flux functions given by
 \begin{equation}
 R = \sum_{f=1}^{nf} \A_f \left( F_{v,f} - F_{i,f} \right)
-\label{resid}
 \end{equation}
 where $\A_f$ is the area of face $f$, and $F_v$ and $F_i$ are the
 viscous and inviscid fluxes respectively.
@@ -65,16 +60,6 @@ skew-symmetric fluxes are utilized. These jacobian approximation
 errors have no effect on the solution once the Newton method is
 converged.
 
-
-\subsubsection{Three-stage backward scheme}
-The three stage backward time stepping scheme solves equation\cite{Pulliam}
-\begin{equation}
-  \frac{3Q^{n+1}-4Q^{n}+Q^{n-1}}{2\Delta t}- R(q^{n+1}) = 0
-\label{Thee_stage}
-\end{equation}
-where residual $R$ is defined by equation \ref{resid}. For URANS, this scheme is more stable
-then the Crank-Nicolson scheme, can utilize larger time step, less
-Newton subiterations and larger value of {\tt urelax}.
 
 \subsubsection{Local Time-Stepping Scheme}
 

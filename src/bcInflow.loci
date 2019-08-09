@@ -1,6 +1,6 @@
 //#############################################################################
 //#
-//# Copyright 2015, Mississippi State University
+//# Copyright 2015-2019, Mississippi State University
 //#
 //# This file is part of the flowPsi computational fluid dynamics solver.
 //#
@@ -18,19 +18,6 @@
 //# along with the flowPsi solver.  If not, see <http://www.gnu.org/licenses>
 //#
 //#############################################################################
-
-/*
- * 
- * CHANGELOG:
- *
- * History:
- * Version   Author:        Date     Patch number  CLA     Comment
- * -------   -------       --------   --------     ---     -------
- * 1-beta-6  Adam Jirasek  2018-03-26  46950b281039   Fix sign in subsonic inflow BC
- *                                                    Consulted with Ed Luke 
- *                                                    Bug actually did not have that much effect
- * 
- */
 
 #include <Loci.h>
 #include "flowTypes.h"
@@ -335,7 +322,7 @@ namespace flowPsi {
 	$gagePressure_f = $ci->$gagePressure ;
 	$temperature_f = $ci->$temperature ;
 	$u_f = $ci->$u ;
-      } else {       // subsonic outflow
+      } else {
 	cv_outflow($gagePressure_f,$temperature_f,$u_f,
 		   $ci->$gagePressure,$ci->$temperature,$ci->$u,
 		   $gagePressureRef,$temperatureRef,$uRef,
@@ -347,7 +334,7 @@ namespace flowPsi {
 	$gagePressure_f = $gagePressureRef ;
 	$temperature_f = $temperatureRef ;
 	$u_f = $uRef ;
-      } else {       // Subsonic inflow
+      } else {
 	cv_inflow($gagePressure_f,$temperature_f,$u_f,
 		  $ci->$gagePressure,$ci->$temperature,$ci->$u,
 		  $gagePressureRef,$temperatureRef,$uRef,

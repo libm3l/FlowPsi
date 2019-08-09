@@ -290,7 +290,7 @@ namespace flowPsi {
 
   bool check_boundary_conditions(fact_db &facts) {
 
-        list<bc_checker_info> bclist ;
+    list<bc_checker_info> bclist ;
 
     for(BC_impl_list::iterator bci(register_BC_list.begin());
         bci!=register_BC_list.end();
@@ -328,24 +328,18 @@ namespace flowPsi {
     bc_info = facts.get_variable("boundary_conditions") ;
 #endif
 
-    if(Loci::MPI_rank == 0) {
-      std::cout << "Boundary conditions:" << endl ;
-      std::cout << "--------------------" << endl ;}
-
+    
     options_list::option_namelist nl = bc_info->getOptionNameList() ;
+
     options_list::option_namelist::iterator li;
 
     for(li=nl.begin();li!=nl.end();++li) {
       string bname = *li ;
-      Loci::option_value_type vt = bc_info->getOptionValueType(bname);
+      Loci::option_value_type vt =
+        bc_info->getOptionValueType(bname);
       Loci::option_values ov = bc_info->getOption(bname) ;
       options_list::arg_list value_list ;
       string name ;
-
-      bool func = false ;
-      
-      if(Loci::MPI_rank == 0)
-         std::cout << "Boundary condition name:  " << bname << endl ;
 
       switch(vt) {
       case Loci::NAME :
@@ -430,8 +424,6 @@ namespace flowPsi {
       }
       
     }
-    if(Loci::MPI_rank == 0)
-      std::cout << "    " << endl;
     return error ;
   }
 
@@ -1269,8 +1261,6 @@ namespace flowPsi {
     constraint hasViscousWalls ;
     *hasViscousWalls = ~EMPTY ;
     facts.create_fact("hasViscousWalls",hasViscousWalls) ;
-
   }
 #endif
-
 }

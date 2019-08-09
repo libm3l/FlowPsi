@@ -26,48 +26,21 @@
 \begin{document}
 
 
-\title{{\em\textbf{ FlowPsi}} \\ \vspace{0.5cm} An ideal gas flow solver \\ \emph{The User Guide}}
+\title{{\em FlowPsi}: An ideal gas flow solver -- The User Guide.}
 
 \author{ Edward A. Luke, Xiaoling Tong, and Rex Chamberlain}
 
 \maketitle
+\tableofcontents
+\clearpage
 
-\vspace{3cm}
-
-\begin{figure}[htb]
-\begin{center}
-\includegraphics[width=0.5\textwidth]{FlowFeatures.png}%
-\includegraphics[width=0.4\textwidth]{FIG.jpg}
-%\caption{Geometry of flux stencil formation}
-\end{center}
-\end{figure}
-
-\newpage
-\section*{Document revisions}
-- May-2018: Added External Solver Communication (added by Adam Jirasek)\\
-- May-2018: Added additional parameters to preamble of vars file (added by Adam Jirasek)\\
-- May-2018: Added gust modeling  (added by Adam Jirasek)\\
-- May-2018: Added new time interation scheme  (added by Adam Jirasek/Ed Luke)
-
-
-\newpage
 \section{Introduction}
 
-{\em \emph{flowPsi} }  is an open source developed at the Mississippi University.
-It is an open source, finite volume, unstructured Computational Fluid Dynamics, CFD,
-solver available under OSS General Public License, GPL, license.
-It uses finite volume numerical scheme with inviscid fluxes calculated using 
-an HLLC inviscid flux scheme by Torro\cite{Torro.1994}. A low dissipation upwind scheme is also available. 
-The time integration uses Newton implicit, second order in time Crank-Nicholson scheme. 
-The solver enables solving problems requiring the moving, deforming and the overset meshes. 
-
-The solver uses a rule based programming framework called LoCi\cite{Luke.99b,LukeReport.03,Luke.01,Luke.2005}.
-It uses a set of rules which are then scheduled in LoCi framework during execution along with full palatalization
-in MPI. This approach simplifies the design of high performance parallel codes. It uses LoCi specific language 
-which is upon compilation transformed into the C++ language. 
-
-\newpage
-
+{\em FlowPsi } is an open source CFD solver that is developed
+utilizing the Loci framework\cite{Luke.2005,Zhang.2009} which provides
+for automatic parallelization and logical consistency checks
+simplifying the design of highly parallel numerical solvers for
+partial differential equations.
 
 \section{Units}
 
@@ -79,7 +52,6 @@ in all {\em FlowPsi} input and output files.  Note that {\em FlowPsi}
 provides unit conversions on most inputs such that a user can input
 the units that are most comfortable.  Output files are always in MKS
 units, however.
-\newpage
 
 \section{Problem Input}
 
@@ -103,27 +75,6 @@ Each variable is listed at the beginning of a line followed by a colon
 and then its definition.  An example of an input file
 named {\tt input.vars} is as follows:
 \begin{verbatim}
-//
-// specify mesh file name without .vog suffix, if not specified it will 
-// be set to .vars file name
-//
-loadMesh: MeshFile
-//
-// if restart, specify name of restart directory. If not specified, it can 
-// be specified on command line
-//
-loadRestartDir: restart
-//
-//  specify model name, if not specified it will be set to .vars file name
-//  both restart directory and model name must be specified here 
-//  or from the command line
-//
-loadModelName: model_name
-//
-//  specify name of input model which is located in restart directory
-//  if not specified, it will be set to .vars file name
-//
-loadInputModelName: imodel_name
 {
 boundary_conditions: <
                  body=viscousWall(adiabatic),
@@ -163,27 +114,6 @@ These variables are also defined as follows:
 
 
 \begin{enumerate}
-
-\item {\tt loadMesh}
-
-This item is preamble of the .vars file. It is an optional parameter and specifies the name of the 
-mesh file. If it is not specified, the mesh file name will be determined by the name of .vars file.
-
-\item {\tt loadRestartDir}
-
-This item is preamble of the .vars file. It is an optional parameter and specifies the name of the
-directory with restart files. If \emph{loadMesh} is fiven in the .vars file, 
-then this parameter must be specified int .vars file too, otherwise it must be specified on the command line.
-
-\item {\tt loadModelName}
-
-This item is preamble of the .vars file. It is an optional parameter and specifies the name of the
-model. If \emph{loadModelName} is not specified, it is set to the nameof .vars file
-
-\item {\tt loadInputModelName}
-
-This item is preamble of the .vars file. It is an optional parameter and specifies the name of the
-input model used for restart. If \emph{loadInputModelName} is not specified, it is set to the nameof .vars file
  
 \item {\tt boundary\_conditions}
 
@@ -338,21 +268,21 @@ plane (away from the normal) are included in this geometry.
   dissipation flux, and ``ssf'' is based on a fourth order skew
   symmetric scheme.  Select the ``ssf'' for LES style simulations.
 
+\item {\tt flowRegime }
+
+This sets the type of flow model we will be using.  This will be set
+to either {\tt inviscid}, {\tt laminar}, or {\tt turbulent}.  If the
+setting is {\tt turbulent} then a turbulence model will need to be
+loaded using a {\tt loadModule} directive at the top of the vars file.  
+
 \item {\tt timeStepMode }
 
 This variable selects the time integration mode.  It is set to either
-{\tt steady} or {\tt unsteady}.  In {\tt steady} mode, {\tt \emph{flowPsi} }
+{\tt steady} or {\tt unsteady}.  In {\tt steady} mode, {\tt flowPsi }
 will utilize a backward Euler time integration method with local
 timestepping enabled.  For time-accurate simulations select {\tt
   unsteady} to disable local timestepping and switch to a second order
 temporal integration.
-
-\item {\tt TimeIntegration}
-
-This variable selects the time integration scheme.  It is set to either
-{\tt Crank-Nikolson} or {\tt Three-stage-backward}.  In {\tt Crank-Nicolson} mode, {\tt flowPsi }
-will utilize a Crank-Nicolson time integration method.  
-For the {\tt Three-stage-backward} mode it suses three stage backward time stepping scheme.
 
 \item {\tt timePressureBiasControl}
 
@@ -500,6 +430,10 @@ maximumRunTime: 23.5 hour
   default value for this is 5.0.  This value is typically set
   somewhere between 1-100.  Set it to zero if these compressible
   features should not be encountered.
+
+\item {\tt LDS\_MILES\_filter}
+
+  Select how much third order upwinding to use as a MILES filter for the fourth order skew symmetric flux.  The default setting for this is 10\%.
 
 \item {\tt LDS\_useUpwind}
 
@@ -756,30 +690,6 @@ cylinder(p1=[1,0,0],p2=[2,0,0],radius=.5)
 
 \end{enumerate}
 
-\subsection{Flow Parameters Specification}
-\begin{enumerate}
-\item {\tt flowRegime }
-
-This sets the type of flow model we will be using.  This will be set
-to either {\tt inviscid}, {\tt laminar}, or {\tt turbulent}.  If the
-setting is {\tt turbulent} then a turbulence model will need to be
-loaded using a {\tt loadModule} directive at the top of the vars file.  
-
-\item {\tt molecularMass}
-
-  Specifies perfect gas mean molecular mass, used to calculate gass universal constant 
-  $R = \frac{R_h}{molecularMass}$ where $R_h$ is universal gas constant and its 
-  values is $R_h=8314.4621$. The default value is $molecularMass = 28.96$
-
-
-\item {\tt gamma}
-  
-  Specifies $\gamma$ constant. The default values is $\gamma=1.4$
-
-
-
-\end{enumerate}
-
 \subsection{Boundary Condition Specifications}
 
 
@@ -821,10 +731,8 @@ The boundary conditions may be assigned as:
     user provides the total pressure and total temperature for the
     associated ``plenum'' conditions, and the inflow values that
     preserve the total properties are computed.  A typical input is
-
-    {\tt isentropicInflow(p0=1atm, T0=300K)}.  
-
-    {\bf Note: this boundary condition is only applicable to subsonic inflow
+    {\tt isentropicInflow(p0=1atm, T0=300K)}.  {\bf Note: this
+      boundary condition is only applicable to subsonic inflow
       conditions.}
 
   \item {\tt fixedMass}
@@ -832,11 +740,8 @@ The boundary conditions may be assigned as:
     This inflow boundary condition specifies the mass flow or flux
     and total temperature.  The user provides the
     {\tt mdot} ($kg/s$) or {\tt massFlux} ($kg/m^2-s$) and
-    a total temperature.  A typical input is 
-
-    {\tt fixedMass(mdot=0.02 kg/sec, T0=1000 K)}.  
-
-    This boundary condition
+    a total temperature.  A typical input is {\tt
+    fixedMass(mdot=0.02 kg/sec, T0=1000 K)}.  This boundary condition
     uses the specified 3D mass rate value for axisymmetric flows in which a 2D grid
     is translated in the $z$ direction (see the {\tt gridCoordinates} input option).  {\bf Note:
     this boundary condition is only applicable to subsonic inflow conditions.}
@@ -845,11 +750,8 @@ The boundary conditions may be assigned as:
 
     This boundary condition specifies the mass flow or flux
     at an outflow boundary.  The user provides the
-    {\tt mdot} ($kg/s$) or {\tt massFlux} ($kg/m^2-s$) value only.  A typical input is 
-
-    {\tt fixedMassOuflow(mdot=0.02 kg/sec)}.  
-
-    This boundary condition
+    {\tt mdot} ($kg/s$) or {\tt massFlux} ($kg/m^2-s$) value only.  A typical input is {\tt
+    fixedMassOuflow(mdot=0.02 kg/sec)}.  This boundary condition
     uses the specified 3D mass rate value for axisymmetric flows in which a 2D grid
     is translated in the $z$ direction (see the {\tt gridCoordinates} input option).  {\bf Note:
     this boundary condition 1) limits the outflow conditions to physically allowable values if the flow
@@ -1021,76 +923,6 @@ regions near viscous walls.
 
 \end{itemize}
 
-\subsection{Gust specification}
-The gust is specified through the input parameters in vars file. 
-So far, the only gust implemented in \emph{flowPsi} are \emph{1-cos}, \emph{step} gust and 
-\emph{tabulated} gust. 
-The parameters of this gust are specified through a gustSpecification 
-data set in vars file which looks
-
-\begin{itemize}
-\item \textbf{1-cos} gust
-
-\begin{verbatim}
-gustSpecification: < type=oneMcos, Lgrad=61.24727674 m, Usg=3 m/s, 
-                     gvel=[102.078794566 m/s, 0, 0], 
-                     gnorm=[0., 1., 0.], Ogust=[-1., 0., 0.] >
-\end{verbatim}
-The parameters in this set are
-\begin{itemize}
- \item type specifies type of gust. For \emph{1-cos} the type is \textbf{oneMcos}
- \item Lgrad specifies gradient length of \emph{1-cos} gust
- \item Usg specifies maximum vertical gust velocity
- \item gnorm specifies vector normal to gust plane (if gust in is x-z plane, specify [0,1,0])
- \item Ogust origin of gust 
-\end{itemize}
-
-\item \textbf{step} gust
-
-\begin{verbatim}
-gustSpecification: < type=step, Usg=3 m/s, 
-                     gvel=[102.078794566 m/s, 0, 0], 
-                     gnorm=[0., 1., 0.], Ogust=[-1., 0., 0.] >
-\end{verbatim}
-The parameters in this set are
-\begin{itemize}
- \item type specifies type of gust. For \emph{step} the type is \textbf{step}
- \item Usg specifies maximum vertical gust velocity
- \item gnorm specifies vector normal to gust plane (if gust in is x-z plane, specify [0,1,0])
- \item Ogust origin of gust 
-\end{itemize}
-
-
-\item \textbf{tabulated} gust
-
-\begin{verbatim}
-gustSpecification: < type=tabulated,
-                     gvel=[102.078794566 m/s, 0, 0], 
-                     gnorm=[0., 1., 0.], Ogust=[-1., 0., 0.] >
-\end{verbatim}
-The parameters in this set are
-\begin{itemize}
- \item type specifies type of gust. For \emph{tabulated} the type is \textbf{tabulated}
- \item gnorm specifies vector normal to gust plane (if gust in is x-z plane, specify [0,1,0])
- \item Ogust origin of gust 
-\end{itemize}
-
-Tabulated gust is provided in file \textbf{gust.dat}. The structure of the file is 
-
-\begin{verbatim}
-npoints
-x u
-. .
-. .
-\end{verbatim}
-
-where \textbf{npoins} is a number of points defining the gust, \textbf{x} and \textbf{u} 
-are position and gust velocity. The tabulated data should be ordered so that 
-the increasing index in x-direction is going against free stream velocity.
-
-\end{itemize}
-
-
 \end{list}
 
 \subsubsection{ Notes on Vector Value Inputs }
@@ -1129,7 +961,7 @@ The definition of the polar angles and the resulting $u$, $v$, and $w$ velocity 
 
 
 
-\subsubsection{Notes on Inflow Velocity Specifications}
+\subsubsection{ Notes on Inflow Velocity Specifications}
 
 A typical inflow boundary might be specified as:
 \begin{verbatim}
@@ -1275,7 +1107,6 @@ and yaw to the right when viewed from the pilot's perspective).
 %%     BC_1=viscousWall(adiabatic,momentCenter=[0,0,0])
 %% \end{verbatim}
 
-\newpage
 \section{Relative Motion Problems using {\em FlowPsi}}
 
 {\em FlowPsi} can be used to simulate moving bodies using an unstructured
@@ -1341,11 +1172,6 @@ of mass.  Interpolation between the given data is accomplished using a cubic
 spline.  In order to specify derivative discontinuities in the data,
 repeat a data entry twice.
 
-\item {\tt external}
-
-This option is used to specify that the component motion is
-given by a an external solver. For more detail see section External Solver Communication
-
 \end{enumerate}
 
 \subsection{Specifying motion in a relative frame}
@@ -1390,127 +1216,7 @@ when the interface surface overlaps geometry from another grid, the
 grids will be cut along the surface of equal distance between the two
 component surfaces.
 
-\newpage
-\section{Communication with External Solvers}
-the \emph{flowPsi} is now able to communicate with externally run processes. It can send and receive data
-through a cosimulation engine. The cosimulation engine is the \emph{lsipdx} utility\cite{Jirasek_2014,Jirasek_2015}
-which is available from github at {\tt https://github.com/libm3l/lsipdx}. 
-This utility is a co-simulation engine taking care of data transfer and process synchronization. 
-It uses its own TPC/IP protocol which needs to be installed along with \emph{lsipdx} utility. 
-The TCP/IP protocol is called \emph{libm3l} and is available on github at
-{\tt https://github.com/libm3l/libm3l}.
-Both utilities, once installed, produce shared libraries which must be specified as 
-input parameter during \emph{flowPsi} configuration process. The two additional parameters in configuration process are 
-\emph{\texttt{-{}-}libm3l-dir} and \emph{\texttt{-{}-}lsipdx-dir}. 
-If the two are not specified, the \emph{flowPsi} is compiled without the ability for communication with external solvers.
 
-Once \emph{flowPsi} needs to communicate, it looks for subset specified in .vars file called \emph{ext\_interfaces} which
-may look like example below:
- 
-\begin{verbatim}
-ext_interfaces: <
-  Interface_1=intrf_global(tag=Main, type=quaternion_bridge, comm_freq=1,
-                 IP="localhost",portno=31000, I_channel=SIM2CFD, O_channel=CFD2SIM)
- > 
-\end{verbatim}
-
-It contains one interface, ie. \emph{flowPsi} will communicate with one external solver. The type of interface is global, 
-which means the solver will share global data such as global forces/moments. The name of interface from example above
-is \emph{Interface\_1}. The parameters of interface are:
-\begin{enumerate}
-
-\item {\tt tag}
-
-Name of the volume tag. If \emph{All} is specified, the interface acts for all volume tags
-
-\item {\tt type}
-
-This parameter specifies the type of the solver \emph{flowPsi} will be communicating with. This is solver specific as it 
-determines what/if \emph{flowPsi} will send data out and what/if \emph{flowPsi} will receive data. 
-
-types of interfaces currently available are
-\begin{enumerate}
-\item {\tt prescribed\_quaternion}
-   prescribed motion as a function of quaternion vs time
-\end{enumerate}
-
-\item {\tt comm\_freq}
-
-This parameter specifies how often \emph{flowPsi} communicates. If the number is positive, it specifies frequency of time step
-which where \emph{flowPsi} communicates, if the number is negative it specifies frequency of 
-Newton subiterations where \emph{flowPsi} will communicate.
-
-\item {\tt IP}
-
-This parameter specifies IP address of \emph{lsipdx} co-simulation engine.
-
-\item {\tt portno}
-
-This parameter specifies port number of \emph{lsipdx} co-simulation engine.
-
-\item {\tt I\_channel}
-
-This parameter name of channel through which \emph{flowPsi} receives data
-
-\item {\tt O\_channel}
-
-This parameter name of channel through which \emph{flowPsi} sends data
-
-
-\end{enumerate}
-
-\subsection{Execute \emph{flowPsi} communicating with External Solvers}
-There are several steps need to be done to execute \emph{flowPsi} coupled simulations.
-The first step is to execute \emph{lsipdx\_server.out} which is in the \emph{lsipdx} distribution.
-For that the user needs a \emph{lsipdx} input file which specifies which channels should be opened and 
-how many processes is accessing them. For the example of \emph{ext\_interface} above, the \emph{lsipdx} input file looks:
-\begin{verbatim}
-COMM_DEF  DIR 2
-        Process_Specifications DIR 1
-                Name_of_Case  C 1 9 
-                        `Test Case`
-        Channels  DIR 2
-                Channel  DIR 4
-                        Name_of_Channel C 1 7
-                                `CFD2SIM`
-                        Sending_Process I 1 1
-                                1
-                        Receiving_Processes ST 1 1
-                                1
-                        CONNECTION DIR 2
-                                ATDT_Mode C 1 1
-                                `D`
-                                KEEP_CONN_ALIVE_Mode C 1 1
-                                `N`
-                Channel  DIR 4
-                        Name_of_Channel C 1 7
-                                `SIM2CFD`
-                        Sending_Process I 1 1
-                                1
-                        Receiving_Processes ST 1 1
-                                1
-                        CONNECTION DIR 2
-                                ATDT_Mode C 1 1
-                                `D`
-                                KEEP_CONN_ALIVE_Mode C 1 1
-                                `N`
--EOMF-
-\end{verbatim}
-This files specify, that the \emph{lsipdx} server opens two channels, one called \emph{CFD2SIM} and second called \emph{SIM2CFD}.
-Each channel will have one sending and one receiving process. For now we can keep \emph{CONNECTION\_DIR} as it is, 
-for more details on parameters in this structure see\cite{Jirasek_2014}.
-The \emph{lsipdx\_server.out}  is then executed as
-\begin{verbatim}
-lsipdx_server.out --port 31000 --input_file lsipdx_input_file --show
-\end{verbatim}
-which opens the two channels and binds port 31000. The port number and the names of channels from \emph{lsipdx} input file
-must be the same as the port number in \emph{ext\_interface} structure.
-Once this is done, \emph{flowPsi} and other communicating processes can be executed and it does not matter in which order.
-\emph{flowPsi} and other solvers then communicate with \emph{lsipdx} server which resend data to processes associated with 
-different channels. Since the communication is blocking TCP/IP communication, the data flow 
-ensures process synchronization. Once the entire coupled analysis is finished, the \emph{lsipdx\_server} must be terminated manually. 
-
-\newpage
 \section{{\em FlowPsi} Pre- and Post-processing Utilities}
 
 \subsection{{\em FlowPsi} Pre-processing Utilities}
@@ -1659,7 +1365,7 @@ specified with the point locations.  Probes will generate output files
 in the form {\tt probeX.dat}, where {\tt X} is the probe number.
 The file contains lines with the following information:
 \begin{verbatim}
-  <ncycle> <stime> <T> <p> [ <U> ] [ <pos> ] <dist> 
+  <ncycle> <stime> <T> <p> <rho> <a> [ <U> ] [ <pos> ] <dist> <mass fractions>
 \end{verbatim}
 where:
 \begin{verbatim}
@@ -1667,6 +1373,8 @@ where:
   <stime> is the simulation time
   <T> is the temperature
   <p> is the pressure
+  <rho> is the density
+  <a> is the sound speed
   <U> is the velocity vector
   <pos> is the position of the probe
   <dist> is the distance between the probed value and the position given in the
@@ -1895,9 +1603,6 @@ Favre averaged while
   \end{center}
 \end{table}
 \input{gridMotion}
-
-
-
 \clearpage
 \appendix
 \def\V{\mathcal{V}}
@@ -1945,11 +1650,9 @@ Favre averaged while
 %%\input{scalar_transport.tex}
 
 
-\input{gust.tex}
-
 
 \bibliography{guide}
-\bibliographystyle{aiaa}
+\bibliographystyle{unsrt}
 
 \end{document}
 
