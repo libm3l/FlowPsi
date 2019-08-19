@@ -55,7 +55,7 @@ namespace flowPsi {
 
   double StartTime = 0 ;
   
-  const char *revision_name = "$Name: rel-1-0 $" ;
+  const char *revision_name = "$Name: rel-1-0-p1 $" ;
 
   std::string version() {
     const char *p = revision_name;
