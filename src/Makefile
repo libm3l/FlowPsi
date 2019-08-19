@@ -6,26 +6,13 @@ include $(LOCI_BASE)/Loci.conf
 #COPT=$(COPTLESS)
 
 
-INCLUDES = -I../include
+INCLUDES = -I../include -I$(LIBM3LPATH) -I$(LSIPDXPATH) 
 
 
 TARGET = flowpsi
 
-OBJS =  \
-	main.o gridTools.o gridSetup.o gridReader.o gridDynamic.o \
-	gridAxisymmetry.o gridCoriolis.o gridComponents.o gridMRF.o\
-	bcInputs.o bcTurboInterface.o bcTools.o bcInterface.o \
-	bcPrescribed.o bcImpermeable.o bcInflow.o bcOutflow.o \
-	bcIsentropic.o bcFixedMass.o bcFixedMassOutflow.o bcViscousWall.o \
-	solverTimestep.o solverNewton.o solverEoS.o solverIC.o \
-	solverLinearSystem.o solverResidual.o solverRestart.o\
-	solverTurbulence.o solverScalarTransport.o solverPeriodic.o \
-	solverSetup.o solverGravity.o solverAveraging.o solverInterpolate.o \
-	solverICInterpolate.o \
-	IOplot.o IOintegrated.o IOgrid.o IOprobe.o IOClipSurfaces.o \
-	linearSolverSGS.o linearSolverFSGS.o linearSolverLSGS.o \
-	fluxInviscid.o fluxLowDiss.o fluxViscous.o
-
+FFILES= $(notdir $(wildcard *.loci))
+OBJS=$(FFILES:%.loci=%.o)
 
 
 LOCAL_LIBS = $(LIBXML2_LIBS) -L$(LOCI_BASE)/lib 
@@ -40,7 +27,7 @@ all:
 
 
 $(TARGET): $(OBJS) 
-	$(LD) -o  $(TARGET)  $(RPATH)$(FLOWPSI_RPATH) $(OBJS) $(LOCAL_LIBS) $(LIBS) $(LDFLAGS)
+	$(LD) -o  $(TARGET) $(RPATH)$(FLOWPSI_RPATH) $(OBJS) $(LOCAL_LIBS) $(LIBS) $(LIBSLM3LLSPDX) $(LIBOPENMPI) $(LDFLAGS)
 	mv flowpsi ../bin/flowpsi
 
 FRC : 

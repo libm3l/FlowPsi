@@ -89,10 +89,13 @@ $rule pointwise( priority::moving::us ),
   $us = vect3d(0.0,0.0,0.0) ;
 }
 //--------------------------------------------------------------------
-$rule pointwise( priority::moving::us_n ),
-  constraint( movingMesh, timeStepSteadyState ) {
-  $us_n = 0. ;
-}
+// JKA note: this rule was commented, the us_n velocity is nullified 
+// in gridDynamic.loci
+// 
+// $rule pointwise( priority::moving::us_n ),
+//   constraint( movingMesh, timeStepSteadyState ) {
+//   $us_n = 0. ;
+// }
 
   
   OUTPUT_SCALAR("rot_angle",rot_angle) ;

@@ -24,6 +24,9 @@
 #include "flowTypes.h"
 #include <vector>
 namespace flowPsi {
+/*
+ * AJ note: define rotation and general motion of the mesh
+ */
   struct componentXform {
     vect3d cg, new_cg ;
     Quaternion q ;

@@ -168,7 +168,7 @@ namespace flowPsi {
 
   //*************************************************************************
   class X_ic_from_fileP : public pointwise_rule {
-    const_param<std::string> icfile,modelName,scalarTransportName_X ;
+    const_param<std::string> icfile,InputModelName,scalarTransportName_X ;
     store<real> X_ic ;
   public:
     X_ic_from_fileP() ;
@@ -181,7 +181,7 @@ namespace flowPsi {
     name_store("priority::ic_file::X_ic",X_ic) ;
     name_store("scalarTransportName_X",scalarTransportName_X) ;
     input("icfile,scalarTransportName_X") ;
-    input("modelName") ;
+    input("InputModelName") ;
     constraint("geom_cells,icfile,C") ;
     output("priority::ic_file::X_ic") ;
     set_parametric_variable("scalarTransportP(X,C)") ;
@@ -192,7 +192,7 @@ namespace flowPsi {
     if(Loci::GLOBAL_AND(seq==EMPTY))
       return ;
 
-    string filename = *icfile+ *scalarTransportName_X+ string("_") + *modelName ;
+    string filename = *icfile+ *scalarTransportName_X+ string("_") + *InputModelName ;
 
     if(Loci::MPI_rank == 0)
       cout << "reading " << *scalarTransportName_X 
@@ -363,7 +363,9 @@ namespace flowPsi {
     parametric(scalarTransportP(X,C)) {
     $X{n,plot} = $X{n} ;
   }
-
+/*
+ * end of Newton subiterations, shift to next time
+ */
   $rule pointwise(X{n+1}<-X_n{n,it},X{n}),
     conditional(newtonFinished{n,it}),
     constraint(geom_cells{n,it},timeStepAccurate{n,it},timeStepSchemeKEC{n,it},C),
@@ -393,7 +395,9 @@ namespace flowPsi {
       dXstar += 0.25*dXstar*dXstar ;
     $X_np1{n,it} = Xstar*(1. + dXstar) ;
   }
-
+/*
+ * JKA Note: updating scalar variables
+ */
   $rule pointwise(X_next<-urelax,X_dq,X),
     constraint(X,X_dq,C),
     parametric(scalarTransportP(X,C)) {
@@ -403,7 +407,9 @@ namespace flowPsi {
     $X_next = $X + tscale*$X_dq ;
     $X_next = max<real>($X_next,1e-15) ;
   }
-  
+/*
+ * JKA Note: shift to nex subiteration
+ */
   $rule pointwise(X_n{n,it+1}<-X_next{n,it},X_dq{n,it}),
     constraint(geom_cells{n,it},C{n,it}),
     parametric(scalarTransportP(X,C)) {
@@ -574,7 +580,6 @@ namespace flowPsi {
     $scalarRhonm1{n,it} = ($gagePressure{n-1}+$Pambient{n,it})/
 		    ($Rtilde{n,it}*$temperature{n-1}) ;
   }
-
   
   $rule pointwise(X_rhs{n,it}<-vol{n,it},dtau{n,it},X_src{n,it},
                   X{n},X{n,it},scalarRhon{n,it}),
@@ -836,7 +841,7 @@ namespace flowPsi {
 
   //*************************************************************************
   class X_ic_from_file : public pointwise_rule {
-    const_param<std::string> icfile,modelName,scalarTransportName_X ;
+    const_param<std::string> icfile,InputModelName,scalarTransportName_X ;
     store<real> X_ic ;
   public:
     X_ic_from_file() ;
@@ -845,11 +850,11 @@ namespace flowPsi {
 
   X_ic_from_file::X_ic_from_file() {
     name_store("icfile",icfile) ;
-    name_store("modelName",modelName) ;
+    name_store("InputModelName",InputModelName) ;
     name_store("scalarTransportName_X",scalarTransportName_X) ;
     name_store("priority::ic_file::X_ic",X_ic) ;
     input("icfile,scalarTransportName_X") ;
-    input("modelName") ;
+    input("InputModelName") ;
     constraint("geom_cells,icfile,C") ;
     output("priority::ic_file::X_ic") ;
     set_parametric_variable("scalarTransport(X,C)") ;
@@ -860,7 +865,7 @@ namespace flowPsi {
     if(Loci::GLOBAL_AND(seq==EMPTY))
       return ;
 
-    string filename = *icfile+ *scalarTransportName_X+ string("_") + *modelName ;
+    string filename = *icfile+ *scalarTransportName_X+ string("_") + *InputModelName ;
 
     if(Loci::MPI_rank == 0)
       cout << "reading " << *scalarTransportName_X 

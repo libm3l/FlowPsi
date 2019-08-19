@@ -4,21 +4,24 @@ include revision.conf
 
 FLOWPSI_BASE = $(shell pwd)
 
-default: flowpsi tools turbulence guide addOns particle 
+
+default: flowpsi tools turbulence particle guide addOns 
 
 all: default
 
 install: all
 	FLOWPSI_INSTALL_DIR=$(FLOWPSI_INSTALL_DIR) FLOWPSI_INSTALL_PATH=$(FLOWPSI_INSTALL_PATH) bash Install.bash
 
-.PHONEY: FRC flowpsi tools test turbulence guide addOns install particle 
+
+.PHONEY: FRC flowpsi tools test turbulence particle guide addOns install 
 
 setup: FRC
 	mkdir -p lib; true
 	mkdir -p bin; true
 
-flowpsi: setup
+flowpsi: setup 
 	$(MAKE) -C src LOCI_BASE="$(LOCI_BASE)" all
+
 
 turbulence: setup
 	$(MAKE) -C turbulence FLOWPSI_BASE="$(FLOWPSI_BASE)" all
