@@ -1,6 +1,6 @@
 //#############################################################################
 //#
-//# Copyright 2015, Mississippi State University
+//# Copyright 2015-2019, Mississippi State University
 //#
 //# This file is part of the flowPsi computational fluid dynamics solver.
 //#
@@ -30,10 +30,14 @@ namespace flowPsi {
   $rule default(stop_iter) {
     $stop_iter=1000 ;
   }
+
+  $rule optional(cflmax) { }
   
   $rule singleton(plot_status{n=-1}),constraint(UNIVERSE) {
     $plot_status{n=-1} = 0 ;
   }
+
+  
   $rule singleton(timestepFinished{n}<-$n{n},stop_iter,plot_status{n-1}) {
     $timestepFinished{n} = ($$n{n}>$stop_iter+1)||($plot_status{n-1}>1) ;
   }
@@ -48,6 +52,11 @@ namespace flowPsi {
     $timeStepMode = "steady" ;
   }
 
+  $type timeStepScheme param<string> ;
+  $rule default(timeStepScheme) { // Options here are BDF2 and KEC
+    $timeStepScheme = "BDF2" ;
+  }
+  
   $rule singleton(timeSteppingMode<-timeStepMode) {  
     $timeSteppingMode = 0 ;
     if($timeStepMode == "unsteady") {
@@ -55,6 +64,24 @@ namespace flowPsi {
     }
   }
 
+  $rule constraint(timeStepSchemeBDF2,timeStepSchemeKEC<-timeStepScheme) {
+    $timeStepSchemeKEC = ~EMPTY ;
+    $timeStepSchemeBDF2 = EMPTY ;
+    if($timeStepScheme == "BDF2") {
+      $timeStepSchemeKEC = EMPTY ;
+      $timeStepSchemeBDF2 = ~EMPTY ;
+    } else if($timeStepScheme == "KEC") {
+      $timeStepSchemeKEC = ~EMPTY ;
+      $timeStepSchemeBDF2 = EMPTY ;
+    } else {
+      $[Once] {
+	std::cerr << "unknown timestepping scheme '" << $timeStepScheme
+		  << "' set in timeStepScheme!" << std::endl ;
+      }
+      Loci::Abort() ;
+    }
+  }
+  
   $rule constraint(timeStepSteadyState,timeStepAccurate<-timeStepMode) {
     $timeStepSteadyState = ~EMPTY ;
     $timeStepAccurate = EMPTY ;
@@ -82,6 +109,23 @@ namespace flowPsi {
   $rule pointwise(u{n=0}<-u_ic) {
     $u{n=0} = $u_ic ;
   }
+
+  // Hack for the moment, just assume constant in time
+  $rule pointwise(gagePressure{n=-1}<-gagePressure_ico),
+    constraint(gagePressure_ico,timeStepSchemeBDF2) {
+    $gagePressure{n=-1} = $gagePressure_ico ;
+  }
+
+  $rule pointwise(temperature{n=-1}<-temperature_ico),
+    constraint(temperature_ico,timeStepSchemeBDF2) {
+    $temperature{n=-1} = $temperature_ico ;
+  }
+  
+  $rule pointwise(u{n=-1}<-u_ico),
+    constraint(u_ico,timeStepSchemeBDF2) {
+    $u{n=-1} = $u_ico ;
+  }
+
 
   $type ic_stime param<real> ; //computing time ;
   $type ic_ncycle param<int> ; //starting cycle number ;
@@ -200,24 +244,46 @@ namespace flowPsi {
   $rule default(dtmax), comments("setting of maximum timestep") {
     $dtmax.val = 1.0 ;
   }
+
+  $type dtcfl store<real> ;
+  $rule pointwise(dtcfl<-dtmax) {
+    $dtcfl = real($dtmax) ;
+  }
+
+  $rule pointwise(cflmax::dtcfl<-dtmax,cflpdt,cflmax) {
+    $dtcfl = real($dtmax) ;
+    $dtcfl = min($dtcfl,$cflmax/$cflpdt) ;
+  }
+    
   // Compute local timestep by using linearization of change in pressure and temperature by
   // urelax factor
   // using  \delta q = \delta t * \partial q/\partial Q src
-  $rule pointwise(dtau<-vol,src,temperature,gagePressure,u,gamma,urelax,dtmax,Pambient,Rtilde) {
-    real dt = $dtmax ;
-    const real q = 0.5*dot($u,$u) ;
+  $rule pointwise(dtau<-vol,src,temperature,gagePressure,u,gamma,urelax,dtcfl,Pambient,Rtilde,Eta_p) {
+    real dt = $dtcfl ;
+
+    const real rvol = 1./$vol ;
+
     const real p = $gagePressure+$Pambient ;
     const real T = $temperature ;
-    const real gm1 = $gamma -1. ;
-    const real coeft = T/(p*gm1) ;
-    const real coeft2 = T*$Rtilde*gm1 ;
-    const real rvol = 1./$vol ;
-    real factor = rvol*(q*$src[0]-$u.x*$src[1]-$u.y*$src[2]-$u.z*$src[3]+
-			  $src[4]) ;
-    const real trate = coeft*(factor - coeft2*$src[0]) ;
-    dt = min(dt,$urelax*T/(fabs(trate)+1e-30)) ;
-    const real prate = factor/gm1 ;
-    dt = min(dt,$urelax*p/(fabs(prate)+1e-30)) ;
+    const real Rt = $Rtilde ;
+    const real rP = 1./(Rt*T) ;
+    const real rho = ($gagePressure+$Pambient)*rP ;
+    const real rT = -rho/T ;
+    const real g = $gamma ;
+    const vect3d U = $u ;
+    const real q = 0.5*dot(U,U) ;
+    const real fT = rT*q ;
+    const real fP = (1./(g-1) + rP*q) ;
+    const real reta = 1./$Eta_p;
+    const real a2 = g*Rt*T ;
+    const real pterm = (1.-reta)*(g-1.)/a2 ;
+    const real cterm = fP*rT*reta-fT*rP*reta ;
+    const real q2 = 2.*q ;
+    const real dsu = $src[1]*U.x + $src[2]*U.y + $src[3]*U.z ;
+    const real dtemp = rvol*($src[0]*(fP*rT*reta+fT*pterm)+(dsu-$src[4]-q2*$src[0])*(rT*(pterm+rP*reta)))/(cterm*rT) ;
+    dt = min(dt,$urelax*T/(fabs(dtemp)+1e-30)) ;
+    const real dp = rvol*(rT*(q2*$src[0]-dsu+$src[4])-fT*$src[0]) ;
+    dt = min(dt,$urelax*p/(fabs(dp)+1e-30)) ;
     $dtau = dt ;
   }
 
@@ -238,18 +304,18 @@ namespace flowPsi {
 
   // Compute local pressure bias using cfl
   $rule pointwise(localPBias<-cflpdt,dtmax,timePressureBiasControl),
-    constraint(geom_cells,timeStepAccurate) {
+    constraint(geom_cells,timeStepAccurate,timeStepSchemeKEC) {
     real cfl = $cflpdt*real($dtmax) ;
     real factor = min<real>(1.0,max<real>(1e-40,0.1*(cfl-1.))) ;
     $localPBias = max<real>($timePressureBiasControl,pow(factor,0.7)) ;
   }
   
-  $rule pointwise(localPBias_next{n,it=0}),constraint(geom_cells{n},timeStepAccurate) {
+  $rule pointwise(localPBias_next{n,it=0}),constraint(geom_cells{n},timeStepAccurate,timeStepSchemeKEC) {
     $localPBias_next{n,it=0} = 1.0 ;
   }
 
   $rule pointwise(localPBias_next{n,it+1}<-localPBias{n,it}),
-    constraint(geom_cells{n,it},timeStepAccurate) {
+    constraint(geom_cells{n,it},timeStepAccurate,timeStepSchemeKEC) {
     $localPBias_next{n,it+1} = $localPBias{n,it} ;
   }
   
@@ -257,7 +323,7 @@ namespace flowPsi {
   // Time accurate second order scheme using centered variation of
   // Crank-Nicholson
   $rule pointwise(rhs{n,it}<-src{n,it},gagePressure{n},gagePressure{n,it},temperature{n},temperature{n,it},u{n},u{n,it},dtmax{n,it},dtau{n,it},vol{n,it},localPBias{n,it},Pambient,Rtilde,gamma),
-    inplace(rhs{n,it}|src{n,it}),constraint(geom_cells,timeStepAccurate) {
+    inplace(rhs{n,it}|src{n,it}),constraint(geom_cells,timeStepAccurate,timeStepSchemeKEC) {
     const real Tstar = $temperature{n,it} ;
     const real Tn = $temperature{n} ;
     // Use harmonic mean of temperature to define Tstar
@@ -286,4 +352,38 @@ namespace flowPsi {
     $rhs{n,it}[3] = $src{n,it}[3] - (rhonp*unp1.z - rhon*$u{n}.z)*rdtvol ;
     $rhs{n,it}[4] = $src{n,it}[4] - (rhonp*e0np - rhon*e0n)*rdtvol ;
   }
+
+
+  // Compute rhs of Newton step
+  // Time accurate second order scheme using BDF2 time integration
+  $rule pointwise(rhs{n,it}<-src{n,it},gagePressure{n-1},gagePressure{n},gagePressure{n,it},temperature{n-1},temperature{n},temperature{n,it},u{n-1},u{n},u{n,it},dtmax{n,it},dtau{n,it},vol{n,it},Pambient,Rtilde,gamma),
+    inplace(rhs{n,it}|src{n,it}),
+    constraint(geom_cells,timeStepAccurate,timeStepSchemeBDF2) {
+    const real rhon = ($gagePressure{n}+$Pambient)/($Rtilde*$temperature{n}) ;
+    const real rhonm1 = ($gagePressure{n-1}+$Pambient)/($Rtilde*$temperature{n-1}) ;
+    const real rhonp1 = ($gagePressure{n,it}+$Pambient)/($Rtilde*$temperature{n,it}) ;
+
+    const real rdtvol = $vol{n,it}/real($dtmax{n,it}) ;
+    const real w = 0.5 ;
+    const real w1 = (1.0+w)*rdtvol ;
+    const real w2 = w*rdtvol ;
+    $rhs{n,it}[0] = ($src{n,it}[0] - w1*(rhonp1-rhon)+w2*(rhon-rhonm1)) ;
+
+    const vect3d runp1 = rhonp1*$u{n,it} ;
+    const vect3d run = rhon*$u{n} ;
+    const vect3d runm1 = rhonm1*$u{n-1} ;
+
+    $rhs{n,it}[1] = ($src{n,it}[1] - w1*(runp1.x-run.x)+w2*(run.x - runm1.x));
+    $rhs{n,it}[2] = ($src{n,it}[2] - w1*(runp1.y-run.y)+w2*(run.y - runm1.y));
+    $rhs{n,it}[3] = ($src{n,it}[3] - w1*(runp1.z-run.z)+w2*(run.z - runm1.z));
+    const real re0np1 = rhonp1*($Rtilde*$temperature{n,it}/($gamma-1.) +
+			       .5*dot($u{n,it},$u{n,it})) ;
+    const real re0n = rhon*($Rtilde*$temperature{n}/($gamma-1.) +
+			   .5*dot($u{n},$u{n})) ;
+    const real re0nm1 = rhonm1*($Rtilde*$temperature{n-1}/($gamma-1.) +
+			       .5*dot($u{n-1},$u{n-1})) ;
+
+    $rhs{n,it}[4] = ($src{n,it}[4] -w1*(re0np1-re0n)+w2*(re0n-re0nm1)) ;
+  }
+
 }

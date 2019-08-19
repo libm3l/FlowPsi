@@ -31,6 +31,9 @@
 \author{ Edward A. Luke, Xiaoling Tong, and Rex Chamberlain}
 
 \maketitle
+\tableofcontents
+\clearpage
+
 \section{Introduction}
 
 {\em FlowPsi } is an open source CFD solver that is developed
@@ -376,7 +379,7 @@ Similar to restart modulo, except applies to plot files.
 maximumRunTime: 23.5 hour
 \end{verbatim}
 
-\item {\tt newton\_iter}
+\item {\tt newtonMaxIter}
   
   This variable defines the number of Newton iterations performed
   for each time-step.  Typically {\tt 1} for steady-state calculations,
@@ -427,6 +430,10 @@ maximumRunTime: 23.5 hour
   default value for this is 5.0.  This value is typically set
   somewhere between 1-100.  Set it to zero if these compressible
   features should not be encountered.
+
+\item {\tt LDS\_MILES\_filter}
+
+  Select how much third order upwinding to use as a MILES filter for the fourth order skew symmetric flux.  The default setting for this is 10\%.
 
 \item {\tt LDS\_useUpwind}
 

@@ -1,6 +1,6 @@
 //#############################################################################
 //#
-//# Copyright 2015, Mississippi State University
+//# Copyright 2015-2019, Mississippi State University
 //#
 //# This file is part of the flowPsi computational fluid dynamics solver.
 //#
@@ -33,6 +33,9 @@
 #include <fcntl.h>
 
 #include <vector>
+#ifdef LOCI_V5
+#include <GLoci.h>
+#endif
 
 using std::vector ;
 
@@ -54,7 +57,7 @@ namespace flowPsi {
 
   double StartTime = 0 ;
   
-  const char *revision_name = "$Name: rel-1-beta-6 $" ;
+  const char *revision_name = "$Name: rel-1-0-p1 $" ;
 
   std::string version() {
     const char *p = revision_name;
@@ -471,10 +474,16 @@ int main(int ac, char *av[]) {
       exit(-1) ;
     }
     restartDir += "/" ;
+#ifdef LOCI_V5
+    gParam<string> icfile ;
+    *icfile = restartDir ;
+    facts.create_gfact("icfile",icfile) ;
+#else
     param<string> icfile ;
 
     *icfile = restartDir ;
     facts.create_fact("icfile",icfile) ;
+#endif
   }
 
   // Dump out parameters from fact database
