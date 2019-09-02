@@ -1222,11 +1222,7 @@ namespace flowPsi {
     const real factor = $scalarVolDT{n,it};
     const real w = 0.5 ;
     const real w1 = (1.+w)*factor ;
-<<<<<<< HEAD
-    const real w2 = w*factor ;
-=======
     const real w2 = -w*factor ;
->>>>>>> b428388e5d5f1d2df7a3c98168f29e374d71d444
     const real rn = $scalarRhon{n,it} ;
     const real rnm1 = $scalarRhonm1{n,it} ;
      
