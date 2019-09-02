@@ -196,8 +196,7 @@ namespace flowPsi {
     $gvel = vpar;
     int_info.getOptionUnits("Ogust","m/s",vpar,1); 
     $Ogust = vpar;
-  };
-
+    };
 /*
  * add artificial velocity due to 1-cos gust to face velocity
  */
@@ -226,6 +225,9 @@ namespace flowPsi {
        usv.x = $tm3.x * gvel;
        usv.y = $tm3.y * gvel;
        usv.z = $tm3.z * gvel;
+       
+//        std::cout << "------------- GOLBAL intrrr'rrrrrrrrrrrr are  '" << usv <<  endl;
+       
     }else{
        usv = vect3d(0.0, 0.0, 0.0);
     }
