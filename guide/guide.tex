@@ -965,9 +965,14 @@ regions near viscous walls.
 \end{itemize}
 
 \subsection{Gust specification}
-The gust is specified through the input parameters in vars file. 
-So far, the only gust implemented in \emph{flowPsi} are \emph{1-cos}, \emph{step} gust and 
-\emph{tabulated} gust. 
+The gust is specified through the input parameters in vars file.
+A gust model will need to be
+loaded using a {\tt loadModule} directive at the top of the vars file 
+\begin{verbatim}
+loadModule: Gust
+\end{verbatim}
+The gust models implemented in \emph{flowPsi} are the \emph{1-cos} and \emph{step} gust and 
+the \emph{tabulated} gust. 
 The parameters of this gust are specified through a gustSpecification 
 data set in vars file which looks
 
