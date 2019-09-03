@@ -301,6 +301,11 @@ timestepping enabled.  For time-accurate simulations select {\tt
   unsteady} to disable local timestepping and switch to a second order
 temporal integration.
 
+\item {\tt timeStepReset }
+
+This variable resets time to zero when restarting from unsteady solution and {\tt timeStepMode}
+set to {\tt unsteady}. The values are either {\tt no} or {\tt yes}. The default value is {\tt no}.
+
 \item {\tt timePressureBiasControl}
 
 This variable changes how pressure is interpolated in the unsteady

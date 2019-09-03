@@ -198,8 +198,21 @@ namespace flowPsi {
     $stime{n=0} = $ic_stime ;
   }
 
+
+  $type timeStepReset param<string> ;
+  $rule default(timeStepReset) {
+    $timeStepReset = "no" ;
+  }
+  
+  $rule constraint(timeStepRestartReset<-timeStepReset) {
+    $timeStepRestartReset = ~EMPTY ;
+    if($timeStepReset == "yes") {
+      $timeStepRestartReset = EMPTY ;
+    }
+  }
+
   $type icf_stime param<real> ;
-  $rule apply(ic_stime<-icf_stime)[Loci::Maximum],prelude {
+  $rule apply(ic_stime<-icf_stime)[Loci::Maximum],constraint(timeStepRestartReset), prelude {
     *$ic_stime = *$icf_stime ;
   } ;
 
