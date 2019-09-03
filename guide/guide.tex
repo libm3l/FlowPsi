@@ -31,9 +31,26 @@
 \author{ Edward A. Luke, Xiaoling Tong, and Rex Chamberlain}
 
 \maketitle
+
+
+\begin{figure}[htb]
+\begin{center}
+%\includegraphics[width=0.5\textwidth]{FlowFeatures.png}%
+\includegraphics[width=0.4\textwidth]{FIG.jpg}
+%\caption{Geometry of flux stencil formation}
+\end{center}
+\end{figure}
+
+\newpage
 \tableofcontents
 \clearpage
 
+
+\newpage
+\section*{Document revisions}
+- May-2018: Added gust modeling  (added by Adam Jirasek)\\
+
+\newpage
 \section{Introduction}
 
 {\em FlowPsi } is an open source CFD solver that is developed
@@ -690,6 +707,30 @@ cylinder(p1=[1,0,0],p2=[2,0,0],radius=.5)
 
 \end{enumerate}
 
+\subsection{Flow Parameters Specification}
+\begin{enumerate}
+\item {\tt flowRegime }
+
+This sets the type of flow model we will be using.  This will be set
+to either {\tt inviscid}, {\tt laminar}, or {\tt turbulent}.  If the
+setting is {\tt turbulent} then a turbulence model will need to be
+loaded using a {\tt loadModule} directive at the top of the vars file.  
+
+\item {\tt molecularMass}
+
+  Specifies perfect gas mean molecular mass, used to calculate gass universal constant 
+  $R = \frac{R_h}{molecularMass}$ where $R_h$ is universal gas constant and its 
+  values is $R_h=8314.4621$. The default value is $molecularMass = 28.96$
+
+
+\item {\tt gamma}
+  
+  Specifies $\gamma$ constant. The default values is $\gamma=1.4$
+
+
+
+\end{enumerate}
+
 \subsection{Boundary Condition Specifications}
 
 
@@ -922,6 +963,76 @@ searching can provide more accurate interpolations for boundary layer
 regions near viscous walls.
 
 \end{itemize}
+
+\subsection{Gust specification}
+The gust is specified through the input parameters in vars file. 
+So far, the only gust implemented in \emph{flowPsi} are \emph{1-cos}, \emph{step} gust and 
+\emph{tabulated} gust. 
+The parameters of this gust are specified through a gustSpecification 
+data set in vars file which looks
+
+\begin{itemize}
+\item \textbf{1-cos} gust
+
+\begin{verbatim}
+gustSpecification: < type=oneMcos, Lgrad=61.24727674 m, Usg=3 m/s, 
+                     gvel=[102.078794566 m/s, 0, 0], 
+                     gnorm=[0., 1., 0.], Ogust=[-1., 0., 0.] >
+\end{verbatim}
+The parameters in this set are
+\begin{itemize}
+ \item type specifies type of gust. For \emph{1-cos} the type is \textbf{oneMcos}
+ \item Lgrad specifies gradient length of \emph{1-cos} gust
+ \item Usg specifies maximum vertical gust velocity
+ \item gnorm specifies vector normal to gust plane (if gust in is x-z plane, specify [0,1,0])
+ \item Ogust origin of gust 
+\end{itemize}
+
+\item \textbf{step} gust
+
+\begin{verbatim}
+gustSpecification: < type=step, Usg=3 m/s, 
+                     gvel=[102.078794566 m/s, 0, 0], 
+                     gnorm=[0., 1., 0.], Ogust=[-1., 0., 0.] >
+\end{verbatim}
+The parameters in this set are
+\begin{itemize}
+ \item type specifies type of gust. For \emph{step} the type is \textbf{step}
+ \item Usg specifies maximum vertical gust velocity
+ \item gnorm specifies vector normal to gust plane (if gust in is x-z plane, specify [0,1,0])
+ \item Ogust origin of gust 
+\end{itemize}
+
+
+\item \textbf{tabulated} gust
+
+\begin{verbatim}
+gustSpecification: < type=tabulated,
+                     gvel=[102.078794566 m/s, 0, 0], 
+                     gnorm=[0., 1., 0.], Ogust=[-1., 0., 0.] >
+\end{verbatim}
+The parameters in this set are
+\begin{itemize}
+ \item type specifies type of gust. For \emph{tabulated} the type is \textbf{tabulated}
+ \item gnorm specifies vector normal to gust plane (if gust in is x-z plane, specify [0,1,0])
+ \item Ogust origin of gust 
+\end{itemize}
+
+Tabulated gust is provided in file \textbf{gust.dat}. The structure of the file is 
+
+\begin{verbatim}
+npoints
+x u
+. .
+. .
+\end{verbatim}
+
+where \textbf{npoins} is a number of points defining the gust, \textbf{x} and \textbf{u} 
+are position and gust velocity. The tabulated data should be ordered so that 
+the increasing index in x-direction is going against free stream velocity.
+
+\end{itemize}
+
 
 \end{list}
 
@@ -1649,6 +1760,8 @@ Favre averaged while
 
 %%\input{scalar_transport.tex}
 
+
+\input{gust.tex}
 
 
 \bibliography{guide}
