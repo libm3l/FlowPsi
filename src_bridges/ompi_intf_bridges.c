@@ -218,5 +218,5 @@ int ompi_intf_bridges(fact_db &facts){
 # pragma omp barrier            
 }
 //omp_set_num_threads(1);   
-
+return 1;
 }

@@ -170,4 +170,5 @@ int intf_bridges(fact_db &facts){
  */
       test_bridge1(pcomm_str);
   }
+  return 1;
 }

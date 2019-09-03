@@ -1,4 +1,5 @@
 include ../flowpsi.conf
+include $(LOCI_BASE)/sys.conf
 
 #FILES = $(shell find ./ -name "*.c" | sed 's/.\///' )
 FILES = $(shell ls  *.c )
@@ -66,8 +67,8 @@ prog: $(OBJS)
 -include $(OBJS:.o=.d)
 
 %.o: %.c
-	$(CC) -c -O  -Wall -I$(LIBM3LPATH) -I$(LSIPDXPATH) -I$(LOCI_BASE)/include -I../include -$(LIBOPENMPI) $*.c -o $*.o
-	$(CC) -MM -O  -Wall   -I$(LIBM3LPATH) -I$(LSIPDXPATH) -I$(LOCI_BASE)/include -I../include $*.c > $*.d
+	$(CC) -c -O  -Wall -I$(LIBM3LPATH) -I$(LSIPDXPATH) -I$(LOCI_BASE)/include -I$(HDF5_BASE)/include -I../include -$(LIBOPENMPI) $*.c -o $*.o
+	$(CC) -MM -O  -Wall   -I$(LIBM3LPATH) -I$(LSIPDXPATH) -I$(LOCI_BASE)/include -I$(HDF5_BASE)/include -I../include $*.c > $*.d
 	@mv -f $*.d $*.d.tmp
 	@sed -e 's|.*:|$*.o:|' < $*.d.tmp > $*.d
 	@sed -e 's/.*://' -e 's/\\$$//' < $*.d.tmp | fmt -1 | \
