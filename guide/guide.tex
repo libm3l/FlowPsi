@@ -1263,7 +1263,7 @@ grids will be cut along the surface of equal distance between the two
 component surfaces.
 
 
-\subsection{Gust specification}
+\section{Gust specification}
 The gust is specified through the input parameters in vars file.
 A gust model will need to be
 loaded using a {\tt loadModule} directive at the top of the vars file 
@@ -1337,11 +1337,11 @@ the increasing index in x-direction is going against free stream velocity.
 
 \end{itemize}
 
-\subsubsection{Note on gust specification}
+\subsection{Note on gust specification}
 When restarting the analysis with gust, be careful about seting the intial time. If the time is not 0, the 
 initial position of the gust will not be as specified by {\tt Ogust}, the gust will be moved
 according to {\tt Ogust + time * gvel} position. The easiest way is to reset the time upon restart to 
-initial time - see parameter {\tt timeStepReset}.
+initial time by setting parameter {\tt timeStepReset: yes}.
 
 
 \section{{\em FlowPsi} Pre- and Post-processing Utilities}
