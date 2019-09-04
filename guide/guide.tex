@@ -969,81 +969,6 @@ regions near viscous walls.
 
 \end{itemize}
 
-\subsection{Gust specification}
-The gust is specified through the input parameters in vars file.
-A gust model will need to be
-loaded using a {\tt loadModule} directive at the top of the vars file 
-\begin{verbatim}
-loadModule: Gust
-\end{verbatim}
-The gust models implemented in \emph{flowPsi} are the \emph{1-cos} and \emph{step} gust and 
-the \emph{tabulated} gust. 
-The parameters of this gust are specified through a gustSpecification 
-data set in vars file which looks
-
-\begin{itemize}
-\item \textbf{1-cos} gust
-
-\begin{verbatim}
-gustSpecification: < type=oneMcos, Lgrad=61.24727674 m, Usg=3 m/s, 
-                     gvel=[102.078794566 m/s, 0, 0], 
-                     gnorm=[0., 1., 0.], Ogust=[-1., 0., 0.] >
-\end{verbatim}
-The parameters in this set are
-\begin{itemize}
- \item type specifies type of gust. For \emph{1-cos} the type is \textbf{oneMcos}
- \item Lgrad specifies gradient length of \emph{1-cos} gust
- \item Usg specifies maximum vertical gust velocity
- \item gnorm specifies vector normal to gust plane (if gust in is x-z plane, specify [0,1,0])
- \item Ogust origin of gust 
-\end{itemize}
-
-\item \textbf{step} gust
-
-\begin{verbatim}
-gustSpecification: < type=step, Usg=3 m/s, 
-                     gvel=[102.078794566 m/s, 0, 0], 
-                     gnorm=[0., 1., 0.], Ogust=[-1., 0., 0.] >
-\end{verbatim}
-The parameters in this set are
-\begin{itemize}
- \item type specifies type of gust. For \emph{step} the type is \textbf{step}
- \item Usg specifies maximum vertical gust velocity
- \item gnorm specifies vector normal to gust plane (if gust in is x-z plane, specify [0,1,0])
- \item Ogust origin of gust 
-\end{itemize}
-
-
-\item \textbf{tabulated} gust
-
-\begin{verbatim}
-gustSpecification: < type=tabulated,
-                     gvel=[102.078794566 m/s, 0, 0], 
-                     gnorm=[0., 1., 0.], Ogust=[-1., 0., 0.] >
-\end{verbatim}
-The parameters in this set are
-\begin{itemize}
- \item type specifies type of gust. For \emph{tabulated} the type is \textbf{tabulated}
- \item gnorm specifies vector normal to gust plane (if gust in is x-z plane, specify [0,1,0])
- \item Ogust origin of gust 
-\end{itemize}
-
-Tabulated gust is provided in file \textbf{gust.dat}. The structure of the file is 
-
-\begin{verbatim}
-npoints
-x u
-. .
-. .
-\end{verbatim}
-
-where \textbf{npoins} is a number of points defining the gust, \textbf{x} and \textbf{u} 
-are position and gust velocity. The tabulated data should be ordered so that 
-the increasing index in x-direction is going against free stream velocity.
-
-\end{itemize}
-
-
 \end{list}
 
 \subsubsection{ Notes on Vector Value Inputs }
@@ -1336,6 +1261,87 @@ distance of the cell to surfaces from other tagged regions.  Thus
 when the interface surface overlaps geometry from another grid, the
 grids will be cut along the surface of equal distance between the two
 component surfaces.
+
+
+\subsection{Gust specification}
+The gust is specified through the input parameters in vars file.
+A gust model will need to be
+loaded using a {\tt loadModule} directive at the top of the vars file 
+\begin{verbatim}
+loadModule: Gust
+\end{verbatim}
+The gust models implemented in \emph{flowPsi} are the \emph{1-cos} and \emph{step} gust and 
+the \emph{tabulated} gust. 
+The parameters of this gust are specified through a gustSpecification 
+data set in vars file which looks
+
+\begin{itemize}
+\item \textbf{1-cos} gust
+
+\begin{verbatim}
+gustSpecification: < type=oneMcos, Lgrad=61.24727674 m, Usg=3 m/s, 
+                     gvel=[102.078794566 m/s, 0, 0], 
+                     gnorm=[0., 1., 0.], Ogust=[-1., 0., 0.] >
+\end{verbatim}
+The parameters in this set are
+\begin{itemize}
+ \item type specifies type of gust. For \emph{1-cos} the type is \textbf{oneMcos}
+ \item Lgrad specifies gradient length of \emph{1-cos} gust
+ \item Usg specifies maximum vertical gust velocity
+ \item gnorm specifies vector normal to gust plane (if gust in is x-z plane, specify [0,1,0])
+ \item Ogust origin of gust 
+\end{itemize}
+
+\item \textbf{step} gust
+
+\begin{verbatim}
+gustSpecification: < type=step, Usg=3 m/s, 
+                     gvel=[102.078794566 m/s, 0, 0], 
+                     gnorm=[0., 1., 0.], Ogust=[-1., 0., 0.] >
+\end{verbatim}
+The parameters in this set are
+\begin{itemize}
+ \item type specifies type of gust. For \emph{step} the type is \textbf{step}
+ \item Usg specifies maximum vertical gust velocity
+ \item gnorm specifies vector normal to gust plane (if gust in is x-z plane, specify [0,1,0])
+ \item Ogust origin of gust 
+\end{itemize}
+
+
+\item \textbf{tabulated} gust
+
+\begin{verbatim}
+gustSpecification: < type=tabulated,
+                     gvel=[102.078794566 m/s, 0, 0], 
+                     gnorm=[0., 1., 0.], Ogust=[-1., 0., 0.] >
+\end{verbatim}
+The parameters in this set are
+\begin{itemize}
+ \item type specifies type of gust. For \emph{tabulated} the type is \textbf{tabulated}
+ \item gnorm specifies vector normal to gust plane (if gust in is x-z plane, specify [0,1,0])
+ \item Ogust origin of gust 
+\end{itemize}
+
+Tabulated gust is provided in file \textbf{gust.dat}. The structure of the file is 
+
+\begin{verbatim}
+npoints
+x u
+. .
+. .
+\end{verbatim}
+
+where \textbf{npoins} is a number of points defining the gust, \textbf{x} and \textbf{u} 
+are position and gust velocity. The tabulated data should be ordered so that 
+the increasing index in x-direction is going against free stream velocity.
+
+\end{itemize}
+
+\subsubsection{Note on gust specification}
+When restarting the analysis with gust, be careful about seting the intial time. If the time is not 0, the 
+initial position of the gust will not be as specified by {\tt Ogust}, the gust will be moved
+according to {\tt Ogust + time * gvel} position. The easiest way is to reset the time upon restart to 
+initial time - see parameter {\tt timeStepReset}.
 
 
 \section{{\em FlowPsi} Pre- and Post-processing Utilities}

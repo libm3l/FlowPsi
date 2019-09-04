@@ -203,6 +203,8 @@ namespace flowPsi {
   $rule default(timeStepReset) {
     $timeStepReset = "no" ;
   }
+
+  $type timeStepRestartReset Constraint ;
   
   $rule constraint(timeStepRestartReset<-timeStepReset) {
     $timeStepRestartReset = ~EMPTY ;
