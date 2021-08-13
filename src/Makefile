@@ -2,6 +2,8 @@ include ../flowpsi.conf
 include ../revision.conf
 include $(LOCI_BASE)/Loci.conf
 
+FVMADAPT_LIB = -lfvmadaptfunc
+
 #COPTLESS = -O0 -g
 #COPT=$(COPTLESS)
 
@@ -17,7 +19,7 @@ OBJS =  \
 	bcInputs.o bcTurboInterface.o bcTools.o bcInterface.o \
 	bcPrescribed.o bcImpermeable.o bcInflow.o bcOutflow.o \
 	bcIsentropic.o bcFixedMass.o bcFixedMassOutflow.o bcViscousWall.o \
-	solverTimestep.o solverNewton.o solverEoS.o solverIC.o \
+	solverTimestep.o solverRungeKutta.o solverNewton.o solverEoS.o solverIC.o \
 	solverLinearSystem.o solverResidual.o solverRestart.o\
 	solverTurbulence.o solverScalarTransport.o solverPeriodic.o \
 	solverSetup.o solverGravity.o solverAveraging.o solverInterpolate.o \
@@ -28,7 +30,7 @@ OBJS =  \
 
 
 
-LOCAL_LIBS = $(LIBXML2_LIBS) -L$(LOCI_BASE)/lib 
+LOCAL_LIBS = $(LIBXML2_LIBS) -L$(LOCI_BASE)/lib $(FVMADAPT_LIB)
 
 JUNK = *~  core debug .schedule .schedule-*
 

@@ -19,6 +19,7 @@
 //#
 //#############################################################################
 
+// mms stuff	
 $type massGeneralSrc(loc) store<real> ;
 $type momentumGeneralSrc(loc) store<vect3d> ;
 $type energyGeneralSrc(loc) store<real> ;

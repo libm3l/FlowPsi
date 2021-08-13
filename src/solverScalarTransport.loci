@@ -449,6 +449,11 @@ namespace flowPsi {
     $X_f = $interpolateTurboScalar(X) ;
   }
 
+  $type scalarInterpolateToBlankedCells(X1,X2) store<real> ;
+
+  $rule pointwise(OUTPUT<-scalarInterpolateToBlankedCells(X,X_n) ),parametric(scalarTransportP(X,C)) {}
+
+
   $rule pointwise(X_f<-ci->X,area,u_f,us_n,X_bc),constraint(ci->X,C),
 	parametric(scalarTransportP(X,C)) {
     real uit = dot($area.n,$u_f)-$us_n ;
@@ -569,7 +574,6 @@ namespace flowPsi {
     $scalarRhon{n,it} = ($gagePressure{n}+$Pambient{n,it})/
 		    ($Rtilde{n,it}*$temperature{n}) ;
   }
-
 
   $rule pointwise(scalarRhonm1{n,it}<-temperature{n-1},gagePressure{n-1},Rtilde{n,it},Pambient{n,it}) {
     $scalarRhonm1{n,it} = ($gagePressure{n-1}+$Pambient{n,it})/
@@ -1099,6 +1103,11 @@ namespace flowPsi {
     $X_f = $interpolateTurboScalar(X) ;
   }
 
+  $type scalarInterpolateToBlankedCells(X1,X2) store<real> ;
+
+  $rule pointwise(OUTPUT<-scalarInterpolateToBlankedCells(X,X_n) ),parametric(scalarTransport(X,C)) {}
+
+
   $rule pointwise(X_f<-ci->X,area,u_f,us_n,X_bc),constraint(ci->X,C),
 	parametric(scalarTransport(X,C)) {
     real uit = dot($area.n,$u_f)-$us_n ;
@@ -1222,11 +1231,7 @@ namespace flowPsi {
     const real factor = $scalarVolDT{n,it};
     const real w = 0.5 ;
     const real w1 = (1.+w)*factor ;
-<<<<<<< HEAD
-    const real w2 = w*factor ;
-=======
     const real w2 = -w*factor ;
->>>>>>> b428388e5d5f1d2df7a3c98168f29e374d71d444
     const real rn = $scalarRhon{n,it} ;
     const real rnm1 = $scalarRhonm1{n,it} ;
      
