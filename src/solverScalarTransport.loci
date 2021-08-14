@@ -449,6 +449,11 @@ namespace flowPsi {
     $X_f = $interpolateTurboScalar(X) ;
   }
 
+  $type scalarInterpolateToBlankedCells(X1,X2) store<real> ;
+
+  $rule pointwise(OUTPUT<-scalarInterpolateToBlankedCells(X,X_n) ),parametric(scalarTransportP(X,C)) {}
+
+
   $rule pointwise(X_f<-ci->X,area,u_f,us_n,X_bc),constraint(ci->X,C),
 	parametric(scalarTransportP(X,C)) {
     real uit = dot($area.n,$u_f)-$us_n ;
@@ -569,7 +574,6 @@ namespace flowPsi {
     $scalarRhon{n,it} = ($gagePressure{n}+$Pambient{n,it})/
 		    ($Rtilde{n,it}*$temperature{n}) ;
   }
-
 
   $rule pointwise(scalarRhonm1{n,it}<-temperature{n-1},gagePressure{n-1},Rtilde{n,it},Pambient{n,it}) {
     $scalarRhonm1{n,it} = ($gagePressure{n-1}+$Pambient{n,it})/
@@ -1098,6 +1102,11 @@ namespace flowPsi {
     parametric(scalarTransport(X,C)) {
     $X_f = $interpolateTurboScalar(X) ;
   }
+
+  $type scalarInterpolateToBlankedCells(X1,X2) store<real> ;
+
+  $rule pointwise(OUTPUT<-scalarInterpolateToBlankedCells(X,X_n) ),parametric(scalarTransport(X,C)) {}
+
 
   $rule pointwise(X_f<-ci->X,area,u_f,us_n,X_bc),constraint(ci->X,C),
 	parametric(scalarTransport(X,C)) {

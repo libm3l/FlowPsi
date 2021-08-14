@@ -2,11 +2,13 @@ include ../flowpsi.conf
 include ../revision.conf
 include $(LOCI_BASE)/Loci.conf
 
+FVMADAPT_LIB = -lfvmadaptfunc
+
 #COPTLESS = -O0 -g
 #COPT=$(COPTLESS)
 
 
-INCLUDES = -I../include -I$(LIBM3LPATH) -I$(LSIPDXPATH) -I../src_bridges
+INCLUDES = -I../include
 
 
 TARGET = flowpsi
@@ -17,19 +19,18 @@ OBJS =  \
 	bcInputs.o bcTurboInterface.o bcTools.o bcInterface.o \
 	bcPrescribed.o bcImpermeable.o bcInflow.o bcOutflow.o \
 	bcIsentropic.o bcFixedMass.o bcFixedMassOutflow.o bcViscousWall.o \
-	solverTimestep.o solverNewton.o solverExternalComm.o solverEoS.o solverIC.o \
+	solverTimestep.o solverRungeKutta.o solverNewton.o solverEoS.o solverIC.o \
 	solverLinearSystem.o solverResidual.o solverRestart.o\
 	solverTurbulence.o solverScalarTransport.o solverPeriodic.o \
 	solverSetup.o solverGravity.o solverAveraging.o solverInterpolate.o \
-	solverICInterpolate.o solverForcesMoments.o\
+	solverICInterpolate.o \
 	IOplot.o IOintegrated.o IOgrid.o IOprobe.o IOClipSurfaces.o \
 	linearSolverSGS.o linearSolverFSGS.o linearSolverLSGS.o \
-	fluxInviscid.o fluxLowDiss.o fluxViscous.o intrfstuff.o \
-	tmpRulesTester.o addOutput.o
+	fluxInviscid.o fluxLowDiss.o fluxViscous.o
 
 
 
-LOCAL_LIBS = $(LIBXML2_LIBS) -L$(LOCI_BASE)/lib ../src_bridges/libbridges.a
+LOCAL_LIBS = $(LIBXML2_LIBS) -L$(LOCI_BASE)/lib $(FVMADAPT_LIB)
 
 JUNK = *~  core debug .schedule .schedule-*
 
@@ -41,7 +42,7 @@ all:
 
 
 $(TARGET): $(OBJS) 
-	$(LD) -o  $(TARGET) $(RPATH)$(FLOWPSI_RPATH) $(OBJS) $(LOCAL_LIBS) $(LIBS) $(LIBSLM3LLSPDX) $(LDFLAGS)
+	$(LD) -o  $(TARGET)  $(RPATH)$(FLOWPSI_RPATH) $(OBJS) $(LOCAL_LIBS) $(LIBS) $(LDFLAGS)
 	mv flowpsi ../bin/flowpsi
 
 FRC : 

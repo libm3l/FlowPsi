@@ -317,6 +317,9 @@ $type prescribedCG_X param<vect3d> ;
 $type timeStepSteadyState Constraint ;
 $type timeStepAccurate Constraint ;
 
+$type timeStepImplicit Constraint ;
+$type timeStepExplicit Constraint ;
+
 $type timeStepSchemeBDF2 Constraint ;
 $type timeStepSchemeKEC Constraint ;
 
