@@ -84,9 +84,7 @@ $rule optional(componentMRF),
     $componentMRFMotionTypes->insert(string("rotation")) ;
     $componentMRFMotionTypes->insert(string("stationary")) ;
   } ;
-/*
- * set type of mesh motion - rotation or stationary
- */
+
 $rule constraint(componentMRFRotation_X,componentMRFStationary_X<-volumeTag(X),componentMRF,componentMRFMotionTypes),
     parametric(volumeTag(X)) {
     string tag = $volumeTag(X) ;
@@ -117,9 +115,7 @@ $rule constraint(componentMRFRotation_X,componentMRFStationary_X<-volumeTag(X),c
   $type componentMRFRotationCenter_X param<vect3d> ;
   $type componentMRFRotationSpeed_X param<real> ;
   $type componentName_X blackbox<string> ;
-/*
- * set some components of rotation - rotation axes, rotational speed and center
- */
+
   $rule singleton(componentMRFRotationAxis_X,componentMRFRotationCenter_X,
                   componentMRFRotationSpeed_X<-componentMRF,componentName_X),
     constraint(componentMRFRotation_X), parametric(volumeTag(X)) {
@@ -260,9 +256,7 @@ $rule constraint(componentMRFRotation_X,componentMRFStationary_X<-volumeTag(X),c
     real dt = $componentMRFData_X.second ;
     $us_n = .25*us_n_int/(3.*$area.sada*dt) ;
   }
-/*
- * seems like grid velocity on faces
- */
+
   $rule pointwise(MRF::us<-face2node->pos,us_n,area,componentMRFData_X),
     constraint(area,componentMRFData_X,face2node->componentNodes_X),parametric(volumeTag(X)) {
     componentXform xform = $componentMRFData_X.first ;

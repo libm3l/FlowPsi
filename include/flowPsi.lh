@@ -178,6 +178,7 @@ $type stime             param<flowPsi::real> ; // simulation time
 $type ncycle            param<int> ; // simulation iteration number
 $type newtonMaxIter     param<int> ;
 $type newtonFinished    param<bool> ;
+$type rkFinished        param<bool> ;
 $type lastNewton        param<bool> ;
 $type urelax            param<flowPsi::real> ;
 $type dtmax             param<flowPsi::TimeValue> ;
@@ -292,28 +293,6 @@ $type vect3dFavreCoVarBase_f(X) store<flowPsi::vect3d> ;
 $type scalarTransportP(X,C) store<flowPsi::real> ;
 $type scalarTransport(X,C) store<flowPsi::real> ;
 
-
-/*
- * global data  (need to check if there is no duplicity to above declared variables)
- * - forces, moments
- * - euler angles
- */
-$type global_visc_force param<flowPsi::vect3d> ;
-$type global_invisc_force param<flowPsi::vect3d> ;
-$type global_angles     param<flowPsi::vect3d> ;
-$type global_displ      param<flowPsi::vect3d> ;
-$type global_rot_center param<flowPsi::vect3d> ;
-
-/*
- * external interfaces data sets
- */
-$type ext_interfaces param<Loci::options_list> ;
-$type comm_freq   param<int> ;
-$type prescribedCG_X param<vect3d> ;
-
-
-
-
 $type timeStepSteadyState Constraint ;
 $type timeStepAccurate Constraint ;
 
@@ -395,6 +374,8 @@ $type movingMesh store<bool> ;
 $type coriolis param<coriolis_options> ;
 $type gauss_seidel_iter param<int> ;
   
-$type gustSpecification param<Loci::options_list> ;
-$type Gust param<bool>;
+
+
+
+
 
